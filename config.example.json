@@ -1,0 +1,9 @@
+{
+  "target_dir": "../../src",
+  "split_depth": 3,
+  "output_dir": "public/data",
+  "extensions": [".rs", ".ts", ".tsx"],
+  "exclude": ["target", "node_modules", ".git", "dist"],
+  "last_commit": null,
+  "last_run": null
+}
