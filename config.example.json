@@ -1,9 +1,9 @@
 {
-  "target_dir": "../../src",
-  "split_depth": 3,
+  "target_dir": "backend/src/lib",
+  "split_depth": 2,
   "output_dir": "public/data",
-  "extensions": [".rs", ".ts", ".tsx"],
-  "exclude": ["target", "node_modules", ".git", "dist"],
+  "extensions": [".rs"],
+  "exclude": ["**/tests/**", "**/test_*.rs"],
   "last_commit": null,
   "last_run": null
 }

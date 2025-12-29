@@ -1,29 +1,6 @@
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-
-# Project-specific (not tracked)
-config.json
-public/data/*
+public/data/
 !public/data/.gitkeep
+config.json
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-
-# Environment
-.env
-.env.local
-.env.*.local
+node_modules
+dist
