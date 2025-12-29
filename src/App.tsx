@@ -5,8 +5,8 @@
  * すべてのコンポーネントを統合し、グローバル状態とデータフローを管理する
  */
 
-import { useState, useCallback } from 'react';
-import type { SourceFile, ItemId } from './types/schema';
+import { useState, useCallback, useMemo } from 'react';
+import type { SourceFile, ItemId, CodeItem } from './types/schema';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useTreeState } from './hooks/useTreeState';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
@@ -21,6 +21,8 @@ import { DetailPanel } from './components/detail/DetailPanel';
 import { GraphView } from './components/graph/GraphView';
 import { GraphToolbar } from './components/graph/GraphToolbar';
 import { NodePopup } from './components/graph/NodePopup';
+import { buildIndex } from './services/callersIndexer';
+import type { CallersIndex } from './types/callers';
 
 /**
  * タブの種類
@@ -73,6 +75,44 @@ function App() {
 
   // ノード中心表示用の状態（変更されるとGraphViewが該当ノードを中心に表示）
   const [centerNodeId, setCenterNodeId] = useState<string | null>(null);
+
+  // CallersIndex の構築
+  const callersIndex = useMemo<CallersIndex | null>(() => {
+    if (!graphData) return null;
+
+    // CytoscapeData から CallGraphChunk 形式に変換
+    const chunks = [{
+      source_dirs: [],
+      generated_at: new Date().toISOString(),
+      nodes: graphData.nodes.map(node => ({
+        id: node.data.id as ItemId,
+        file: node.data.file,
+        line: node.data.line,
+      })),
+      edges: graphData.edges.map(edge => ({
+        from: edge.data.source as ItemId,
+        to: edge.data.target as ItemId,
+        call_site: {
+          file: edge.data.callSite.file,
+          line: edge.data.callSite.line,
+        },
+      })),
+      external_refs: [],
+    }];
+
+    return buildIndex(chunks);
+  }, [graphData]);
+
+  // CodeItems マップの構築（useMemoで最適化）
+  const codeItems = useMemo<Map<ItemId, CodeItem>>(() => {
+    const itemsMap = new Map<ItemId, CodeItem>();
+    if (currentFile) {
+      for (const item of currentFile.items) {
+        itemsMap.set(item.id, item);
+      }
+    }
+    return itemsMap;
+  }, [currentFile]);
 
   /**
    * ファイル選択時のハンドラ
@@ -137,6 +177,7 @@ function App() {
   const handleHoverGraphNode = useCallback(() => {
     // 将来的にホバー時の詳細表示に使用
   }, []);
+
 
   // 初期ロード中の表示
   if (isLoading && !index) {
@@ -236,6 +277,8 @@ function App() {
                   file={currentFile}
                   selectedItemId={selectedItemId}
                   onSelectItem={handleSelectItem}
+                  callersIndex={callersIndex}
+                  codeItems={codeItems}
                 />
               )}
 
@@ -287,6 +330,7 @@ function App() {
                   )}
                 </div>
               )}
+
             </div>
           </MainContent>
         </div>
