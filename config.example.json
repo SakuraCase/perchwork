@@ -4,6 +4,7 @@
   "output_dir": "public/data",
   "extensions": [".rs"],
   "exclude": ["**/tests/**", "**/test_*.rs"],
+  "language": "ja",
   "last_commit": null,
   "last_run": null
 }

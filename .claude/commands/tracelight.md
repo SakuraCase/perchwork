@@ -27,13 +27,15 @@ description: コードベースを解析し構造化JSONを生成
   - `--target <dir>`: 対象ディレクトリ（config.json の target_dir を上書き）
   - `--full`: 全体再生成（差分更新ではなく全ファイル解析）
   - `--since <commit>`: 差分の基準コミット（config.json の last_commit を上書き）
+  - `--lang <ja|en>`: 出力言語（config.json の language を上書き）
 
 ## 実行フロー
 
 1. **設定読み込み**
 
    - config.json を読み込む
-   - `target_dir`, `split_depth`, `extensions`, `exclude` 設定を取得
+   - `target_dir`, `split_depth`, `extensions`, `exclude`, `language` 設定を取得
+   - `language` のデフォルトは `"ja"`（日本語）
    - `$ARGUMENTS` でオプションが指定されていれば上書き
 
 2. **対象ファイル特定**
@@ -47,7 +49,7 @@ description: コードベースを解析し構造化JSONを生成
    - 対象ファイルの拡張子から言語を判定（SKILL.md の Language Detection 参照）
    - 言語別スキル（rust.md, typescript.md）を参照して解析:
      - 関数/構造体/クラス/インターフェース等を抽出
-     - 1 行概要と責務説明を生成
+     - 1 行概要と責務説明を `language` 設定に従って生成（ja=日本語, en=英語）
      - テスト関数との紐付けを解析
      - 呼び出し関係を解析
 

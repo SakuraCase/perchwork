@@ -8,7 +8,10 @@ export type ErrorType =
   | 'TargetDirNotFound'
   | 'GitNotAvailable'
   | 'SchemaValidationError'
-  | 'LLMError';
+  | 'LLMError'
+  | 'DataNotFound'
+  | 'ParseError'
+  | 'NetworkError';
 
 /**
  * tracelight 基底エラークラス
@@ -78,12 +81,40 @@ export class LLMError extends TracelightError {
 }
 
 /**
+ * データが見つからないエラー
+ */
+export class DataNotFoundError extends TracelightError {
+  constructor(path: string) {
+    super('DataNotFound', `Data file not found: ${path}`);
+  }
+}
+
+/**
+ * JSONパースエラー
+ */
+export class ParseError extends TracelightError {
+  constructor(path: string, details?: unknown) {
+    super('ParseError', `Failed to parse JSON file: ${path}`, details);
+  }
+}
+
+/**
+ * ネットワークエラー
+ */
+export class NetworkError extends TracelightError {
+  constructor(url: string, details?: unknown) {
+    super('NetworkError', `Network request failed: ${url}`, details);
+  }
+}
+
+/**
  * エラーがリカバリー可能かどうかを判定
  */
 export function isRecoverable(error: TracelightError): boolean {
   switch (error.type) {
     case 'ConfigNotFound':
     case 'TargetDirNotFound':
+    case 'DataNotFound':
       return false;  // 処理中断
     case 'GitNotAvailable':
       return true;   // フォールバック可能
@@ -91,6 +122,9 @@ export function isRecoverable(error: TracelightError): boolean {
       return true;   // 該当項目スキップ
     case 'LLMError':
       return error instanceof LLMError && error.retryCount < 3;  // 3回までリトライ
+    case 'ParseError':
+    case 'NetworkError':
+      return false;  // 処理中断
     default:
       return false;
   }

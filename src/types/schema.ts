@@ -7,9 +7,41 @@
 // ============================================
 
 /**
- * メインインデックスファイル
+ * メインインデックスファイル（Phase 1暫定形式）
+ *
+ * 注: 将来的には完全なIndexFileFormatに移行予定
  */
 export interface IndexFile {
+  /** バージョン情報 */
+  version: string;
+
+  /** 生成日時（ISO 8601形式） */
+  generated_at: string;
+
+  /** ターゲットディレクトリ */
+  target_dir: string;
+
+  /** ファイル一覧（文字列パスの配列） */
+  files: string[];
+
+  /** 統計情報 */
+  stats: {
+    total_files: number;
+    total_functions: number;
+    total_structs: number;
+    total_enums: number;
+    total_traits: number;
+    total_consts: number;
+    total_modules: number;
+  };
+}
+
+/**
+ * 完全なインデックスファイル形式（将来の仕様）
+ *
+ * 現在は使用していないが、Phase 1のジェネレーター改善時に使用予定
+ */
+export interface IndexFileFormat {
   /** スキーマバージョン（セマンティックバージョニング） */
   schema_version: `${number}.${number}.${number}`;
 
@@ -45,7 +77,7 @@ export interface IndexFile {
 }
 
 /**
- * ファイルエントリ
+ * ファイルエントリ（完全な形式）
  */
 export interface FileEntry {
   /** public/data からの相対パス */
