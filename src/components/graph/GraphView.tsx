@@ -108,10 +108,9 @@ export function GraphView({
     // フィルタリングされたノードのIDセット
     const nodeIds = new Set(nodes.map((node) => node.data.id));
 
-    // エッジをフィルタリング（両端のノードが存在するもののみ）
-    edges = edges.filter(
-      (edge) => nodeIds.has(edge.data.source) && nodeIds.has(edge.data.target)
-    );
+    // エッジをフィルタリング（sourceノードが存在するもののみ）
+    // Note: targetは完全なIDではなく関数名のみの場合があるため、sourceのみでフィルタ
+    edges = edges.filter((edge) => nodeIds.has(edge.data.source));
 
     // 孤立ノード除外
     if (!filter.includeIsolated) {
@@ -287,8 +286,12 @@ export function GraphView({
 
   useEffect(() => {
     if (!containerRef.current) {
+      console.log('[GraphView] Container ref is null');
       return;
     }
+
+    console.log('[GraphView] Initializing with', filteredData.nodes.length, 'nodes,', filteredData.edges.length, 'edges');
+    console.log('[GraphView] Container size:', containerRef.current.clientWidth, 'x', containerRef.current.clientHeight);
 
     // Cytoscape インスタンスを初期化
     const cy = cytoscape({
@@ -334,16 +337,18 @@ export function GraphView({
       onHoverNodeRef.current?.(null);
     });
 
-    // 初期レイアウト適用
-    const layoutConfig = getCytoscapeLayout(layout);
+    // 初期レイアウト適用（アニメーションなしで即時実行）
+    const layoutConfig = {
+      ...getCytoscapeLayout(layout),
+      animate: false, // React Strict Mode での再レンダリング問題を回避
+    };
     cy.layout(layoutConfig).run();
 
     // クリーンアップ
     return () => {
-      // イベントリスナーを削除してからレイアウトを停止
+      // イベントリスナーを削除
       cy.removeAllListeners();
-      // レイアウトアニメーションを停止してから破棄
-      cy.stop();
+      // 破棄
       cy.destroy();
       cyRef.current = null;
     };

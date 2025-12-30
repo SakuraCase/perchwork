@@ -131,21 +131,8 @@ export interface GraphFilter {
 }
 
 // ============================================
-// call_graph データ形式（実データ対応）
+// call_graph データ形式
 // ============================================
-
-/**
- * call_graph/index.json の形式
- *
- * ノード一覧とエッジファイルへの参照を含む
- */
-export interface CallGraphIndexData {
-  /** ノードID一覧（ItemIdの配列） */
-  nodes: string[];
-
-  /** エッジファイルのパス一覧（省略時はedges.jsonをデフォルトで使用） */
-  edges_files?: string[];
-}
 
 /**
  * call_graph/edges.json の形式
@@ -153,6 +140,12 @@ export interface CallGraphIndexData {
  * エッジ（呼び出し関係）の配列を含む
  */
 export interface CallGraphEdgesData {
+  /** 生成日時 */
+  generated_at: string;
+
+  /** 総エッジ数 */
+  total_edges: number;
+
   /** エッジ配列 */
   edges: CallGraphEdgeData[];
 }
@@ -164,11 +157,14 @@ export interface CallGraphEdgeData {
   /** 呼び出し元のアイテムID */
   from: string;
 
-  /** 呼び出し先のアイテムID */
+  /** 呼び出し先の関数/メソッド名 */
   to: string;
 
-  /** エッジの種類（常に "calls"） */
-  type: 'calls';
+  /** 呼び出しが発生したファイル名 */
+  file: string;
+
+  /** 呼び出しが発生した行番号 */
+  line: number;
 }
 
 // ============================================

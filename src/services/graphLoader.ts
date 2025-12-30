@@ -3,7 +3,6 @@
  */
 
 import type {
-  CallGraphIndexData,
   CallGraphEdgesData,
   CytoscapeData,
   CytoscapeNode,
@@ -18,41 +17,20 @@ import {
 import * as cacheManager from './cacheManager';
 
 /**
- * call_graph/index.json を取得する
- * @returns コールグラフインデックスデータ
- * @throws {DataNotFoundError} ファイルが見つからない場合
- * @throws {ParseError} JSONパースに失敗した場合
- * @throws {NetworkError} ネットワークエラーが発生した場合
- */
-export async function loadCallGraphIndex(): Promise<CallGraphIndexData> {
-  const cacheKey = 'call_graph_index';
-  const cached = cacheManager.get<CallGraphIndexData>(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  const data = await fetchJson<CallGraphIndexData>('/data/call_graph/index.json');
-  cacheManager.set(cacheKey, data);
-  return data;
-}
-
-/**
- * call_graph のエッジファイルを取得する
- * @param filename - エッジファイル名（例: "edges.json"）
+ * call_graph/edges.json を取得する
  * @returns エッジデータ
  * @throws {DataNotFoundError} ファイルが見つからない場合
  * @throws {ParseError} JSONパースに失敗した場合
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
-export async function loadCallGraphEdges(filename: string): Promise<CallGraphEdgesData> {
-  const cacheKey = `call_graph_edges_${filename}`;
+export async function loadCallGraphEdges(): Promise<CallGraphEdgesData> {
+  const cacheKey = 'call_graph_edges';
   const cached = cacheManager.get<CallGraphEdgesData>(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const path = `/data/call_graph/${filename}`;
-  const data = await fetchJson<CallGraphEdgesData>(path);
+  const data = await fetchJson<CallGraphEdgesData>('/data/call_graph/edges.json');
   cacheManager.set(cacheKey, data);
   return data;
 }
@@ -104,21 +82,24 @@ async function loadSplitFile(path: string): Promise<SplitFile> {
 async function buildItemMap(): Promise<Map<string, CodeItem>> {
   const index = await loadMainIndex();
   const itemMap = new Map<string, CodeItem>();
+  console.log('[buildItemMap] Loading', index.files.length, 'files');
 
   // 全分割ファイルを読み込んでアイテムマップを構築
-  for (const filePath of index.files) {
-    const splitFile = await loadSplitFile(filePath);
+  for (const fileEntry of index.files) {
+    const splitFile = await loadSplitFile(fileEntry.path);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawFile = splitFile as any;
 
     // SplitFileの構造: { path, language, items: CodeItem[] } の場合
     // または { files: SourceFile[] } の場合
-    if ('items' in splitFile && Array.isArray(splitFile.items)) {
+    if ('items' in rawFile && Array.isArray(rawFile.items)) {
       // 直接items配列を持つ形式
-      for (const item of splitFile.items) {
+      for (const item of rawFile.items) {
         itemMap.set(item.id, item);
       }
-    } else if ('files' in splitFile && Array.isArray(splitFile.files)) {
+    } else if ('files' in rawFile && Array.isArray(rawFile.files)) {
       // files配列を持つ形式
-      for (const sourceFile of splitFile.files) {
+      for (const sourceFile of rawFile.files) {
         for (const item of sourceFile.items) {
           itemMap.set(item.id, item);
         }
@@ -126,7 +107,15 @@ async function buildItemMap(): Promise<Map<string, CodeItem>> {
     }
   }
 
+  console.log('[buildItemMap] Total items loaded:', itemMap.size);
   return itemMap;
+}
+
+/**
+ * テスト関数のIDかどうかを判定
+ */
+function isTestId(id: string): boolean {
+  return id.endsWith('::test') || id.includes('::test_');
 }
 
 /**
@@ -137,15 +126,28 @@ async function buildItemMap(): Promise<Map<string, CodeItem>> {
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
 export async function loadFullGraph(): Promise<CytoscapeData> {
-  // コールグラフインデックスを読み込む
-  const graphIndex = await loadCallGraphIndex();
+  // エッジデータを読み込む
+  const edgesData = await loadCallGraphEdges();
+  console.log('[graphLoader] Loaded edges:', edgesData.edges.length);
 
   // アイテムマップを構築（ノード詳細情報取得用）
   const itemMap = await buildItemMap();
+  console.log('[graphLoader] Built itemMap:', itemMap.size);
+
+  // テストを除外したエッジをフィルタ
+  const filteredEdges = edgesData.edges.filter(edge => !isTestId(edge.from));
+  console.log('[graphLoader] Filtered edges (non-test):', filteredEdges.length);
+
+  // エッジからノードIDを収集
+  const nodeIds = new Set<string>();
+  for (const edge of filteredEdges) {
+    nodeIds.add(edge.from);
+    // toはメソッド名だけの場合があるのでノードとしては追加しない
+  }
 
   // ノード配列を構築
   const nodes: CytoscapeNode[] = [];
-  for (const nodeId of graphIndex.nodes) {
+  for (const nodeId of nodeIds) {
     const item = itemMap.get(nodeId);
     if (!item) {
       // アイテム情報が見つからない場合は基本情報のみで構築
@@ -167,35 +169,60 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
         label: item.name,
         type: item.type,
         file: extractFilePathFromItem(item),
-        line: item.line,
+        line: item.line_start,
       },
     });
   }
 
-  // エッジ配列を構築
-  const edges: CytoscapeEdge[] = [];
-
-  // edges_files が存在する場合はそれらを読み込む
-  // 存在しない場合は直接 edges.json を読み込む（実データ対応）
-  const edgeFiles = graphIndex.edges_files || ['edges.json'];
-
-  for (const edgeFile of edgeFiles) {
-    const edgesData = await loadCallGraphEdges(edgeFile);
-    for (const edge of edgesData.edges) {
-      edges.push({
-        data: {
-          id: `${edge.from}->${edge.to}`,
-          source: edge.from,
-          target: edge.to,
-          callSite: {
-            file: 'unknown', // エッジデータには含まれていないため不明
-            line: 0,
-          },
-        },
-      });
+  // ノード名からIDへのマッピングを構築（内部呼び出しの解決用）
+  // 例: "BattleState::new" -> "battle_state.rs::BattleState::new::method"
+  const nameToIdMap = new Map<string, string>();
+  for (const nodeId of nodeIds) {
+    // IDからメソッド/関数名を抽出（例: "battle_state.rs::BattleState::new::method" -> "BattleState::new"）
+    const parts = nodeId.split('::');
+    if (parts.length >= 3) {
+      // 型名::メソッド名 の形式でマッピング
+      const typeName = parts[parts.length - 3]; // 型名
+      const methodName = parts[parts.length - 2]; // メソッド/関数名
+      const key = `${typeName}::${methodName}`;
+      nameToIdMap.set(key, nodeId);
+      // メソッド名のみでもマッピング
+      nameToIdMap.set(methodName, nodeId);
     }
   }
 
+  // エッジ配列を構築（ターゲットが解決できるもののみ）
+  const edges: CytoscapeEdge[] = [];
+  for (const edge of filteredEdges) {
+    // ターゲットを解決
+    let targetId = edge.to;
+
+    // 完全なIDとしてマッチするか
+    if (!nodeIds.has(targetId)) {
+      // 名前でマッチを試みる
+      const resolved = nameToIdMap.get(edge.to);
+      if (resolved) {
+        targetId = resolved;
+      } else {
+        // 解決できない場合はスキップ（外部呼び出し）
+        continue;
+      }
+    }
+
+    edges.push({
+      data: {
+        id: `${edge.from}->${targetId}@${edge.line}`,
+        source: edge.from,
+        target: targetId,
+        callSite: {
+          file: edge.file,
+          line: edge.line,
+        },
+      },
+    });
+  }
+
+  console.log('[graphLoader] Final result - nodes:', nodes.length, 'edges:', edges.length, '(filtered from', filteredEdges.length, 'edges)');
   return { nodes, edges };
 }
 

@@ -140,7 +140,7 @@ export function useImpactAnalysis(
               id: testId,
               name: testItem?.name || testId,
               file: extractFileFromId(testId),
-              line: testItem?.line || 0,
+              line: testItem?.line_start || 0,
               sourceItem: analysisTargetId,
               isDirect: true,
             };
@@ -166,7 +166,7 @@ export function useImpactAnalysis(
                   id: testId,
                   name: testItem?.name || testId,
                   file: extractFileFromId(testId),
-                  line: testItem?.line || 0,
+                  line: testItem?.line_start || 0,
                   sourceItem: itemId,
                   isDirect: false,
                 });

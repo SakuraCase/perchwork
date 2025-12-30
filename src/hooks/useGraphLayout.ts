@@ -47,7 +47,7 @@ const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
  */
 const DEFAULT_FILTER: GraphFilter = {
   directories: [],
-  types: ['struct', 'fn', 'trait', 'enum', 'type'],
+  types: ['struct', 'fn', 'trait', 'enum', 'type', 'method', 'impl'],
   includeIsolated: true,
   maxDepth: 0, // 0 = 無制限
 };
@@ -201,6 +201,11 @@ function loadFilter(): GraphFilter {
       const parsed = JSON.parse(stored) as GraphFilter;
       // バリデーション: 必須フィールドが存在するか確認
       if (validateFilter(parsed)) {
+        // 互換性チェック: 新しいタイプ（method, impl）が含まれていない場合はデフォルトにリセット
+        if (!parsed.types.includes('method') || !parsed.types.includes('impl')) {
+          console.log('[useGraphLayout] Resetting filter to include new types (method, impl)');
+          return DEFAULT_FILTER;
+        }
         return parsed;
       }
     }

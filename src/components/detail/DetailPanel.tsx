@@ -337,8 +337,8 @@ export function DetailPanel({
                 <p className="text-sm text-gray-400 line-clamp-2">{item.summary}</p>
                 {/* 行番号 */}
                 <p className="text-xs text-gray-600 mt-1">
-                  L{item.line}
-                  {item.end_line && ` - L${item.end_line}`}
+                  L{item.line_start}
+                  {item.line_end && ` - L${item.line_end}`}
                 </p>
               </button>
             ))}

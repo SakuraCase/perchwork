@@ -3,7 +3,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import type { IndexFile } from '../types/schema';
+import type { IndexFile, IndexFileEntry } from '../types/schema';
 import type { TreeNode } from '../types/ui';
 
 /**
@@ -55,19 +55,19 @@ export function useTreeState(index: IndexFile | null) {
 }
 
 /**
- * ファイルパス文字列の配列からツリー構造を構築
+ * ファイルエントリの配列からツリー構造を構築
  *
- * @param files - ファイルパス文字列の配列
+ * @param files - ファイルエントリの配列
  * @param expandedPaths - 展開中のパスのセット
  * @returns ツリーノードの配列
  */
-function buildTreeFromFiles(files: string[], expandedPaths: Set<string>): TreeNode[] {
+function buildTreeFromFiles(files: IndexFileEntry[], expandedPaths: Set<string>): TreeNode[] {
   // ルートノードを保持するマップ (path -> TreeNode)
   const nodeMap = new Map<string, TreeNode>();
 
-  for (const filePath of files) {
+  for (const fileEntry of files) {
     // パスを正規化（先頭と末尾のスラッシュを除去）
-    const normalizedPath = normalizePath(filePath);
+    const normalizedPath = normalizePath(fileEntry.path);
 
     // パスをセグメントに分割（例: "domain/core/entity/unit.json" -> ["domain", "core", "entity", "unit.json"]）
     const segments = normalizedPath.split('/');
@@ -90,7 +90,7 @@ function buildTreeFromFiles(files: string[], expandedPaths: Set<string>): TreeNo
         type: isFile ? 'file' : 'directory',
         path: currentPath,
         children: isFile ? undefined : [],
-        itemCount: undefined, // Phase 1形式ではitem_countが含まれていない
+        itemCount: isFile ? fileEntry.items : undefined,
         isLoaded: false,
         isExpanded: expandedPaths.has(currentPath),
       };

@@ -7,9 +7,21 @@
 // ============================================
 
 /**
- * メインインデックスファイル（Phase 1暫定形式）
- *
- * 注: 将来的には完全なIndexFileFormatに移行予定
+ * ファイルエントリ（index.json内）
+ */
+export interface IndexFileEntry {
+  /** ファイルパス（例: "entity/battle_state.json"） */
+  path: string;
+
+  /** アイテム数 */
+  items: number;
+
+  /** テスト数 */
+  tests: number;
+}
+
+/**
+ * メインインデックスファイル
  */
 export interface IndexFile {
   /** バージョン情報 */
@@ -21,18 +33,15 @@ export interface IndexFile {
   /** ターゲットディレクトリ */
   target_dir: string;
 
-  /** ファイル一覧（文字列パスの配列） */
-  files: string[];
+  /** ファイル一覧 */
+  files: IndexFileEntry[];
 
   /** 統計情報 */
   stats: {
     total_files: number;
-    total_functions: number;
-    total_structs: number;
-    total_enums: number;
-    total_traits: number;
-    total_consts: number;
-    total_modules: number;
+    total_items: number;
+    total_tests: number;
+    total_edges?: number;
   };
 }
 
@@ -151,19 +160,19 @@ export interface CodeItem {
   name: string;
 
   /** 開始行番号 */
-  line: number;
+  line_start: number;
 
   /** 終了行番号（オプション） */
-  end_line?: number;
+  line_end?: number;
 
   /** シグネチャ（関数の場合は引数と戻り値を含む） */
   signature: string;
 
-  /** 1行概要 */
-  summary: string;
+  /** 1行概要（セマンティック情報、Phase 2出力でマージ） */
+  summary?: string;
 
-  /** 責務説明 */
-  responsibility: string;
+  /** 責務説明（セマンティック情報、Phase 2出力でマージ） */
+  responsibility?: string;
 
   /** 可視性 */
   visibility?: 'pub' | 'pub(crate)' | 'pub(super)' | 'private';
@@ -287,4 +296,53 @@ export interface SearchIndex {
 
   /** トークン → アイテムIDリストのマッピング */
   tokens: Record<string, ItemId[]>;
+}
+
+// ============================================
+// semantic/*.json（Phase 2 LLM出力）
+// ============================================
+
+/**
+ * セマンティックファイル（Phase 2 出力）
+ */
+export interface SemanticFile {
+  /** ソースファイルパス */
+  path: string;
+
+  /** 生成日時（ISO 8601形式） */
+  generated_at?: string;
+
+  /** アイテムの意味情報 */
+  items: SemanticItem[];
+
+  /** テストの意味情報 */
+  tests: SemanticTest[];
+}
+
+/**
+ * アイテムの意味情報
+ */
+export interface SemanticItem {
+  /** 対応するアイテムのID */
+  id: ItemId;
+
+  /** 1行説明（最大50文字） */
+  summary: string;
+
+  /** 責務説明（struct/enumのみ、最大100文字） */
+  responsibility?: string;
+}
+
+/**
+ * テストの意味情報
+ */
+export interface SemanticTest {
+  /** テストのID */
+  id: string;
+
+  /** テストの目的（最大50文字） */
+  summary: string;
+
+  /** テスト対象のアイテムID */
+  tested_item?: ItemId;
 }

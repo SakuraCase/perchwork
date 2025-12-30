@@ -87,22 +87,26 @@ export function ItemSummary({ item }: ItemSummaryProps) {
         </div>
         {/* 行番号 */}
         <p className="text-sm text-gray-500">
-          行: {item.line}
-          {item.end_line && ` - ${item.end_line}`}
+          行: {item.line_start}
+          {item.line_end && ` - ${item.line_end}`}
         </p>
       </div>
 
-      {/* 概要 */}
-      <div>
-        <h3 className="text-sm font-semibold text-gray-400 mb-2">概要</h3>
-        <p className="text-gray-300 text-sm leading-relaxed">{item.summary}</p>
-      </div>
+      {/* 概要（存在する場合のみ） */}
+      {item.summary && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-400 mb-2">概要</h3>
+          <p className="text-gray-300 text-sm leading-relaxed">{item.summary}</p>
+        </div>
+      )}
 
-      {/* 責務 */}
-      <div>
-        <h3 className="text-sm font-semibold text-gray-400 mb-2">責務</h3>
-        <p className="text-gray-300 text-sm leading-relaxed">{item.responsibility}</p>
-      </div>
+      {/* 責務（存在する場合のみ） */}
+      {item.responsibility && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-400 mb-2">責務</h3>
+          <p className="text-gray-300 text-sm leading-relaxed">{item.responsibility}</p>
+        </div>
+      )}
 
       {/* シグネチャ */}
       <div>

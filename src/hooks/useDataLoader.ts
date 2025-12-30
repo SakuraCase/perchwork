@@ -3,8 +3,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { IndexFile, SplitFile } from '../types/schema';
-import { fetchIndex, fetchSplitFile } from '../services/dataLoader';
+import type { IndexFile, SplitFile, CodeItem, ItemId } from '../types/schema';
+import { fetchIndex, fetchSplitFile, fetchSemanticFile } from '../services/dataLoader';
 import * as cacheManager from '../services/cacheManager';
 
 /**
@@ -14,6 +14,7 @@ import * as cacheManager from '../services/cacheManager';
  *
  * @returns index - インデックスファイル（読み込み中はnull）
  * @returns loadFile - 分割JSONファイルを読み込む関数
+ * @returns loadFileWithSemantic - 構文＋セマンティック情報をマージして読み込む関数
  * @returns isLoading - データ読み込み中かどうか
  * @returns error - エラーメッセージ（エラーがない場合はnull）
  */
@@ -91,9 +92,110 @@ export function useDataLoader() {
     }
   }, []);
 
+  /**
+   * 構文ファイルとセマンティックファイルを読み込み、マージして返す
+   *
+   * @param path - ファイルパス（例: "entity/battle_state.json"）
+   * @returns マージ済みの分割ファイルデータと tested_by マッピング
+   */
+  const loadFileWithSemantic = useCallback(async (path: string): Promise<{
+    splitFile: SplitFile;
+    testedBy: Map<ItemId, string[]>;
+  }> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // マージ済みキャッシュをチェック
+      const cacheKey = `merged:${path}`;
+      const cached = cacheManager.get<{ splitFile: SplitFile; testedBy: Map<ItemId, string[]> }>(cacheKey);
+      if (cached) {
+        setIsLoading(false);
+        return cached;
+      }
+
+      // 構文ファイルとセマンティックファイルを並列で読み込み
+      const [structureData, semanticData] = await Promise.all([
+        fetchSplitFile(path),
+        fetchSemanticFile(path),
+      ]);
+
+      // セマンティックデータがある場合はマージ
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let mergedSplitFile: any = structureData;
+      const testedBy = new Map<ItemId, string[]>();
+
+      // データ形式を判定（フラット形式: { path, items } or ネスト形式: { files: [...] }）
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawData = structureData as any;
+      const isFlat = 'items' in rawData && Array.isArray(rawData.items);
+
+      if (semanticData) {
+        if (isFlat) {
+          // フラット形式: { path, items } の場合
+          mergedSplitFile = {
+            ...rawData,
+            items: rawData.items.map((item: CodeItem) => {
+              const semanticItem = semanticData.items.find(s => s.id === item.id);
+              if (semanticItem) {
+                return {
+                  ...item,
+                  summary: semanticItem.summary || item.summary,
+                  responsibility: semanticItem.responsibility || item.responsibility,
+                } as CodeItem;
+              }
+              return item;
+            }),
+          };
+        } else if ('files' in rawData && Array.isArray(rawData.files)) {
+          // ネスト形式: { files: SourceFile[] } の場合
+          mergedSplitFile = {
+            ...rawData,
+            files: rawData.files.map((file: { items: CodeItem[] }) => ({
+              ...file,
+              items: file.items.map((item: CodeItem) => {
+                const semanticItem = semanticData.items.find(s => s.id === item.id);
+                if (semanticItem) {
+                  return {
+                    ...item,
+                    summary: semanticItem.summary || item.summary,
+                    responsibility: semanticItem.responsibility || item.responsibility,
+                  } as CodeItem;
+                }
+                return item;
+              }),
+            })),
+          };
+        }
+
+        // tested_by の逆引き計算
+        for (const test of semanticData.tests) {
+          if (test.tested_item) {
+            const existing = testedBy.get(test.tested_item) || [];
+            existing.push(test.id);
+            testedBy.set(test.tested_item, existing);
+          }
+        }
+      }
+
+      // キャッシュに保存
+      const result = { splitFile: mergedSplitFile, testedBy };
+      cacheManager.set(cacheKey, result);
+
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `Failed to load ${path}`;
+      setError(errorMessage);
+      setIsLoading(false);
+      throw err;
+    }
+  }, []);
+
   return {
     index,
     loadFile,
+    loadFileWithSemantic,
     isLoading,
     error,
   };

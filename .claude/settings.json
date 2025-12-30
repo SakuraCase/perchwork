@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(./**)",
+      "Skill(tracelight-analyzer)"
+    ],
+    "deny": []
+  }
+}

@@ -44,13 +44,14 @@ export function validateCodeItem(item: unknown): item is CodeItem {
   if (typeof obj.id !== 'string' || !validateItemId(obj.id)) return false;
   if (typeof obj.type !== 'string') return false;
   if (typeof obj.name !== 'string') return false;
-  if (typeof obj.line !== 'number') return false;
+  if (typeof obj.line_start !== 'number') return false;
   if (typeof obj.signature !== 'string') return false;
-  if (typeof obj.summary !== 'string') return false;
-  if (typeof obj.responsibility !== 'string') return false;
+  // summary, responsibility はセマンティック情報でオプショナル
 
   // オプションフィールドの検証
-  if (obj.end_line !== undefined && typeof obj.end_line !== 'number') return false;
+  if (obj.line_end !== undefined && typeof obj.line_end !== 'number') return false;
+  if (obj.summary !== undefined && typeof obj.summary !== 'string') return false;
+  if (obj.responsibility !== undefined && typeof obj.responsibility !== 'string') return false;
   if (obj.visibility !== undefined) {
     const validVisibilities = ['pub', 'pub(crate)', 'pub(super)', 'private'];
     if (!validVisibilities.includes(obj.visibility as string)) return false;

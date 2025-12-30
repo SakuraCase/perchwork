@@ -51,7 +51,7 @@ type ViewTab = 'detail' | 'graph';
  */
 function App() {
   // データ読み込みとキャッシュ管理
-  const { index, loadFile, isLoading, error } = useDataLoader();
+  const { index, loadFileWithSemantic, isLoading, error } = useDataLoader();
 
   // ツリー構造と展開状態の管理
   const { nodes, toggleExpand } = useTreeState(index);
@@ -116,7 +116,7 @@ function App() {
 
   /**
    * ファイル選択時のハンドラ
-   * 選択されたファイルの詳細JSONを読み込む
+   * 選択されたファイルの詳細JSONを読み込む（セマンティック情報含む）
    */
   const handleSelectFile = useCallback(
     async (path: string) => {
@@ -124,10 +124,10 @@ function App() {
       setSelectedItemId(null); // ファイル切り替え時はアイテム選択をリセット
 
       try {
-        const fileData = await loadFile(path);
+        const { splitFile } = await loadFileWithSemantic(path);
         // Phase 1の実際の出力形式: { path, language, items } を直接 SourceFile として扱う
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawData = fileData as any;
+        const rawData = splitFile as any;
         const sourceFile: SourceFile = {
           path: rawData.path || path,
           hash: '',
@@ -140,7 +140,7 @@ function App() {
         setCurrentFile(null);
       }
     },
-    [loadFile]
+    [loadFileWithSemantic]
   );
 
   /**
