@@ -2,8 +2,6 @@
  * UI固有の型定義
  */
 
-import type { ItemId } from './schema';
-
 /**
  * ツリービューのノード
  */
@@ -31,29 +29,4 @@ export interface TreeNode {
 
   /** 展開状態 */
   isExpanded: boolean;
-}
-
-/**
- * 選択状態
- */
-export interface SelectionState {
-  /** 選択中のファイルパス（null = 未選択） */
-  selectedFile: string | null;
-
-  /** 選択中のアイテムID（null = 未選択） */
-  selectedItem: ItemId | null;
-}
-
-/**
- * ローディング状態
- */
-export interface LoadingState {
-  /** ロード中かどうか */
-  isLoading: boolean;
-
-  /** ロード中のファイルパス（null = ロード中でない） */
-  loadingPath: string | null;
-
-  /** エラーメッセージ（null = エラーなし） */
-  error: string | null;
 }
