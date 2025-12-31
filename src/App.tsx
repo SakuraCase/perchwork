@@ -71,7 +71,7 @@ function App() {
 
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
-  const { layoutOptions, filter, setLayoutType, updateFilter } = useGraphLayout();
+  const { layoutOptions, filter, setLayoutType, updateFilter, clearFocusNode } = useGraphLayout();
 
   // グラフビュー用のノード選択状態（ポップアップ表示用）
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -172,6 +172,31 @@ function App() {
     // 将来的にホバー時の詳細表示に使用
   }, []);
 
+  /**
+   * 関連ノードのみ表示するハンドラ
+   * NodePopupの「関連ノードのみ表示」ボタンから呼ばれる
+   */
+  const handleShowRelatedNodes = useCallback((nodeId: string) => {
+    updateFilter({ focusNodeId: nodeId });
+  }, [updateFilter]);
+
+  /**
+   * グラフのノードからファイルを開くハンドラ
+   * 詳細タブに切り替えて該当ファイルを選択
+   */
+  const handleOpenFileFromGraph = useCallback(async (filePath: string) => {
+    setActiveTab('detail');
+    await handleSelectFile(filePath);
+  }, [handleSelectFile]);
+
+  /**
+   * フォーカスノードのラベルを取得（表示用）
+   */
+  const focusNodeLabel = useMemo(() => {
+    if (!filter.focusNodeId || !graphData) return undefined;
+    const node = graphData.nodes.find((n) => n.data.id === filter.focusNodeId);
+    return node?.data.label;
+  }, [filter.focusNodeId, graphData]);
 
   // 初期ロード中の表示
   if (isLoading && !index) {
@@ -285,6 +310,8 @@ function App() {
                     onLayoutChange={setLayoutType}
                     filter={filter}
                     onFilterChange={updateFilter}
+                    focusNodeLabel={focusNodeLabel}
+                    onClearFocus={clearFocusNode}
                   />
 
                   {/* グラフビュー */}
@@ -319,6 +346,8 @@ function App() {
                         node={selectedNode}
                         onClose={() => setSelectedNodeId(null)}
                         onNavigate={handleCenterOnNode}
+                        onShowRelated={handleShowRelatedNodes}
+                        onOpenFile={handleOpenFileFromGraph}
                       />
                     </div>
                   )}

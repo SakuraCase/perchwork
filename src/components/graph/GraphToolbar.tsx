@@ -29,6 +29,12 @@ export interface GraphToolbarProps {
   /** フィルタ変更時のコールバック */
   onFilterChange: (filter: GraphFilter) => void;
 
+  /** フォーカス中のノードラベル（表示用） */
+  focusNodeLabel?: string;
+
+  /** フォーカス解除時のコールバック */
+  onClearFocus?: () => void;
+
   /** エクスポート時のコールバック（オプション） */
   onExport?: (format: 'png' | 'svg') => void;
 
@@ -69,6 +75,8 @@ export function GraphToolbar({
   onLayoutChange,
   filter,
   onFilterChange,
+  focusNodeLabel,
+  onClearFocus,
   onExport,
   onZoomIn,
   onZoomOut,
@@ -153,6 +161,23 @@ export function GraphToolbar({
           >
             フィルタ {isFilterOpen ? '▲' : '▼'}
           </button>
+
+          {/* フォーカスインジケータ */}
+          {filter.focusNodeId && onClearFocus && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-green-900 border border-green-700 rounded">
+              <span className="text-sm text-green-300">
+                フォーカス: {focusNodeLabel || filter.focusNodeId}
+              </span>
+              <button
+                onClick={onClearFocus}
+                className="text-green-400 hover:text-green-200 focus:outline-none"
+                aria-label="フォーカスを解除"
+                title="フォーカスを解除"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 右側: ズームコントロールとエクスポート */}

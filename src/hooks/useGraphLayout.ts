@@ -27,6 +27,9 @@ export interface UseGraphLayoutResult {
   /** フィルタリセット */
   resetFilter: () => void;
 
+  /** フォーカスノードをクリア */
+  clearFocusNode: () => void;
+
   /** 設定をリセット（レイアウト＋フィルタ） */
   resetAll: () => void;
 }
@@ -50,6 +53,7 @@ const DEFAULT_FILTER: GraphFilter = {
   types: ['struct', 'fn', 'trait', 'enum', 'type', 'method', 'impl'],
   includeIsolated: true,
   maxDepth: 0, // 0 = 無制限
+  focusNodeId: undefined,
 };
 
 /**
@@ -137,6 +141,16 @@ export function useGraphLayout(): UseGraphLayoutResult {
   }, []);
 
   /**
+   * フォーカスノードをクリア
+   */
+  const clearFocusNode = useCallback(() => {
+    setFilter((prev) => ({
+      ...prev,
+      focusNodeId: undefined,
+    }));
+  }, []);
+
+  /**
    * レイアウトとフィルタをすべてデフォルト値にリセット
    */
   const resetAll = useCallback(() => {
@@ -151,6 +165,7 @@ export function useGraphLayout(): UseGraphLayoutResult {
     filter,
     updateFilter,
     resetFilter,
+    clearFocusNode,
     resetAll,
   };
 }

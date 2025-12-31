@@ -76,12 +76,19 @@ async function loadSplitFile(path: string): Promise<SplitFile> {
 }
 
 /**
- * 全アイテムのマッピング（id -> CodeItem）を構築する
- * @returns アイテムマップ
+ * ファイルパス情報付きのCodeItem
  */
-async function buildItemMap(): Promise<Map<string, CodeItem>> {
+interface CodeItemWithFile extends CodeItem {
+  _filePath: string; // index.jsonのファイルパス形式（例: "service/battle_loop.json"）
+}
+
+/**
+ * 全アイテムのマッピング（id -> CodeItem）を構築する
+ * @returns アイテムマップ（各アイテムにファイルパス情報を付加）
+ */
+async function buildItemMap(): Promise<Map<string, CodeItemWithFile>> {
   const index = await loadMainIndex();
-  const itemMap = new Map<string, CodeItem>();
+  const itemMap = new Map<string, CodeItemWithFile>();
   console.log('[buildItemMap] Loading', index.files.length, 'files');
 
   // 全分割ファイルを読み込んでアイテムマップを構築
@@ -95,13 +102,13 @@ async function buildItemMap(): Promise<Map<string, CodeItem>> {
     if ('items' in rawFile && Array.isArray(rawFile.items)) {
       // 直接items配列を持つ形式
       for (const item of rawFile.items) {
-        itemMap.set(item.id, item);
+        itemMap.set(item.id, { ...item, _filePath: fileEntry.path });
       }
     } else if ('files' in rawFile && Array.isArray(rawFile.files)) {
       // files配列を持つ形式
       for (const sourceFile of rawFile.files) {
         for (const item of sourceFile.items) {
-          itemMap.set(item.id, item);
+          itemMap.set(item.id, { ...item, _filePath: fileEntry.path });
         }
       }
     }
@@ -168,7 +175,7 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
         id: item.id,
         label: item.name,
         type: item.type,
-        file: extractFilePathFromItem(item),
+        file: item._filePath,
         line: item.line_start,
       },
     });
@@ -329,29 +336,6 @@ function extractTypeFromId(id: string): 'fn' | 'struct' | 'enum' | 'trait' | 'mo
   }
   // それ以外は関数と推定
   return 'fn';
-}
-
-/**
- * CodeItemからファイルパスを抽出する
- * SplitFileの構造に応じて適切に処理
- */
-function extractFilePathFromItem(item: CodeItem): string {
-  // CodeItemのIDからファイルパスを推定
-  // 例: "domain::core::battle::service::battle_loop::BattleLoop" -> "domain/core/battle/service/battle_loop.rs"
-  const parts = item.id.split('::');
-
-  // 最後の1つまたは2つの要素（アイテム名）を除外してパスを構築
-  let pathParts: string[];
-  if (parts.length > 2 && /^[A-Z]/.test(parts[parts.length - 1])) {
-    // 構造体やメソッドの場合（例: "BattleLoop" または "BattleLoop::run"）
-    pathParts = parts.slice(0, -2);
-  } else {
-    // 関数の場合
-    pathParts = parts.slice(0, -1);
-  }
-
-  const filePath = pathParts.join('/') + '.rs';
-  return filePath;
 }
 
 /**

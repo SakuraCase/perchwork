@@ -27,6 +27,12 @@ export interface NodePopupProps {
   /** 関連ノードへのナビゲーション時のコールバック（オプション） */
   onNavigate?: (nodeId: string) => void;
 
+  /** 関連ノードのみ表示するコールバック（オプション） */
+  onShowRelated?: (nodeId: string) => void;
+
+  /** ファイルを開くコールバック（オプション） */
+  onOpenFile?: (filePath: string) => void;
+
   /** カスタムクラス名 */
   className?: string;
 }
@@ -80,6 +86,8 @@ export function NodePopup({
   position,
   onClose,
   onNavigate,
+  onShowRelated,
+  onOpenFile,
   className = '',
 }: NodePopupProps) {
   // ============================================
@@ -123,9 +131,12 @@ export function NodePopup({
   const handleFileClick = () => {
     if (!node) return;
 
-    // 実際の実装では、IDEやエディタで該当ファイルを開く処理を実行
-    // ここでは、コンソールログで代用
-    console.log(`Open file: ${node.data.file}:${node.data.line}`);
+    if (onOpenFile) {
+      onOpenFile(node.data.file);
+      onClose();
+    } else {
+      console.log(`Open file: ${node.data.file}:${node.data.line}`);
+    }
   };
 
   // ============================================
@@ -244,15 +255,28 @@ export function NodePopup({
             </p>
           </div>
 
-          {/* ナビゲーションボタン（オプション） */}
-          {onNavigate && (
-            <div className="pt-2 border-t border-gray-700">
-              <button
-                onClick={() => onNavigate(node.data.id)}
-                className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                このノードを中心に表示
-              </button>
+          {/* アクションボタン */}
+          {(onNavigate || onShowRelated) && (
+            <div className="pt-2 border-t border-gray-700 space-y-2">
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate(node.data.id)}
+                  className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  このノードを中心に表示
+                </button>
+              )}
+              {onShowRelated && (
+                <button
+                  onClick={() => {
+                    onShowRelated(node.data.id);
+                    onClose();
+                  }}
+                  className="w-full px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  関連ノードのみ表示
+                </button>
+              )}
             </div>
           )}
         </div>

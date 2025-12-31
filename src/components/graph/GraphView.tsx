@@ -93,6 +93,55 @@ export function GraphView({
     let nodes = data.nodes;
     let edges = data.edges;
 
+    // フォーカスノードフィルタ（最初に適用）
+    if (filter.focusNodeId) {
+      const focusNodeId = filter.focusNodeId;
+      const relatedNodeIds = new Set<string>([focusNodeId]);
+      const visited = new Map<string, number>();
+      visited.set(focusNodeId, 0);
+
+      // 探索深度：maxDepthが0の場合は無制限（全探索）
+      const maxDepth = filter.maxDepth > 0 ? filter.maxDepth : Infinity;
+      const queue: Array<{ id: string; depth: number }> = [
+        { id: focusNodeId, depth: 0 },
+      ];
+
+      // BFSで関連ノードを収集（両方向）
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+
+        if (current.depth >= maxDepth) continue;
+
+        const nextDepth = current.depth + 1;
+
+        // downstream（呼び出し先）
+        for (const edge of data.edges) {
+          if (
+            edge.data.source === current.id &&
+            !visited.has(edge.data.target)
+          ) {
+            visited.set(edge.data.target, nextDepth);
+            relatedNodeIds.add(edge.data.target);
+            queue.push({ id: edge.data.target, depth: nextDepth });
+          }
+        }
+
+        // upstream（呼び出し元）
+        for (const edge of data.edges) {
+          if (
+            edge.data.target === current.id &&
+            !visited.has(edge.data.source)
+          ) {
+            visited.set(edge.data.source, nextDepth);
+            relatedNodeIds.add(edge.data.source);
+            queue.push({ id: edge.data.source, depth: nextDepth });
+          }
+        }
+      }
+
+      nodes = nodes.filter((node) => relatedNodeIds.has(node.data.id));
+    }
+
     // ディレクトリフィルタ
     if (filter.directories.length > 0) {
       nodes = nodes.filter((node) =>
@@ -108,9 +157,10 @@ export function GraphView({
     // フィルタリングされたノードのIDセット
     const nodeIds = new Set(nodes.map((node) => node.data.id));
 
-    // エッジをフィルタリング（sourceノードが存在するもののみ）
-    // Note: targetは完全なIDではなく関数名のみの場合があるため、sourceのみでフィルタ
-    edges = edges.filter((edge) => nodeIds.has(edge.data.source));
+    // エッジをフィルタリング（両端が存在するもののみ）
+    edges = edges.filter(
+      (edge) => nodeIds.has(edge.data.source) && nodeIds.has(edge.data.target)
+    );
 
     // 孤立ノード除外
     if (!filter.includeIsolated) {
@@ -142,7 +192,7 @@ export function GraphView({
           width: 60,
           height: 60,
           'font-size': 12,
-          color: '#374151',
+          color: '#e5e7eb',
         },
       },
       // 構造体ノード
@@ -390,7 +440,7 @@ export function GraphView({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full bg-gray-50 ${className}`}
+      className={`w-full h-full bg-gray-900 ${className}`}
       style={{ minHeight: '400px' }}
     />
   );

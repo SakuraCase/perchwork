@@ -128,6 +128,9 @@ export interface GraphFilter {
 
   /** 最大深度（0で制限なし） */
   maxDepth: number;
+
+  /** フォーカスノードID（設定時はこのノードに関連するノードのみ表示） */
+  focusNodeId?: string;
 }
 
 // ============================================
