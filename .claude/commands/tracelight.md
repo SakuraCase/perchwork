@@ -6,6 +6,8 @@ allowed-tools:
   - Bash
   - Write
   - TodoWrite
+  - Task
+  - TaskOutput
 description: コードベースを解析し構造化JSONを生成
 ---
 
@@ -96,35 +98,79 @@ tools/tracelight/
    - `public/data/index.json` の存在を確認
    - 統計情報をログ出力
 
-### Phase 2: LLM 意味解析
+### Phase 2: LLM 意味解析（サブエージェント並列実行）
 
 `--structure` が指定されていない場合に実行。
 
-**重要: エージェントを起動しない。ファイル単位でループ処理する。**
+**サブエージェントを使用してファイルグループを並列処理する。**
 
 1. **対象ファイルの収集**
 
    config.json の `target_dir` から .rs ファイルを収集（差分実行時は変更ファイルのみ）
 
-2. **ファイル単位で意味解析**
+2. **ファイルグループへの分割**
+
+   収集したファイルを均等に分割（最大5グループ、各グループ最低2ファイル）
 
    ```
-   for each .rs file in target_dir:
-       a. Read source file directly (元ソースファイルを直接読み込み)
-       b. 各 item に対して意味情報を生成:
-          - summary: 1行説明（language設定に従い日本語/英語、最大50文字）
-          - responsibility: 責務説明（struct/enum のみ、最大100文字）
-       c. 各 test に対して意味情報を生成:
-          - summary: テストの目的（最大50文字）
-          - tested_item: テスト対象のアイテムID（1つ）
-       d. Write public/data/semantic/{relative_path}.json
+   例: 15ファイルの場合 → 5グループ × 3ファイル
+   例: 6ファイルの場合 → 3グループ × 2ファイル
+   例: 3ファイル以下の場合 → 並列化せず直接処理
    ```
 
-3. **エラーハンドリング**
-   - ファイルあたり最大3回リトライ
+3. **サブエージェントの並列起動**
+
+   Task ツールを使用して `general-purpose` サブエージェントを並列起動:
+
+   ```
+   # 単一メッセージで複数の Task ツールを呼び出し
+   for each group (parallel):
+       Task(
+           subagent_type: "general-purpose",
+           description: "Phase 2 semantic analysis group N",
+           run_in_background: true,
+           prompt: """
+           以下のファイルに対して意味解析を実行し、JSONを生成してください。
+
+           ## 対象ファイル
+           {group_files}
+
+           ## 出力先
+           各ファイルに対応する public/data/semantic/{relative_path}.json
+
+           ## 各ファイルの処理手順
+           1. ソースファイルを直接読み込み
+           2. 各 item に対して意味情報を生成:
+              - summary: 1行説明（{language}、最大50文字）
+              - responsibility: 責務説明（struct/enum のみ、最大100文字）
+           3. 各 test に対して意味情報を生成:
+              - summary: テストの目的（最大50文字）
+              - tested_item: テスト対象のアイテムID（1つ）
+           4. JSON ファイルを出力
+
+           ## 出力フォーマット
+           {semantic_json_format}
+
+           処理が完了したら、処理したファイル一覧を報告してください。
+           """
+       )
+   ```
+
+4. **結果の収集**
+
+   TaskOutput で全サブエージェントの完了を待機:
+
+   ```
+   for each agent_id:
+       TaskOutput(task_id: agent_id, block: true)
+   ```
+
+5. **エラーハンドリング**
+   - サブエージェント内でファイルあたり最大3回リトライ
    - 失敗時はスキップしてログ出力
+   - サブエージェント自体の失敗時は該当グループをスキップ
 
-4. **完了処理**
+6. **完了処理**
    - config.json の `last_commit` を現在のコミットハッシュに更新
 
 ## semantic/{file}.json フォーマット
@@ -153,34 +199,67 @@ tools/tracelight/
 }
 ```
 
-## LLM プロンプト設計
+## サブエージェントプロンプト設計
 
-Phase 2 で各ファイルに対して以下のプロンプトを使用：
+Phase 2 でサブエージェントに渡すプロンプトテンプレート：
 
 ```markdown
-# 意味解析タスク
+# 意味解析タスク（並列グループ処理）
 
-以下の Rust ソースコードを解析し、各アイテムとテストに対して意味情報を生成してください。
+以下のファイルに対して意味解析を実行し、JSONファイルを生成してください。
 
-## 入力
-{source_code}
+## 対象ファイル
+{file_list}  # 例: entity/battle_state.rs, entity/battle_world.rs, ...
 
-## 出力形式
+## 作業ディレクトリ
+- ソースファイル: {target_dir}
+- 出力先: {output_base}/semantic/
 
-### items 配列
-各 item に対して以下を生成:
-- id: "ファイル名::型名::種別" または "ファイル名::型名::メソッド名::method" の形式
-- summary: 1行説明（日本語、最大50文字）※関数/メソッドのみ
-- responsibility: 責務説明（struct/enum のみ、日本語、最大100文字）
+## 各ファイルの処理手順
 
-### tests 配列
-各 test に対して以下を生成:
-- id: "ファイル名::テスト名::test" の形式
-- summary: テストの目的（日本語、最大50文字）
-- tested_item: テスト対象のアイテムID（1つ。テスト内で最も重要な呼び出し先を推定）
+1. Read ツールでソースファイルを読み込み
+2. ソースコードを解析し、以下の意味情報を生成:
+   - items: 各関数/メソッド/struct/enum の説明
+   - tests: 各テストの目的とテスト対象
+3. Write ツールで {output_base}/semantic/{relative_path}.json に出力
 
-## 出力
-JSON形式で { "items": [...], "tests": [...] } を返してください。
+## 出力フォーマット（各ファイル）
+
+```json
+{
+  "path": "{relative_path}",
+  "generated_at": "ISO8601形式",
+  "items": [
+    {
+      "id": "ファイル名::型名::種別",
+      "summary": "1行説明（{language}、最大50文字）",
+      "responsibility": "責務説明（struct/enumのみ、最大100文字）"
+    }
+  ],
+  "tests": [
+    {
+      "id": "ファイル名::テスト名::test",
+      "summary": "テストの目的（{language}、最大50文字）",
+      "tested_item": "テスト対象のアイテムID"
+    }
+  ]
+}
+```
+
+## ID命名規則
+- struct: `ファイル名::型名::struct`
+- enum: `ファイル名::型名::enum`
+- method: `ファイル名::型名::メソッド名::method`
+- function: `ファイル名::関数名::function`
+- test: `ファイル名::テスト名::test`
+
+## 注意事項
+- summary は最大50文字
+- responsibility は struct/enum のみ、最大100文字
+- tested_item はテスト内で最も重要な呼び出し先を推定
+- エラー発生時は最大3回リトライ、失敗時はスキップ
+
+処理完了後、成功/スキップしたファイルの一覧を報告してください。
 ```
 
 ## エラーハンドリング
@@ -192,6 +271,8 @@ JSON形式で { "items": [...], "tests": [...] } を返してください。
 | tree-sitter スクリプトが未ビルド   | エラーメッセージ表示、ビルド指示 |
 | tree-sitter 依存関係未インストール | エラーメッセージ表示、npm install 指示 |
 | tree-sitter パースエラー           | 該当ファイルスキップ、ログ出力   |
+| サブエージェント起動失敗           | 該当グループをスキップ、ログ出力 |
+| サブエージェントタイムアウト       | 該当グループをスキップ、ログ出力 |
 | LLM 解析失敗                       | 3回リトライ、失敗時スキップ      |
 
 ## 使用例
