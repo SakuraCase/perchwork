@@ -115,6 +115,12 @@ export type ItemType = 'struct' | 'enum' | 'trait' | 'fn' | 'impl' | 'mod' | 'co
 /** アイテムID（一意性保証のフォーマット） */
 export type ItemId = `${string}::${string}::${ItemType}`;
 
+/** フィールド情報（名前と型） */
+export interface FieldInfo {
+  name: string;
+  type: string;
+}
+
 /**
  * 分割されたコードデータファイル
  */
@@ -182,6 +188,18 @@ export interface CodeItem {
 
   /** 静的依存（このアイテムが依存する他アイテムのID） */
   depends_on?: ItemId[];
+
+  /** フィールド一覧（struct/enumのみ） */
+  fields?: FieldInfo[];
+
+  /** 所属するstruct/enum名（methodのみ） */
+  impl_for?: string;
+
+  /** 実装しているTrait名（Trait実装メソッドのみ） */
+  trait_name?: string;
+
+  /** 非同期関数かどうか */
+  is_async?: boolean;
 }
 
 // ============================================

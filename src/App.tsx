@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { SourceFile, ItemId, CodeItem } from './types/schema';
+import type { SourceFile, ItemId, CodeItem, SemanticTest } from './types/schema';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useTreeState } from './hooks/useTreeState';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
@@ -66,6 +66,9 @@ function App() {
   // アイテム選択状態
   const [selectedItemId, setSelectedItemId] = useState<ItemId | null>(null);
 
+  // セマンティックテスト情報
+  const [semanticTests, setSemanticTests] = useState<SemanticTest[]>([]);
+
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
   const { layoutOptions, filter, setLayoutType, updateFilter } = useGraphLayout();
@@ -124,7 +127,7 @@ function App() {
       setSelectedItemId(null); // ファイル切り替え時はアイテム選択をリセット
 
       try {
-        const { splitFile } = await loadFileWithSemantic(path);
+        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(path);
         // Phase 1の実際の出力形式: { path, language, items } を直接 SourceFile として扱う
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawData = splitFile as any;
@@ -135,9 +138,11 @@ function App() {
           items: rawData.items || [],
         };
         setCurrentFile(sourceFile);
+        setSemanticTests(tests);
       } catch (err) {
         console.error('Failed to load file:', err);
         setCurrentFile(null);
+        setSemanticTests([]);
       }
     },
     [loadFileWithSemantic]
@@ -279,6 +284,7 @@ function App() {
                   onSelectItem={handleSelectItem}
                   callersIndex={callersIndex}
                   codeItems={codeItems}
+                  semanticTests={semanticTests}
                 />
               )}
 

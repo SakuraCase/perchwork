@@ -8,9 +8,10 @@
  */
 
 import { useState } from 'react';
-import type { SourceFile, ItemId, CodeItem } from '@/types/schema';
+import type { SourceFile, ItemId, CodeItem, SemanticTest } from '@/types/schema';
 import type { CallersIndex } from '@/types/callers';
 import { ItemSummary } from './ItemSummary';
+import { GroupedItemList } from './GroupedItemList';
 import { useCallers } from '@/hooks/useCallers';
 import { useImpactAnalysis } from '@/hooks/useImpactAnalysis';
 
@@ -25,6 +26,8 @@ interface DetailPanelProps {
   callersIndex: CallersIndex | null;
   /** コードアイテムのマップ */
   codeItems: Map<ItemId, CodeItem> | null;
+  /** セマンティックテスト情報 */
+  semanticTests: SemanticTest[];
 }
 
 /**
@@ -40,7 +43,8 @@ export function DetailPanel({
   selectedItemId,
   onSelectItem,
   callersIndex,
-  codeItems
+  codeItems,
+  semanticTests
 }: DetailPanelProps) {
   // 折りたたみ状態の管理
   const [callersExpanded, setCallersExpanded] = useState(false);
@@ -293,7 +297,7 @@ export function DetailPanel({
     );
   }
 
-  // ファイル選択済み、アイテム未選択: アイテム一覧表示
+  // ファイル選択済み、アイテム未選択: グループ化されたアイテム一覧表示
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6">
@@ -305,45 +309,12 @@ export function DetailPanel({
           </p>
         </div>
 
-        {/* アイテム一覧 */}
-        {file.items.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <p>このファイルにはアイテムがありません</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {file.items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelectItem(item.id)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded hover:bg-gray-750 hover:border-gray-600 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {/* アイテム名 */}
-                  <span className="font-semibold text-gray-200">{item.name}</span>
-                  {/* タイプバッジ */}
-                  <span className="px-2 py-0.5 text-xs font-medium bg-gray-700 text-gray-400 rounded">
-                    {item.type}
-                  </span>
-                  {/* 可視性バッジ */}
-                  {item.visibility && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-gray-700 text-gray-400 rounded">
-                      {item.visibility}
-                    </span>
-                  )}
-                </div>
-                {/* 概要 */}
-                <p className="text-sm text-gray-400 line-clamp-2">{item.summary}</p>
-                {/* 行番号 */}
-                <p className="text-xs text-gray-600 mt-1">
-                  L{item.line_start}
-                  {item.line_end && ` - L${item.line_end}`}
-                </p>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* グループ化されたアイテム一覧 */}
+        <GroupedItemList
+          items={file.items}
+          semanticTests={semanticTests}
+          onSelectItem={onSelectItem}
+        />
       </div>
     </div>
   );

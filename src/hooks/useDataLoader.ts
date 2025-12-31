@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { IndexFile, SplitFile, CodeItem, ItemId } from '../types/schema';
+import type { IndexFile, SplitFile, CodeItem, ItemId, SemanticTest } from '../types/schema';
 import { fetchIndex, fetchSplitFile, fetchSemanticFile } from '../services/dataLoader';
 import * as cacheManager from '../services/cacheManager';
 
@@ -96,11 +96,12 @@ export function useDataLoader() {
    * 構文ファイルとセマンティックファイルを読み込み、マージして返す
    *
    * @param path - ファイルパス（例: "entity/battle_state.json"）
-   * @returns マージ済みの分割ファイルデータと tested_by マッピング
+   * @returns マージ済みの分割ファイルデータと tested_by マッピング、セマンティックテスト情報
    */
   const loadFileWithSemantic = useCallback(async (path: string): Promise<{
     splitFile: SplitFile;
     testedBy: Map<ItemId, string[]>;
+    semanticTests: SemanticTest[];
   }> => {
     setIsLoading(true);
     setError(null);
@@ -108,7 +109,7 @@ export function useDataLoader() {
     try {
       // マージ済みキャッシュをチェック
       const cacheKey = `merged:${path}`;
-      const cached = cacheManager.get<{ splitFile: SplitFile; testedBy: Map<ItemId, string[]> }>(cacheKey);
+      const cached = cacheManager.get<{ splitFile: SplitFile; testedBy: Map<ItemId, string[]>; semanticTests: SemanticTest[] }>(cacheKey);
       if (cached) {
         setIsLoading(false);
         return cached;
@@ -179,7 +180,11 @@ export function useDataLoader() {
       }
 
       // キャッシュに保存
-      const result = { splitFile: mergedSplitFile, testedBy };
+      const result = {
+        splitFile: mergedSplitFile,
+        testedBy,
+        semanticTests: semanticData?.tests || [],
+      };
       cacheManager.set(cacheKey, result);
 
       setIsLoading(false);

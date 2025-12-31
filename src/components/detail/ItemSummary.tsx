@@ -128,6 +128,33 @@ export function ItemSummary({ item }: ItemSummaryProps) {
         </div>
       )}
 
+      {/* フィールド一覧（struct/enumのみ） */}
+      {item.fields && item.fields.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-400 mb-2">
+            {item.type === 'enum' ? 'バリアント' : 'フィールド'} ({item.fields.length})
+          </h3>
+          <div className="bg-gray-800 border border-gray-700 rounded overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-750 border-b border-gray-700">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium text-gray-400">名前</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-400">型</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {item.fields.map((field) => (
+                  <tr key={field.name} className="hover:bg-gray-750 transition-colors">
+                    <td className="px-3 py-2 font-mono text-cyan-400">{field.name}</td>
+                    <td className="px-3 py-2 font-mono text-gray-300">{field.type || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* 依存関係（存在する場合のみ） */}
       {item.depends_on && item.depends_on.length > 0 && (
         <div>

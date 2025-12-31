@@ -22,6 +22,11 @@ interface Config {
 /**
  * 抽出されたアイテムの型定義
  */
+interface FieldInfo {
+  name: string;
+  type: string;
+}
+
 interface ExtractedItem {
   id: string;
   type: 'struct' | 'enum' | 'trait' | 'impl' | 'function' | 'method';
@@ -30,7 +35,7 @@ interface ExtractedItem {
   line_end: number;
   visibility: 'pub' | 'pub(crate)' | 'private';
   signature: string;
-  fields?: string[];
+  fields?: FieldInfo[];
   is_async?: boolean;
   impl_for?: string;
   trait_name?: string;
@@ -483,10 +488,10 @@ class TracelightAnalyzer {
   }
 
   /**
-   * 構造体のフィールドを抽出
+   * 構造体のフィールドを抽出（名前と型）
    */
-  private extractFields(node: Parser.SyntaxNode): string[] {
-    const fields: string[] = [];
+  private extractFields(node: Parser.SyntaxNode): FieldInfo[] {
+    const fields: FieldInfo[] = [];
     const bodyNode = node.childForFieldName('body');
 
     if (bodyNode) {
@@ -494,8 +499,12 @@ class TracelightAnalyzer {
         const child = bodyNode.child(i);
         if (child && child.type === 'field_declaration') {
           const nameNode = child.childForFieldName('name');
+          const typeNode = child.childForFieldName('type');
           if (nameNode) {
-            fields.push(nameNode.text);
+            fields.push({
+              name: nameNode.text,
+              type: typeNode ? typeNode.text : 'unknown',
+            });
           }
         }
       }
@@ -507,8 +516,8 @@ class TracelightAnalyzer {
   /**
    * enumのバリアントを抽出
    */
-  private extractVariants(node: Parser.SyntaxNode): string[] {
-    const variants: string[] = [];
+  private extractVariants(node: Parser.SyntaxNode): FieldInfo[] {
+    const variants: FieldInfo[] = [];
     const bodyNode = node.childForFieldName('body');
 
     if (bodyNode) {
@@ -517,7 +526,10 @@ class TracelightAnalyzer {
         if (child && child.type === 'enum_variant') {
           const nameNode = child.childForFieldName('name');
           if (nameNode) {
-            variants.push(nameNode.text);
+            variants.push({
+              name: nameNode.text,
+              type: '',  // enumバリアントには型なし
+            });
           }
         }
       }
