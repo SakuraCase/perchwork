@@ -15,23 +15,20 @@ export interface UseGraphLayoutResult {
   /** レイアウトタイプ変更 */
   setLayoutType: (type: LayoutType) => void;
 
-  /** レイアウトオプション更新 */
-  updateLayoutOptions: (options: Partial<LayoutOptions>) => void;
-
   /** 現在のフィルタ設定 */
   filter: GraphFilter;
 
   /** フィルタ更新 */
   updateFilter: (filter: Partial<GraphFilter>) => void;
 
-  /** フィルタリセット */
-  resetFilter: () => void;
-
   /** フォーカスノードをクリア */
   clearFocusNode: () => void;
 
-  /** 設定をリセット（レイアウト＋フィルタ） */
-  resetAll: () => void;
+  /** ノードを除外リストに追加 */
+  excludeNode: (nodeId: string) => void;
+
+  /** 除外リストをクリア */
+  clearExcludedNodes: () => void;
 }
 
 /**
@@ -54,6 +51,7 @@ const DEFAULT_FILTER: GraphFilter = {
   includeIsolated: true,
   maxDepth: 0, // 0 = 無制限
   focusNodeId: undefined,
+  excludeNodeIds: [],
 };
 
 /**
@@ -110,18 +108,6 @@ export function useGraphLayout(): UseGraphLayoutResult {
   }, []);
 
   /**
-   * レイアウトオプションを部分的に更新
-   *
-   * @param options - 更新するオプション（一部のみ指定可能）
-   */
-  const updateLayoutOptions = useCallback((options: Partial<LayoutOptions>) => {
-    setLayoutOptions((prev) => ({
-      ...prev,
-      ...options,
-    }));
-  }, []);
-
-  /**
    * フィルタを部分的に更新
    *
    * @param filterUpdates - 更新するフィルタ設定（一部のみ指定可能）
@@ -131,13 +117,6 @@ export function useGraphLayout(): UseGraphLayoutResult {
       ...prev,
       ...filterUpdates,
     }));
-  }, []);
-
-  /**
-   * フィルタをデフォルト値にリセット
-   */
-  const resetFilter = useCallback(() => {
-    setFilter(DEFAULT_FILTER);
   }, []);
 
   /**
@@ -151,22 +130,35 @@ export function useGraphLayout(): UseGraphLayoutResult {
   }, []);
 
   /**
-   * レイアウトとフィルタをすべてデフォルト値にリセット
+   * ノードを除外リストに追加
+   *
+   * @param nodeId - 除外するノードID
    */
-  const resetAll = useCallback(() => {
-    setLayoutOptions(DEFAULT_LAYOUT_OPTIONS);
-    setFilter(DEFAULT_FILTER);
+  const excludeNode = useCallback((nodeId: string) => {
+    setFilter((prev) => ({
+      ...prev,
+      excludeNodeIds: [...prev.excludeNodeIds, nodeId],
+    }));
+  }, []);
+
+  /**
+   * 除外リストをクリア
+   */
+  const clearExcludedNodes = useCallback(() => {
+    setFilter((prev) => ({
+      ...prev,
+      excludeNodeIds: [],
+    }));
   }, []);
 
   return {
     layoutOptions,
     setLayoutType,
-    updateLayoutOptions,
     filter,
     updateFilter,
-    resetFilter,
     clearFocusNode,
-    resetAll,
+    excludeNode,
+    clearExcludedNodes,
   };
 }
 
@@ -221,7 +213,11 @@ function loadFilter(): GraphFilter {
           console.log('[useGraphLayout] Resetting filter to include new types (method, impl)');
           return DEFAULT_FILTER;
         }
-        return parsed;
+        // 互換性: excludeNodeIds が存在しない場合はデフォルト値を補完
+        return {
+          ...parsed,
+          excludeNodeIds: parsed.excludeNodeIds ?? [],
+        };
       }
     }
   } catch (error) {

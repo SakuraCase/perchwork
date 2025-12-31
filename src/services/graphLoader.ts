@@ -173,10 +173,11 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
     nodes.push({
       data: {
         id: item.id,
-        label: item.name,
+        label: generateNodeLabel(item),
         type: item.type,
         file: item._filePath,
         line: item.line_start,
+        implFor: item.impl_for,
       },
     });
   }
@@ -314,6 +315,18 @@ export async function loadSubgraph(centerIds: string[], depth: number): Promise<
 // ============================================
 // ヘルパー関数
 // ============================================
+
+/**
+ * ノードの表示ラベルを生成する
+ * メソッドの場合は "StructName::method_name" 形式
+ * それ以外は名前のみ
+ */
+function generateNodeLabel(item: CodeItemWithFile): string {
+  if (item.type === 'method' && item.impl_for) {
+    return `${item.impl_for}::${item.name}`;
+  }
+  return item.name;
+}
 
 /**
  * アイテムIDからラベル（表示名）を抽出する

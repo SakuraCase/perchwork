@@ -35,6 +35,9 @@ export interface GraphToolbarProps {
   /** フォーカス解除時のコールバック */
   onClearFocus?: () => void;
 
+  /** 除外リストクリア時のコールバック */
+  onClearExcluded?: () => void;
+
   /** エクスポート時のコールバック（オプション） */
   onExport?: (format: 'png' | 'svg') => void;
 
@@ -77,6 +80,7 @@ export function GraphToolbar({
   onFilterChange,
   focusNodeLabel,
   onClearFocus,
+  onClearExcluded,
   onExport,
   onZoomIn,
   onZoomOut,
@@ -173,6 +177,23 @@ export function GraphToolbar({
                 className="text-green-400 hover:text-green-200 focus:outline-none"
                 aria-label="フォーカスを解除"
                 title="フォーカスを解除"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* 除外インジケータ */}
+          {filter.excludeNodeIds?.length > 0 && onClearExcluded && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-red-900 border border-red-700 rounded">
+              <span className="text-sm text-red-300">
+                除外: {filter.excludeNodeIds.length}件
+              </span>
+              <button
+                onClick={onClearExcluded}
+                className="text-red-400 hover:text-red-200 focus:outline-none"
+                aria-label="除外をクリア"
+                title="除外をクリア"
               >
                 ✕
               </button>

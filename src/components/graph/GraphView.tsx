@@ -36,11 +36,12 @@ export interface GraphViewProps {
   /** フィルタ設定 */
   filter?: GraphFilter;
 
-  /** ノード選択時のコールバック */
-  onSelectNode?: (id: string) => void;
-
-  /** ノードホバー時のコールバック（null でホバー解除） */
-  onHoverNode?: (id: string | null) => void;
+  /** ノードクリック時のコールバック */
+  onContextMenuNode?: (
+    nodeId: string,
+    label: string,
+    position: { x: number; y: number }
+  ) => void;
 
   /** 中心に表示するノードのID（変更されると該当ノードを中心に表示） */
   centerOnNodeId?: string | null;
@@ -69,8 +70,7 @@ export function GraphView({
   data,
   layout = DEFAULT_LAYOUT,
   filter,
-  onSelectNode,
-  onHoverNode,
+  onContextMenuNode,
   centerOnNodeId,
   className = '',
 }: GraphViewProps) {
@@ -93,6 +93,9 @@ export function GraphView({
     let nodes = data.nodes;
     let edges = data.edges;
 
+    // 除外ノードセット
+    const excludeSet = new Set(filter.excludeNodeIds || []);
+
     // フォーカスノードフィルタ（最初に適用）
     if (filter.focusNodeId) {
       const focusNodeId = filter.focusNodeId;
@@ -106,9 +109,15 @@ export function GraphView({
         { id: focusNodeId, depth: 0 },
       ];
 
-      // BFSで関連ノードを収集（両方向）
+      // BFSで関連ノードを収集（両方向、除外ノードを通過しない）
       while (queue.length > 0) {
         const current = queue.shift()!;
+
+        // 除外ノードの場合はスキップ（このノード経由の探索を停止）
+        // ただしフォーカスノード自体は除外対象外
+        if (excludeSet.has(current.id) && current.id !== focusNodeId) {
+          continue;
+        }
 
         if (current.depth >= maxDepth) continue;
 
@@ -118,7 +127,8 @@ export function GraphView({
         for (const edge of data.edges) {
           if (
             edge.data.source === current.id &&
-            !visited.has(edge.data.target)
+            !visited.has(edge.data.target) &&
+            !excludeSet.has(edge.data.target)
           ) {
             visited.set(edge.data.target, nextDepth);
             relatedNodeIds.add(edge.data.target);
@@ -130,7 +140,8 @@ export function GraphView({
         for (const edge of data.edges) {
           if (
             edge.data.target === current.id &&
-            !visited.has(edge.data.source)
+            !visited.has(edge.data.source) &&
+            !excludeSet.has(edge.data.source)
           ) {
             visited.set(edge.data.source, nextDepth);
             relatedNodeIds.add(edge.data.source);
@@ -140,6 +151,9 @@ export function GraphView({
       }
 
       nodes = nodes.filter((node) => relatedNodeIds.has(node.data.id));
+    } else {
+      // focusNodeIdがない場合は単純に除外ノードを非表示
+      nodes = nodes.filter((node) => !excludeSet.has(node.data.id));
     }
 
     // ディレクトリフィルタ
@@ -246,17 +260,6 @@ export function GraphView({
           'curve-style': 'bezier',
         },
       },
-      // 選択状態
-      {
-        selector: ':selected',
-        style: {
-          'background-color': '#f59e0b',
-          'line-color': '#f59e0b',
-          'target-arrow-color': '#f59e0b',
-          'border-width': 3,
-          'border-color': '#f59e0b',
-        },
-      },
     ],
     []
   );
@@ -322,13 +325,11 @@ export function GraphView({
   // コールバック参照（安定した参照を維持）
   // ============================================
 
-  const onSelectNodeRef = useRef(onSelectNode);
-  const onHoverNodeRef = useRef(onHoverNode);
+  const onContextMenuNodeRef = useRef(onContextMenuNode);
 
   useEffect(() => {
-    onSelectNodeRef.current = onSelectNode;
-    onHoverNodeRef.current = onHoverNode;
-  }, [onSelectNode, onHoverNode]);
+    onContextMenuNodeRef.current = onContextMenuNode;
+  }, [onContextMenuNode]);
 
   // ============================================
   // Cytoscape 初期化とクリーンアップ
@@ -365,26 +366,22 @@ export function GraphView({
       // ユーザーインタラクション設定
       userZoomingEnabled: true,
       userPanningEnabled: true,
-      boxSelectionEnabled: true,
+      boxSelectionEnabled: false,
+      autounselectify: true,
     });
 
     cyRef.current = cy;
 
-    // イベントリスナー登録（refを使用して安定した参照を維持）
+    // 左クリックイベント（ノードメニュー表示）
     cy.on('tap', 'node', (event: cytoscape.EventObject) => {
       const node = event.target as NodeSingular;
       const nodeId = node.data('id') as string;
-      onSelectNodeRef.current?.(nodeId);
-    });
-
-    cy.on('mouseover', 'node', (event: cytoscape.EventObject) => {
-      const node = event.target as NodeSingular;
-      const nodeId = node.data('id') as string;
-      onHoverNodeRef.current?.(nodeId);
-    });
-
-    cy.on('mouseout', 'node', () => {
-      onHoverNodeRef.current?.(null);
+      const label = node.data('label') as string;
+      const renderedPos = event.renderedPosition;
+      onContextMenuNodeRef.current?.(nodeId, label, {
+        x: renderedPos.x,
+        y: renderedPos.y,
+      });
     });
 
     // 初期レイアウト適用（アニメーションなしで即時実行）
@@ -420,10 +417,6 @@ export function GraphView({
     const node = cy.$(`#${CSS.escape(centerOnNodeId)}`);
 
     if (node.length > 0) {
-      // ノードを選択状態にする
-      cy.elements().unselect();
-      node.select();
-
       // ノードを中心に表示（アニメーション付き）
       cy.animate({
         center: { eles: node },

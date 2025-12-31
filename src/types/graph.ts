@@ -32,6 +32,9 @@ export interface CytoscapeNode {
 
     /** 親ノードID（クラスタリング用） */
     parent?: string;
+
+    /** メソッドの所属struct名 */
+    implFor?: string;
   };
 
   /** ノード座標（レイアウト計算後に設定される） */
@@ -131,6 +134,9 @@ export interface GraphFilter {
 
   /** フォーカスノードID（設定時はこのノードに関連するノードのみ表示） */
   focusNodeId?: string;
+
+  /** 除外ノードID配列 */
+  excludeNodeIds: string[];
 }
 
 // ============================================

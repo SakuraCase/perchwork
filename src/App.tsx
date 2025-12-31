@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { SourceFile, ItemId, SemanticTest } from './types/schema';
+import type { SourceFile, ItemId, SemanticTest, ItemType } from './types/schema';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useTreeState } from './hooks/useTreeState';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
@@ -20,7 +20,7 @@ import { DirectoryTree } from './components/tree/DirectoryTree';
 import { DetailPanel } from './components/detail/DetailPanel';
 import { GraphView } from './components/graph/GraphView';
 import { GraphToolbar } from './components/graph/GraphToolbar';
-import { NodePopup } from './components/graph/NodePopup';
+import { NodeContextMenu } from './components/graph/NodeContextMenu';
 import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
 
@@ -71,13 +71,20 @@ function App() {
 
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
-  const { layoutOptions, filter, setLayoutType, updateFilter, clearFocusNode } = useGraphLayout();
-
-  // グラフビュー用のノード選択状態（ポップアップ表示用）
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const { layoutOptions, filter, setLayoutType, updateFilter, clearFocusNode, excludeNode, clearExcludedNodes } = useGraphLayout();
 
   // ノード中心表示用の状態（変更されるとGraphViewが該当ノードを中心に表示）
   const [centerNodeId, setCenterNodeId] = useState<string | null>(null);
+
+  // コンテキストメニュー状態
+  const [contextMenu, setContextMenu] = useState<{
+    position: { x: number; y: number };
+    nodeId: string;
+    nodeLabel: string;
+    nodeType: ItemType;
+    nodeFile: string;
+    nodeLine: number;
+  } | null>(null);
 
   // CallersIndex の構築
   const callersIndex = useMemo<CallersIndex | null>(() => {
@@ -145,40 +152,55 @@ function App() {
   }, []);
 
   /**
-   * グラフノード選択時のハンドラ
-   */
-  const handleSelectGraphNode = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-  }, []);
-
-  /**
    * ノードを中心に表示するハンドラ
-   * NodePopupの「このノードを中心に表示」ボタンから呼ばれる
+   * コンテキストメニューの「このノードを中心に表示」から呼ばれる
    */
   const handleCenterOnNode = useCallback((nodeId: string) => {
     // 一旦nullにしてから設定することで、同じノードでもuseEffectがトリガーされる
     setCenterNodeId(null);
     setTimeout(() => {
       setCenterNodeId(nodeId);
-      setSelectedNodeId(null); // ポップアップを閉じる
+      setContextMenu(null); // メニューを閉じる
     }, 0);
   }, []);
 
   /**
-   * グラフノードホバー時のハンドラ
-   * 現在は未使用だが、将来的にホバー時のプレビュー機能に使用予定
-   */
-  const handleHoverGraphNode = useCallback(() => {
-    // 将来的にホバー時の詳細表示に使用
-  }, []);
-
-  /**
    * 関連ノードのみ表示するハンドラ
-   * NodePopupの「関連ノードのみ表示」ボタンから呼ばれる
+   * コンテキストメニューの「関連ノードのみ表示」から呼ばれる
    */
   const handleShowRelatedNodes = useCallback((nodeId: string) => {
     updateFilter({ focusNodeId: nodeId });
   }, [updateFilter]);
+
+  /**
+   * ノード右クリック時のハンドラ
+   */
+  const handleContextMenuNode = useCallback(
+    (nodeId: string, label: string, position: { x: number; y: number }) => {
+      // graphDataからノード詳細を取得
+      const node = graphData?.nodes.find((n) => n.data.id === nodeId);
+      setContextMenu({
+        position,
+        nodeId,
+        nodeLabel: label,
+        nodeType: (node?.data.type ?? 'fn') as ItemType,
+        nodeFile: node?.data.file ?? '',
+        nodeLine: node?.data.line ?? 0,
+      });
+    },
+    [graphData]
+  );
+
+  /**
+   * ノード除外ハンドラ（コンテキストメニューから呼ばれる）
+   */
+  const handleExcludeNode = useCallback(
+    (nodeId: string) => {
+      excludeNode(nodeId);
+      setContextMenu(null);
+    },
+    [excludeNode]
+  );
 
   /**
    * グラフのノードからファイルを開くハンドラ
@@ -237,11 +259,6 @@ function App() {
       </div>
     );
   }
-
-  // 選択ノードの詳細を取得（ポップアップ表示用）
-  const selectedNode = selectedNodeId
-    ? graphData?.nodes.find((node) => node.data.id === selectedNodeId) || null
-    : null;
 
   // メインレイアウト
   return (
@@ -312,6 +329,7 @@ function App() {
                     onFilterChange={updateFilter}
                     focusNodeLabel={focusNodeLabel}
                     onClearFocus={clearFocusNode}
+                    onClearExcluded={clearExcludedNodes}
                   />
 
                   {/* グラフビュー */}
@@ -336,16 +354,21 @@ function App() {
                         data={graphData}
                         layout={layoutOptions}
                         filter={filter}
-                        onSelectNode={handleSelectGraphNode}
-                        onHoverNode={handleHoverGraphNode}
+                        onContextMenuNode={handleContextMenuNode}
                         centerOnNodeId={centerNodeId}
                       />
 
-                      {/* ノード詳細ポップアップ */}
-                      <NodePopup
-                        node={selectedNode}
-                        onClose={() => setSelectedNodeId(null)}
-                        onNavigate={handleCenterOnNode}
+                      {/* ノードコンテキストメニュー */}
+                      <NodeContextMenu
+                        position={contextMenu?.position ?? null}
+                        nodeId={contextMenu?.nodeId ?? null}
+                        nodeLabel={contextMenu?.nodeLabel ?? null}
+                        nodeType={contextMenu?.nodeType ?? null}
+                        nodeFile={contextMenu?.nodeFile ?? null}
+                        nodeLine={contextMenu?.nodeLine ?? null}
+                        onClose={() => setContextMenu(null)}
+                        onExclude={handleExcludeNode}
+                        onFocus={handleCenterOnNode}
                         onShowRelated={handleShowRelatedNodes}
                         onOpenFile={handleOpenFileFromGraph}
                       />
