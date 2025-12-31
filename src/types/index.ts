@@ -1,5 +1,5 @@
 /**
- * tracelight 型定義のエントリーポイント
+ * perchwork 型定義のエントリーポイント
  */
 export * from './schema';
 export * from './errors';

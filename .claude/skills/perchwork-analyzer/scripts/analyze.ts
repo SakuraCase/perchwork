@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Tracelight Analyzer - Rust コード解析スクリプト
+ * Perchwork Analyzer - Rust コード解析スクリプト
  *
  * tree-sitter のネイティブバインディングを使って Rust コードを解析し、構造化JSONを生成する
  */
@@ -74,7 +74,7 @@ interface FileAnalysis {
 /**
  * メイン処理クラス
  */
-class TracelightAnalyzer {
+class PerchworkAnalyzer {
   private config!: Config;
   private parser: Parser;
 
@@ -828,7 +828,7 @@ class TracelightAnalyzer {
    * 解析を実行する
    */
   async analyze(configPath: string): Promise<void> {
-    console.log('=== Tracelight Analyzer 開始 ===');
+    console.log('=== Perchwork Analyzer 開始 ===');
 
     try {
       // 設定ファイル読み込み
@@ -860,7 +860,7 @@ class TracelightAnalyzer {
       // 構造化JSON出力
       await this.writeStructureOutput(fileAnalyses);
 
-      console.log('=== Tracelight Analyzer 完了 ===');
+      console.log('=== Perchwork Analyzer 完了 ===');
     } catch (error) {
       console.error('エラーが発生しました:', error);
       throw error;
@@ -896,7 +896,7 @@ function parseArgs(): string {
  */
 async function main() {
   const configPath = parseArgs();
-  const analyzer = new TracelightAnalyzer();
+  const analyzer = new PerchworkAnalyzer();
   await analyzer.analyze(configPath);
 }
 

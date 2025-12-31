@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Read(./**)",
-      "Skill(tracelight-analyzer)"
+      "Skill(perchwork-analyzer)"
     ],
     "deny": []
   }

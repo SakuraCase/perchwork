@@ -59,8 +59,8 @@ const DEFAULT_FILTER: GraphFilter = {
 /**
  * localStorage のキー
  */
-const STORAGE_KEY_LAYOUT = 'tracelight-graph-layout';
-const STORAGE_KEY_FILTER = 'tracelight-graph-filter';
+const STORAGE_KEY_LAYOUT = 'perchwork-graph-layout';
+const STORAGE_KEY_FILTER = 'perchwork-graph-filter';
 
 /**
  * グラフのレイアウト状態管理とフィルタ状態管理を行うカスタムフック

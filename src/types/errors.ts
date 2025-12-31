@@ -1,5 +1,5 @@
 /**
- * tracelight エラー型定義
+ * perchwork エラー型定義
  */
 
 /** エラー種別 */
@@ -9,9 +9,9 @@ export type ErrorType =
   | 'NetworkError';
 
 /**
- * tracelight 基底エラークラス
+ * perchwork 基底エラークラス
  */
-export class TracelightError extends Error {
+export class PerchworkError extends Error {
   readonly type: ErrorType;
   readonly details?: unknown;
 
@@ -21,7 +21,7 @@ export class TracelightError extends Error {
     details?: unknown
   ) {
     super(message);
-    this.name = 'TracelightError';
+    this.name = 'PerchworkError';
     this.type = type;
     this.details = details;
   }
@@ -30,7 +30,7 @@ export class TracelightError extends Error {
 /**
  * データが見つからないエラー
  */
-export class DataNotFoundError extends TracelightError {
+export class DataNotFoundError extends PerchworkError {
   constructor(path: string) {
     super('DataNotFound', `Data file not found: ${path}`);
   }
@@ -39,7 +39,7 @@ export class DataNotFoundError extends TracelightError {
 /**
  * JSONパースエラー
  */
-export class ParseError extends TracelightError {
+export class ParseError extends PerchworkError {
   constructor(path: string, details?: unknown) {
     super('ParseError', `Failed to parse JSON file: ${path}`, details);
   }
@@ -48,7 +48,7 @@ export class ParseError extends TracelightError {
 /**
  * ネットワークエラー
  */
-export class NetworkError extends TracelightError {
+export class NetworkError extends PerchworkError {
   constructor(url: string, details?: unknown) {
     super('NetworkError', `Network request failed: ${url}`, details);
   }

@@ -19,7 +19,7 @@ description: コードベースを解析し構造化JSONを生成
 
 このコマンドは以下のスキルを使用します：
 
-- **[tracelight-analyzer](../skills/tracelight-analyzer/SKILL.md)**: tree-sitter 解析、構造抽出、出力スキーマ、検証ルール
+- **[perchwork-analyzer](../skills/perchwork-analyzer/SKILL.md)**: tree-sitter 解析、構造抽出、出力スキーマ、検証ルール
 
 解析対象の言語に応じて、適切な言語スキルを参照してください。
 
@@ -36,9 +36,9 @@ description: コードベースを解析し構造化JSONを生成
 ## ディレクトリ構造
 
 ```
-tools/tracelight/
+tools/perchwork/
 ├── config.json
-├── .claude/skills/tracelight-analyzer/scripts/
+├── .claude/skills/perchwork-analyzer/scripts/
 │   └── dist/
 │       └── analyze.js          # Phase 1 スクリプト
 └── public/data/                # 最終出力
@@ -85,7 +85,7 @@ tools/tracelight/
 2. **tree-sitter 解析実行**
 
    ```bash
-   cd .claude/skills/tracelight-analyzer/scripts && node dist/analyze.js --config ../../../../config.json
+   cd .claude/skills/perchwork-analyzer/scripts && node dist/analyze.js --config ../../../../config.json
    ```
 
    - tree-sitter を使用して決定的な構造解析を実行
@@ -297,17 +297,17 @@ Phase 2 でサブエージェントに渡すプロンプトテンプレート：
 
 ```bash
 # 差分実行（デフォルト）- last_commit 以降の変更ファイルのみ
-/tracelight
+/perchwork
 
 # 全ファイル再実行
-/tracelight --full
+/perchwork --full
 
 # Phase 1 のみ（高速、tree-sitter 構造抽出）
-/tracelight --structure
+/perchwork --structure
 
 # Phase 2 のみ（LLM 意味解析のみ）
-/tracelight --semantic
+/perchwork --semantic
 
 # 対象ディレクトリ指定
-/tracelight --target backend/src/lib/domain
+/perchwork --target backend/src/lib/domain
 ```

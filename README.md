@@ -1,4 +1,4 @@
-# tracelight
+# perchwork
 
 コードベースを解析し、理解を助けるビジュアルツール
 
@@ -12,9 +12,9 @@ cp config.example.json config.json
 ## 使い方
 
 ```bash
-/tracelight              # 差分更新（初回は全ファイル）
-/tracelight --full       # 全体再生成
-/tracelight --target dir # 対象ディレクトリ指定
+/perchwork              # 差分更新（初回は全ファイル）
+/perchwork --full       # 全体再生成
+/perchwork --target dir # 対象ディレクトリ指定
 ```
 
 ## 出力

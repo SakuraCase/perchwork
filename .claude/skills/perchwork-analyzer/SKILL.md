@@ -1,9 +1,9 @@
 ---
-name: tracelight-analyzer
+name: perchwork-analyzer
 description: tree-sitter を使った Rust コード解析ツール。コードベースの構造を解析し、public/data/ ディレクトリに構造化JSONを生成する。
 ---
 
-# Tracelight Analyzer
+# Perchwork Analyzer
 
 ## Overview
 
@@ -17,13 +17,13 @@ tree-sitter を使って Rust コードを静的解析し、構造化されたJS
 
 ## Usage
 
-このスキルは `/tracelight` コマンドから自動的に呼び出されます。
+このスキルは `/perchwork` コマンドから自動的に呼び出されます。
 
 ### 手動実行（開発・デバッグ用）
 
 ```bash
 # スクリプトディレクトリに移動
-cd tools/tracelight/.claude/skills/tracelight-analyzer/scripts
+cd tools/perchwork/.claude/skills/perchwork-analyzer/scripts
 
 # 依存関係のインストール（初回のみ）
 npm install
@@ -310,9 +310,9 @@ semantic.tests.forEach(test => {
 ## Command Options
 
 ```bash
-/tracelight                    # Phase 1 + Phase 2（デフォルト）
-/tracelight --structure        # Phase 1 のみ（高速）
-/tracelight --semantic         # Phase 2 のみ
+/perchwork                    # Phase 1 + Phase 2（デフォルト）
+/perchwork --structure        # Phase 1 のみ（高速）
+/perchwork --semantic         # Phase 2 のみ
 ```
 
 ## Error Handling
@@ -331,7 +331,7 @@ semantic.tests.forEach(test => {
 ### Directory Structure
 
 ```
-tracelight-analyzer/
+perchwork-analyzer/
 ├── SKILL.md                # このファイル
 ├── languages/
 │   └── rust.md            # Rust 解析パターン
@@ -347,7 +347,7 @@ tracelight-analyzer/
 
 ```bash
 # ビルド
-cd .claude/skills/tracelight-analyzer/scripts
+cd .claude/skills/perchwork-analyzer/scripts
 npm run build
 
 # 解析実行
