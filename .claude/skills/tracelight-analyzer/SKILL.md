@@ -67,14 +67,15 @@ node dist/analyze.js --config ../../../../config.json
 
 ```
 public/data/
-├── index.json                    # Phase 1 出力（インデックス）
-├── call_graph/
-│   └── edges.json                # Phase 1 出力（コールグラフ）
-├── entity/
-│   ├── battle_state.json         # Phase 1 出力（構文情報）
-│   └── battle_world.json
-├── service/
-│   └── battle_loop.json
+├── structure/                    # Phase 1 出力（tree-sitter構文情報）
+│   ├── index.json                # インデックス
+│   ├── call_graph/
+│   │   └── edges.json            # コールグラフ
+│   ├── entity/
+│   │   ├── battle_state.json
+│   │   └── battle_world.json
+│   └── service/
+│       └── battle_loop.json
 └── semantic/                     # Phase 2 出力（LLM意味解析）
     ├── entity/
     │   ├── battle_state.json
@@ -282,7 +283,7 @@ public/data/
 
 ```typescript
 // フロントエンドで両方読み込み、マージ
-const structure = await fetch('/data/entity/battle_state.json');
+const structure = await fetch('/data/structure/entity/battle_state.json');
 const semantic = await fetch('/data/semantic/entity/battle_state.json');
 
 const merged = structure.items.map(item => ({

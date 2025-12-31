@@ -30,7 +30,7 @@ export async function loadCallGraphEdges(): Promise<CallGraphEdgesData> {
     return cached;
   }
 
-  const data = await fetchJson<CallGraphEdgesData>('/data/call_graph/edges.json');
+  const data = await fetchJson<CallGraphEdgesData>('/data/structure/call_graph/edges.json');
   cacheManager.set(cacheKey, data);
   return data;
 }
@@ -49,7 +49,7 @@ async function loadMainIndex(): Promise<IndexFile> {
     return cached;
   }
 
-  const data = await fetchJson<IndexFile>('/data/index.json');
+  const data = await fetchJson<IndexFile>('/data/structure/index.json');
   cacheManager.set(cacheKey, data);
   return data;
 }
@@ -69,7 +69,7 @@ async function loadSplitFile(path: string): Promise<SplitFile> {
     return cached;
   }
 
-  const fullPath = `/data/${path}`;
+  const fullPath = `/data/structure/${path}`;
   const data = await fetchJson<SplitFile>(fullPath);
   cacheManager.set(cacheKey, data);
   return data;

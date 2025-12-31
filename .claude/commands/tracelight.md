@@ -40,9 +40,11 @@ tools/tracelight/
 │   └── dist/
 │       └── analyze.js          # Phase 1 スクリプト
 └── public/data/                # 最終出力
-    ├── index.json              # インデックス
-    ├── entity/                 # Phase 1 出力（構文情報）
-    │   └── battle_state.json
+    ├── structure/              # Phase 1 出力（構文情報）
+    │   ├── index.json          # インデックス
+    │   ├── call_graph/         # コールグラフ
+    │   └── entity/
+    │       └── battle_state.json
     └── semantic/               # Phase 2 出力（意味情報）
         └── entity/
             └── battle_state.json

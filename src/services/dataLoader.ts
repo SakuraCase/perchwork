@@ -22,7 +22,7 @@ import {
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
 export async function fetchIndex(): Promise<IndexFile> {
-  return fetchJson<IndexFile>('/data/index.json');
+  return fetchJson<IndexFile>('/data/structure/index.json');
 }
 
 /**
@@ -34,7 +34,7 @@ export async function fetchIndex(): Promise<IndexFile> {
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
 export async function fetchSplitFile(path: string): Promise<SplitFile> {
-  const fullPath = `/data/${path}`;
+  const fullPath = `/data/structure/${path}`;
   return fetchJson<SplitFile>(fullPath);
 }
 
@@ -47,7 +47,7 @@ export async function fetchSplitFile(path: string): Promise<SplitFile> {
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
 export async function fetchCallGraphChunk(path: string): Promise<CallGraphChunk> {
-  const fullPath = `/data/${path}`;
+  const fullPath = `/data/structure/${path}`;
   return fetchJson<CallGraphChunk>(fullPath);
 }
 

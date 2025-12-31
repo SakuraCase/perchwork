@@ -640,7 +640,7 @@ class TracelightAnalyzer {
     console.log('構造化JSONを出力しています...');
 
     // public/data ディレクトリを作成
-    const baseDir = '../../../../public/data';
+    const baseDir = '../../../../public/data/structure';
 
     try {
       await fs.mkdir(baseDir, { recursive: true });
