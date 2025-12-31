@@ -71,7 +71,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
               <div className="text-gray-500 mb-1">
                 {group.item.type === 'enum' ? 'バリアント:' : 'フィールド:'}
               </div>
-              <div className="pl-2 space-y-0.5">
+              <div className="space-y-0.5">
                 {group.fields.map((field, idx) => (
                   <div key={idx} className="flex items-center gap-2">
                     <span className="text-gray-300">{field.name}</span>
@@ -89,7 +89,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
 
           {/* 直接テスト（struct/enum自体をテストするもの） */}
           {group.directTests.length > 0 && (
-            <div className="pl-4 space-y-1">
+            <div className="space-y-1">
               <div className="text-xs text-gray-500 mb-1">直接テスト:</div>
               {group.directTests.map(test => (
                 <TestItem key={test.id} test={test} />
@@ -100,6 +100,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
           {/* メソッド一覧 */}
           {group.methods.length > 0 && (
             <div className="space-y-1">
+              <div className="text-xs text-gray-500 mb-1">関数一覧:</div>
               {group.methods.map(method => (
                 <MethodView
                   key={method.item.id}
@@ -128,28 +129,8 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
   const hasTests = method.tests.length > 0;
 
   return (
-    <div className="pl-4">
+    <div>
       <div className="flex items-center gap-1 py-1.5 px-2 hover:bg-gray-800 rounded transition-colors">
-        {/* 展開アイコン（テストがある場合のみクリック可能） */}
-        {hasTests ? (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="p-1 hover:bg-gray-700 rounded transition-colors"
-            title="テストを展開/折りたたみ"
-          >
-            <span
-              className={`text-xs text-gray-400 transform transition-transform inline-block ${
-                expanded ? 'rotate-90' : ''
-              }`}
-            >
-              ▶
-            </span>
-          </button>
-        ) : (
-          <span className="w-5" />
-        )}
-
         {/* メソッド名（クリックで詳細へ遷移） */}
         <button
           type="button"
@@ -170,21 +151,37 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
         {method.item.is_async && (
           <span className="text-xs text-purple-400">[async]</span>
         )}
+
+        {/* テスト数と展開アイコン（右側） */}
         {hasTests && (
-          <span className="text-xs text-gray-500 ml-auto">
-            ({method.tests.length} テスト)
-          </span>
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="ml-auto flex items-center gap-1 p-1 hover:bg-gray-700 rounded transition-colors"
+            title="テストを展開/折りたたみ"
+          >
+            <span className="text-xs text-gray-500">
+              ({method.tests.length} テスト)
+            </span>
+            <span
+              className={`text-xs text-gray-400 transform transition-transform inline-block ${
+                expanded ? 'rotate-180' : ''
+              }`}
+            >
+              ▼
+            </span>
+          </button>
         )}
       </div>
 
       {/* メソッド概要 */}
       {method.item.summary && !expanded && (
-        <p className="pl-7 text-xs text-gray-300 truncate">{method.item.summary}</p>
+        <p className="text-xs text-gray-300 truncate">{method.item.summary}</p>
       )}
 
       {/* 関連テスト */}
       {expanded && hasTests && (
-        <div className="pl-8 space-y-1 mt-1 mb-2">
+        <div className="pl-4 space-y-1 mt-1 mb-2">
           {method.tests.map(test => (
             <TestItem key={test.id} test={test} />
           ))}

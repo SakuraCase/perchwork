@@ -477,12 +477,10 @@ class TracelightAnalyzer {
     // シグネチャ部分のみを抽出
     const lines = fileContent.split('\n');
     const signatureLines = lines.slice(startLine, bodyStartLine);
-    let signature = signatureLines.join(' ').trim();
 
-    // 長すぎる場合は省略
-    if (signature.length > 200) {
-      signature = signature.substring(0, 197) + '...';
-    }
+    // 各行のインデントを除去し、改行を保持
+    const trimmedLines = signatureLines.map(line => line.trimStart());
+    const signature = trimmedLines.join('\n').trim();
 
     return signature;
   }
@@ -694,8 +692,15 @@ class TracelightAnalyzer {
       console.log(`  出力: ${outputPath}`);
     }
 
+    // 名前→IDマップを構築（エッジ解決用）
+    const nameToId = this.buildNameToIdMap(fileAnalyses);
+
+    // エッジのtoを解決（コードベース内の呼び出しのみ）
+    const resolvedEdges = this.resolveEdges(allEdges, nameToId);
+    console.log(`  エッジ解決: ${allEdges.length} → ${resolvedEdges.length}`);
+
     // call_graph/edges.json の生成
-    await this.writeCallGraph(baseDir, allEdges);
+    await this.writeCallGraph(baseDir, resolvedEdges);
 
     // index.json の生成
     const totalItems = fileEntries.reduce((sum, f) => sum + f.items, 0);
@@ -742,6 +747,81 @@ class TracelightAnalyzer {
     await fs.writeFile(edgesPath, JSON.stringify(callGraphData, null, 2));
 
     console.log(`  コールグラフ出力: ${edgesPath} (${edges.length} edges)`);
+  }
+
+  /**
+   * 名前→IDマップを構築
+   * エッジのtoを解決するために使用
+   */
+  private buildNameToIdMap(fileAnalyses: FileAnalysis[]): Map<string, string> {
+    const nameToId = new Map<string, string>();
+
+    for (const analysis of fileAnalyses) {
+      for (const item of analysis.items) {
+        // メソッド/関数名でマッピング（同名があれば上書き）
+        nameToId.set(item.name, item.id);
+
+        // TypeName::methodName形式でもマッピング（メソッドの場合）
+        if (item.impl_for) {
+          nameToId.set(`${item.impl_for}::${item.name}`, item.id);
+        }
+      }
+
+      // テスト関数もマッピング
+      for (const test of analysis.tests) {
+        nameToId.set(test.name, test.id);
+      }
+    }
+
+    return nameToId;
+  }
+
+  /**
+   * エッジのtoを解決
+   * コードベース内の呼び出しのみを返す
+   */
+  private resolveEdges(edges: CallEdge[], nameToId: Map<string, string>): CallEdge[] {
+    const resolved: CallEdge[] = [];
+
+    for (const edge of edges) {
+      const resolvedTo = this.resolveEdgeTarget(edge.to, nameToId);
+      if (resolvedTo) {
+        resolved.push({
+          ...edge,
+          to: resolvedTo,
+        });
+      }
+    }
+
+    return resolved;
+  }
+
+  /**
+   * エッジのターゲットを解決
+   */
+  private resolveEdgeTarget(to: string, nameToId: Map<string, string>): string | null {
+    // 1. 完全一致
+    if (nameToId.has(to)) {
+      return nameToId.get(to)!;
+    }
+
+    // 2. TypeName::methodName 形式で試行
+    const parts = to.split('::');
+    if (parts.length >= 2) {
+      const key = `${parts[parts.length - 2]}::${parts[parts.length - 1]}`;
+      if (nameToId.has(key)) {
+        return nameToId.get(key)!;
+      }
+    }
+
+    // 3. 末尾の名前のみで試行
+    const lastPart = parts[parts.length - 1];
+    if (nameToId.has(lastPart)) {
+      return nameToId.get(lastPart)!;
+    }
+
+    // 解決できない（外部呼び出し）
+    return null;
   }
 
   /**

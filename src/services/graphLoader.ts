@@ -142,7 +142,7 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
   const nodeIds = new Set<string>();
   for (const edge of filteredEdges) {
     nodeIds.add(edge.from);
-    // toはメソッド名だけの場合があるのでノードとしては追加しない
+    nodeIds.add(edge.to);  // 解決済みの完全なIDなので追加
   }
 
   // ノード配列を構築

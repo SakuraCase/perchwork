@@ -215,6 +215,24 @@ Phase 2 でサブエージェントに渡すプロンプトテンプレート：
 - ソースファイル: {target_dir}
 - 出力先: {output_base}/semantic/
 
+## 出力パス変換ルール（重要）
+
+ソースファイルの相対パスから `.rs` 拡張子を除去し `.json` に置換する。
+ディレクトリ構造は保持する。
+
+| ソースファイル（相対パス）      | 出力ファイル                                    |
+|---------------------------------|-------------------------------------------------|
+| entity/battle_state.rs          | {output_base}/semantic/entity/battle_state.json |
+| entity/mod.rs                   | {output_base}/semantic/entity/mod.json          |
+| master/hero_config.rs           | {output_base}/semantic/master/hero_config.json  |
+| constants.rs                    | {output_base}/semantic/constants.json           |
+| value_object/player_side.rs     | {output_base}/semantic/value_object/player_side.json |
+
+**注意**:
+- ファイル名の `.rs` → `.json` 変換を必ず行う（`.rs.json` は不可）
+- `backend/src/lib/...` のようなフルパス構造で出力しない
+- target_dir からの相対パスを維持する
+
 ## 各ファイルの処理手順
 
 1. Read ツールでソースファイルを読み込み

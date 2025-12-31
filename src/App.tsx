@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { SourceFile, ItemId, CodeItem, SemanticTest } from './types/schema';
+import type { SourceFile, ItemId, SemanticTest } from './types/schema';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useTreeState } from './hooks/useTreeState';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
@@ -105,17 +105,6 @@ function App() {
 
     return buildIndex(chunks);
   }, [graphData]);
-
-  // CodeItems マップの構築（useMemoで最適化）
-  const codeItems = useMemo<Map<ItemId, CodeItem>>(() => {
-    const itemsMap = new Map<ItemId, CodeItem>();
-    if (currentFile) {
-      for (const item of currentFile.items) {
-        itemsMap.set(item.id, item);
-      }
-    }
-    return itemsMap;
-  }, [currentFile]);
 
   /**
    * ファイル選択時のハンドラ
@@ -283,7 +272,6 @@ function App() {
                   selectedItemId={selectedItemId}
                   onSelectItem={handleSelectItem}
                   callersIndex={callersIndex}
-                  codeItems={codeItems}
                   semanticTests={semanticTests}
                 />
               )}
