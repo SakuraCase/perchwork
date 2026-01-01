@@ -80,7 +80,7 @@ class PerchworkAnalyzer {
 
   constructor() {
     this.parser = new Parser();
-    this.parser.setLanguage(Rust);
+    this.parser.setLanguage(Rust as any);
   }
 
   /**
@@ -638,18 +638,10 @@ class PerchworkAnalyzer {
    * テストアトリビュートを持つかチェック
    */
   private hasTestAttribute(node: Parser.SyntaxNode): boolean {
-    // 関数の前のアトリビュートをチェック
-    const parent = node.parent;
-    if (!parent) return false;
-
-    const nodeIndex = parent.children.indexOf(node);
-    if (nodeIndex <= 0) return false;
-
-    // 直前のノードをチェック
-    for (let i = nodeIndex - 1; i >= 0; i--) {
-      const prevNode = parent.children[i];
-      if (prevNode.type === 'attribute_item') {
-        const text = prevNode.text;
+    let prev = node.previousSibling;
+    while (prev) {
+      if (prev.type === 'attribute_item') {
+        const text = prev.text;
         if (
           text.includes('#[test]') ||
           text.includes('#[tokio::test]') ||
@@ -657,12 +649,11 @@ class PerchworkAnalyzer {
         ) {
           return true;
         }
-      } else if (prevNode.type !== 'line_comment' && prevNode.type !== 'block_comment') {
-        // コメント以外のノードが見つかったら終了
+      } else if (prev.type !== 'line_comment' && prev.type !== 'block_comment') {
         break;
       }
+      prev = prev.previousSibling;
     }
-
     return false;
   }
 
