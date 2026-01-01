@@ -2,9 +2,12 @@
  * Header.tsx
  *
  * アプリケーションヘッダーコンポーネント
- * ロゴ/プロジェクトタイトルとビュー切り替えタブを表示
+ * ロゴ/プロジェクトタイトル、ビュー切り替えタブ、検索ボックスを表示
  */
+import type { ItemId } from "../../types/schema";
 import type { ViewTab } from "../../types/view";
+import type { SearchIndexItem } from "../../hooks/useSearchIndex";
+import { SearchBox } from "./SearchBox";
 
 interface HeaderProps {
   /** プロジェクト名（デフォルト: "Perchwork"） */
@@ -13,6 +16,14 @@ interface HeaderProps {
   activeTab: ViewTab;
   /** タブ変更時のコールバック */
   onTabChange: (tab: ViewTab) => void;
+  /** 検索候補データ */
+  searchItems: SearchIndexItem[];
+  /** 検索インデックスローディング中かどうか */
+  searchLoading: boolean;
+  /** グラフモード: ノード選択時のコールバック */
+  onSearchSelectGraph: (nodeId: string, filePath: string) => void;
+  /** ツリーモード: アイテム選択時のコールバック */
+  onSearchSelectTree: (filePath: string, itemId: ItemId) => void;
 }
 
 /**
@@ -23,6 +34,10 @@ export function Header({
   projectName = "Perchwork",
   activeTab,
   onTabChange,
+  searchItems,
+  searchLoading,
+  onSearchSelectGraph,
+  onSearchSelectTree,
 }: HeaderProps) {
   return (
     <header className="h-14 border-b border-gray-700 bg-gray-900 flex items-center px-6">
@@ -50,6 +65,17 @@ export function Header({
         >
           ツリー
         </button>
+      </div>
+
+      {/* 検索ボックス（右寄せ） */}
+      <div className="ml-auto">
+        <SearchBox
+          items={searchItems}
+          isLoading={searchLoading}
+          activeTab={activeTab}
+          onSelectGraphNode={onSearchSelectGraph}
+          onSelectTreeItem={onSearchSelectTree}
+        />
       </div>
     </header>
   );

@@ -11,6 +11,7 @@ import type { ViewTab } from './types/view';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
 import { useGraphLayout } from './hooks/useGraphLayout';
+import { useSearchIndex } from './hooks/useSearchIndex';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loading } from './components/common/Loading';
 import { Header } from './components/layout/Header';
@@ -42,6 +43,9 @@ import type { CallersIndex } from './types/callers';
 function App() {
   // データ読み込みとキャッシュ管理
   const { index, loadFileWithSemantic, isLoading, error } = useDataLoader();
+
+  // 検索インデックス
+  const { items: searchItems, isLoading: searchLoading } = useSearchIndex(index);
 
   // タブ状態
   const [activeTab, setActiveTab] = useState<ViewTab>('graph');
@@ -177,6 +181,34 @@ function App() {
   }, []);
 
   /**
+   * 検索からグラフノードを選択するハンドラ
+   * ノードを中心表示し、詳細パネルにファイル情報を表示
+   */
+  const handleSearchSelectGraph = useCallback(
+    async (nodeId: string, filePath: string) => {
+      // ノードを中心表示
+      setCenterNodeId(null);
+      setTimeout(() => setCenterNodeId(nodeId), 0);
+
+      // ファイル情報を読み込んで詳細パネルに表示
+      await handleGraphNodeClick(nodeId, filePath);
+    },
+    [handleGraphNodeClick]
+  );
+
+  /**
+   * 検索からツリーアイテムを選択するハンドラ
+   * ファイルを選択し、アイテムを選択
+   */
+  const handleSearchSelectTree = useCallback(
+    async (filePath: string, itemId: ItemId) => {
+      await handleTreeSelectFile(filePath);
+      setTreeSelectedItemId(itemId);
+    },
+    [handleTreeSelectFile]
+  );
+
+  /**
    * サイドパネル開閉トグル
    */
   const handleToggleSidePanel = useCallback(() => {
@@ -303,6 +335,10 @@ function App() {
           projectName="Perchwork"
           activeTab={activeTab}
           onTabChange={setActiveTab}
+          searchItems={searchItems}
+          searchLoading={searchLoading}
+          onSearchSelectGraph={handleSearchSelectGraph}
+          onSearchSelectTree={handleSearchSelectTree}
         />
 
         {/* メインコンテンツエリア */}
