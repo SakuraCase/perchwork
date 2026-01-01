@@ -36,12 +36,15 @@ export interface GraphViewProps {
   /** フィルタ設定 */
   filter?: GraphFilter;
 
-  /** ノードクリック時のコールバック */
+  /** ノード右クリック時のコールバック（コンテキストメニュー表示用） */
   onContextMenuNode?: (
     nodeId: string,
     label: string,
     position: { x: number; y: number }
   ) => void;
+
+  /** ノード左クリック時のコールバック（詳細表示用） */
+  onNodeClick?: (nodeId: string, filePath: string) => void;
 
   /** 中心に表示するノードのID（変更されると該当ノードを中心に表示） */
   centerOnNodeId?: string | null;
@@ -71,6 +74,7 @@ export function GraphView({
   layout = DEFAULT_LAYOUT,
   filter,
   onContextMenuNode,
+  onNodeClick,
   centerOnNodeId,
   className = '',
 }: GraphViewProps) {
@@ -326,10 +330,15 @@ export function GraphView({
   // ============================================
 
   const onContextMenuNodeRef = useRef(onContextMenuNode);
+  const onNodeClickRef = useRef(onNodeClick);
 
   useEffect(() => {
     onContextMenuNodeRef.current = onContextMenuNode;
   }, [onContextMenuNode]);
+
+  useEffect(() => {
+    onNodeClickRef.current = onNodeClick;
+  }, [onNodeClick]);
 
   // ============================================
   // Cytoscape 初期化とクリーンアップ
@@ -372,8 +381,16 @@ export function GraphView({
 
     cyRef.current = cy;
 
-    // 左クリックイベント（ノードメニュー表示）
+    // 左クリックイベント（詳細表示）
     cy.on('tap', 'node', (event: cytoscape.EventObject) => {
+      const node = event.target as NodeSingular;
+      const nodeId = node.data('id') as string;
+      const filePath = node.data('file') as string;
+      onNodeClickRef.current?.(nodeId, filePath);
+    });
+
+    // 右クリックイベント（コンテキストメニュー表示）
+    cy.on('cxttap', 'node', (event: cytoscape.EventObject) => {
       const node = event.target as NodeSingular;
       const nodeId = node.data('id') as string;
       const label = node.data('label') as string;

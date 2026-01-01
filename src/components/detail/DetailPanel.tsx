@@ -50,13 +50,13 @@ export function DetailPanel({
     selectedItemId,
     callersIndex
   );
-  // ファイル未選択時: プレースホルダー表示
+  // ノード未選択時: プレースホルダー表示
   if (!file) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-gray-500">
-          <p className="text-lg mb-2">ファイルが選択されていません</p>
-          <p className="text-sm">左側のツリーからファイルを選択してください</p>
+          <p className="text-lg mb-2">ノードが選択されていません</p>
+          <p className="text-sm">グラフからノードをクリックしてください</p>
         </div>
       </div>
     );

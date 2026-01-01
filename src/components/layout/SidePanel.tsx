@@ -1,0 +1,80 @@
+/**
+ * SidePanel.tsx
+ *
+ * 開閉可能な右サイドパネルコンポーネント
+ * ノード詳細表示用のパネルを提供する
+ */
+import type { ReactNode } from "react";
+
+interface SidePanelProps {
+  /** パネルが開いているかどうか */
+  isOpen: boolean;
+  /** 開閉トグルハンドラ */
+  onToggle: () => void;
+  /** パネル内のコンテンツ */
+  children: ReactNode;
+}
+
+/**
+ * 右サイドパネル
+ * @param props - サイドパネルのプロパティ
+ */
+export function SidePanel({ isOpen, onToggle, children }: SidePanelProps) {
+  if (!isOpen) {
+    // 閉じた状態：開くボタンのみ表示
+    return (
+      <div className="flex items-start bg-gray-800 border-l border-gray-700">
+        <button
+          onClick={onToggle}
+          className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+          title="パネルを開く"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  // 開いた状態：パネル全体を表示
+  return (
+    <aside className="w-[30%] min-w-[300px] max-w-[500px] flex flex-col bg-gray-800 border-l border-gray-700 overflow-hidden">
+      {/* ヘッダー：閉じるボタン */}
+      <div className="flex justify-end p-2 border-b border-gray-700">
+        <button
+          onClick={onToggle}
+          className="p-1 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded"
+          title="パネルを閉じる"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {/* コンテンツ */}
+      <div className="flex-1 overflow-auto">{children}</div>
+    </aside>
+  );
+}

@@ -2,21 +2,19 @@
  * App.tsx
  *
  * アプリケーションのルートコンポーネント
- * すべてのコンポーネントを統合し、グローバル状態とデータフローを管理する
+ * グラフ表示（メイン）+ サイドパネル（詳細）の構成
  */
 
 import { useState, useCallback, useMemo } from 'react';
 import type { SourceFile, ItemId, SemanticTest, ItemType } from './types/schema';
 import { useDataLoader } from './hooks/useDataLoader';
-import { useTreeState } from './hooks/useTreeState';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
 import { useGraphLayout } from './hooks/useGraphLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loading } from './components/common/Loading';
 import { Header } from './components/layout/Header';
-import { Sidebar } from './components/layout/Sidebar';
 import { MainContent } from './components/layout/MainContent';
-import { DirectoryTree } from './components/tree/DirectoryTree';
+import { SidePanel } from './components/layout/SidePanel';
 import { DetailPanel } from './components/detail/DetailPanel';
 import { GraphView } from './components/graph/GraphView';
 import { GraphToolbar } from './components/graph/GraphToolbar';
@@ -25,48 +23,31 @@ import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
 
 /**
- * タブの種類
- */
-type ViewTab = 'detail' | 'graph';
-
-/**
  * アプリケーションルートコンポーネント
  *
  * 状態管理:
  * - index.json の読み込み（useDataLoader）
- * - ツリー構造の構築と展開状態（useTreeState）
- * - ファイル選択状態（selectedFilePath, currentFile）
- * - アイテム選択状態（selectedItemId）
- * - タブ選択状態（activeTab）
  * - グラフデータ読み込み（useGraphTraversal）
  * - グラフレイアウト設定（useGraphLayout）
+ * - サイドパネル開閉状態
+ * - 選択ノードからのファイル・アイテム状態
  *
  * データフロー:
- * 1. 初期ロード: index.json を取得
- * 2. ツリー構築: ファイルパス配列から TreeNode[] を生成
- * 3. ファイル選択: DirectoryTree -> loadFile() -> DetailPanel
- * 4. アイテム選択: DetailPanel 内部で管理
- * 5. タブ切り替え: 詳細/グラフ
- * 6. グラフノード選択: GraphView -> NodePopup
+ * 1. 初期ロード: index.json、グラフデータを取得
+ * 2. グラフ表示: 常時メインエリアに表示
+ * 3. ノード選択: GraphView -> ファイルロード -> DetailPanel
+ * 4. サイドパネル: 右側にDetailPanelを表示
  */
 function App() {
   // データ読み込みとキャッシュ管理
   const { index, loadFileWithSemantic, isLoading, error } = useDataLoader();
 
-  // ツリー構造と展開状態の管理
-  const { nodes, toggleExpand } = useTreeState(index);
+  // サイドパネル開閉状態
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
-  // タブ選択状態
-  const [activeTab, setActiveTab] = useState<ViewTab>('detail');
-
-  // ファイル選択状態
-  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  // ファイル・アイテム選択状態（グラフノード選択から設定）
   const [currentFile, setCurrentFile] = useState<SourceFile | null>(null);
-
-  // アイテム選択状態
   const [selectedItemId, setSelectedItemId] = useState<ItemId | null>(null);
-
-  // セマンティックテスト情報
   const [semanticTests, setSemanticTests] = useState<SemanticTest[]>([]);
 
   // グラフ関連のフック
@@ -114,31 +95,29 @@ function App() {
   }, [graphData]);
 
   /**
-   * ファイル選択時のハンドラ
-   * 選択されたファイルの詳細JSONを読み込む（セマンティック情報含む）
+   * グラフノードクリック時のハンドラ
+   * ノードのファイルをロードし、DetailPanelに表示
    */
-  const handleSelectFile = useCallback(
-    async (path: string) => {
-      setSelectedFilePath(path);
-      setSelectedItemId(null); // ファイル切り替え時はアイテム選択をリセット
-
+  const handleNodeClick = useCallback(
+    async (nodeId: string, filePath: string) => {
       try {
-        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(path);
-        // Phase 1の実際の出力形式: { path, language, items } を直接 SourceFile として扱う
+        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(filePath);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawData = splitFile as any;
         const sourceFile: SourceFile = {
-          path: rawData.path || path,
+          path: rawData.path || filePath,
           hash: '',
           last_modified: '',
           items: rawData.items || [],
         };
         setCurrentFile(sourceFile);
         setSemanticTests(tests);
+        setSelectedItemId(nodeId as ItemId);
       } catch (err) {
         console.error('Failed to load file:', err);
         setCurrentFile(null);
         setSemanticTests([]);
+        setSelectedItemId(null);
       }
     },
     [loadFileWithSemantic]
@@ -149,6 +128,13 @@ function App() {
    */
   const handleSelectItem = useCallback((id: ItemId) => {
     setSelectedItemId(id);
+  }, []);
+
+  /**
+   * サイドパネル開閉トグル
+   */
+  const handleToggleSidePanel = useCallback(() => {
+    setIsSidePanelOpen(prev => !prev);
   }, []);
 
   /**
@@ -203,13 +189,15 @@ function App() {
   );
 
   /**
-   * グラフのノードからファイルを開くハンドラ
-   * 詳細タブに切り替えて該当ファイルを選択
+   * コンテキストメニューからファイルを開くハンドラ
    */
-  const handleOpenFileFromGraph = useCallback(async (filePath: string) => {
-    setActiveTab('detail');
-    await handleSelectFile(filePath);
-  }, [handleSelectFile]);
+  const handleOpenFileFromContext = useCallback(async (filePath: string) => {
+    const nodeId = contextMenu?.nodeId;
+    if (nodeId) {
+      await handleNodeClick(nodeId, filePath);
+    }
+    setContextMenu(null);
+  }, [contextMenu, handleNodeClick]);
 
   /**
    * フォーカスノードのラベルを取得（表示用）
@@ -269,116 +257,74 @@ function App() {
 
         {/* メインコンテンツエリア */}
         <div className="flex flex-1 overflow-hidden">
-          {/* サイドバー: ディレクトリツリー */}
-          <Sidebar width={300}>
-            <DirectoryTree
-              nodes={nodes}
-              selectedPath={selectedFilePath}
-              onSelectFile={handleSelectFile}
-              onToggleExpand={toggleExpand}
-            />
-          </Sidebar>
-
-          {/* メインコンテンツ: タブ切り替えUI */}
+          {/* メインエリア: グラフ表示 */}
           <MainContent>
-            {/* タブバー */}
-            <div className="flex border-b border-gray-700 bg-gray-800">
-              <button
-                onClick={() => setActiveTab('detail')}
-                className={`px-6 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'detail'
-                    ? 'bg-gray-700 text-white border-b-2 border-blue-500'
-                    : 'bg-gray-800 text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                詳細
-              </button>
-              <button
-                onClick={() => setActiveTab('graph')}
-                className={`px-6 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'graph'
-                    ? 'bg-gray-700 text-white border-b-2 border-blue-500'
-                    : 'bg-gray-800 text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                グラフ
-              </button>
-            </div>
+            {/* グラフツールバー */}
+            <GraphToolbar
+              layout={layoutOptions.type}
+              onLayoutChange={setLayoutType}
+              filter={filter}
+              onFilterChange={updateFilter}
+              focusNodeLabel={focusNodeLabel}
+              onClearFocus={clearFocusNode}
+              onClearExcluded={clearExcludedNodes}
+            />
 
-            {/* タブコンテンツ */}
-            <div className="flex-1 overflow-hidden">
-              {/* 詳細タブ */}
-              {activeTab === 'detail' && (
-                <DetailPanel
-                  file={currentFile}
-                  selectedItemId={selectedItemId}
-                  onSelectItem={handleSelectItem}
-                  callersIndex={callersIndex}
-                  semanticTests={semanticTests}
-                />
-              )}
+            {/* グラフビュー */}
+            {graphLoading && (
+              <div className="flex-1 flex items-center justify-center">
+                <Loading message="グラフデータを読み込んでいます..." />
+              </div>
+            )}
 
-              {/* グラフタブ */}
-              {activeTab === 'graph' && (
-                <div className="flex flex-col h-full">
-                  {/* グラフツールバー */}
-                  <GraphToolbar
-                    layout={layoutOptions.type}
-                    onLayoutChange={setLayoutType}
-                    filter={filter}
-                    onFilterChange={updateFilter}
-                    focusNodeLabel={focusNodeLabel}
-                    onClearFocus={clearFocusNode}
-                    onClearExcluded={clearExcludedNodes}
-                  />
-
-                  {/* グラフビュー */}
-                  {graphLoading && (
-                    <div className="flex-1 flex items-center justify-center">
-                      <Loading message="グラフデータを読み込んでいます..." />
-                    </div>
-                  )}
-
-                  {graphError && (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-red-400 mb-4">グラフデータの読み込みに失敗しました</p>
-                        <p className="text-sm text-gray-500">{graphError.message}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {!graphLoading && !graphError && graphData && (
-                    <div className="flex-1 relative">
-                      <GraphView
-                        data={graphData}
-                        layout={layoutOptions}
-                        filter={filter}
-                        onContextMenuNode={handleContextMenuNode}
-                        centerOnNodeId={centerNodeId}
-                      />
-
-                      {/* ノードコンテキストメニュー */}
-                      <NodeContextMenu
-                        position={contextMenu?.position ?? null}
-                        nodeId={contextMenu?.nodeId ?? null}
-                        nodeLabel={contextMenu?.nodeLabel ?? null}
-                        nodeType={contextMenu?.nodeType ?? null}
-                        nodeFile={contextMenu?.nodeFile ?? null}
-                        nodeLine={contextMenu?.nodeLine ?? null}
-                        onClose={() => setContextMenu(null)}
-                        onExclude={handleExcludeNode}
-                        onFocus={handleCenterOnNode}
-                        onShowRelated={handleShowRelatedNodes}
-                        onOpenFile={handleOpenFileFromGraph}
-                      />
-                    </div>
-                  )}
+            {graphError && (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-red-400 mb-4">グラフデータの読み込みに失敗しました</p>
+                  <p className="text-sm text-gray-500">{graphError.message}</p>
                 </div>
-              )}
+              </div>
+            )}
 
-            </div>
+            {!graphLoading && !graphError && graphData && (
+              <div className="flex-1 relative">
+                <GraphView
+                  data={graphData}
+                  layout={layoutOptions}
+                  filter={filter}
+                  onContextMenuNode={handleContextMenuNode}
+                  onNodeClick={handleNodeClick}
+                  centerOnNodeId={centerNodeId}
+                />
+
+                {/* ノードコンテキストメニュー */}
+                <NodeContextMenu
+                  position={contextMenu?.position ?? null}
+                  nodeId={contextMenu?.nodeId ?? null}
+                  nodeLabel={contextMenu?.nodeLabel ?? null}
+                  nodeType={contextMenu?.nodeType ?? null}
+                  nodeFile={contextMenu?.nodeFile ?? null}
+                  nodeLine={contextMenu?.nodeLine ?? null}
+                  onClose={() => setContextMenu(null)}
+                  onExclude={handleExcludeNode}
+                  onFocus={handleCenterOnNode}
+                  onShowRelated={handleShowRelatedNodes}
+                  onOpenFile={handleOpenFileFromContext}
+                />
+              </div>
+            )}
           </MainContent>
+
+          {/* サイドパネル: 詳細表示 */}
+          <SidePanel isOpen={isSidePanelOpen} onToggle={handleToggleSidePanel}>
+            <DetailPanel
+              file={currentFile}
+              selectedItemId={selectedItemId}
+              onSelectItem={handleSelectItem}
+              callersIndex={callersIndex}
+              semanticTests={semanticTests}
+            />
+          </SidePanel>
         </div>
       </div>
     </ErrorBoundary>
