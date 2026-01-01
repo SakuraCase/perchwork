@@ -9,6 +9,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { ItemType } from '../../types/schema';
+import { getTypeLabel, getTypeColorClass } from '@/utils/badgeStyles';
 
 // ============================================
 // Props定義
@@ -48,46 +49,6 @@ export interface NodeContextMenuProps {
   /** ファイルを開く */
   onOpenFile?: (filePath: string) => void;
 }
-
-// ============================================
-// ヘルパー関数
-// ============================================
-
-/**
- * アイテムタイプの日本語表示名を取得
- */
-const getTypeLabel = (type: string): string => {
-  const labels: Record<string, string> = {
-    struct: '構造体',
-    fn: '関数',
-    trait: 'トレイト',
-    enum: '列挙型',
-    type: '型エイリアス',
-    impl: '実装',
-    mod: 'モジュール',
-    const: '定数',
-    method: 'メソッド',
-  };
-  return labels[type] || type;
-};
-
-/**
- * アイテムタイプに応じた色クラスを取得
- */
-const getTypeColorClass = (type: string): string => {
-  const colors: Record<string, string> = {
-    struct: 'bg-green-600 text-white',
-    fn: 'bg-indigo-600 text-white',
-    trait: 'bg-red-600 text-white',
-    enum: 'bg-amber-600 text-white',
-    type: 'bg-purple-600 text-white',
-    impl: 'bg-blue-600 text-white',
-    mod: 'bg-gray-600 text-white',
-    const: 'bg-teal-600 text-white',
-    method: 'bg-cyan-600 text-white',
-  };
-  return colors[type] || 'bg-gray-600 text-white';
-};
 
 // ============================================
 // メインコンポーネント

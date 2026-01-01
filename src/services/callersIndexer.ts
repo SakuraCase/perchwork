@@ -9,6 +9,7 @@
 import type { ItemId, GraphNode } from '../types/schema';
 import type { Caller, CallersTreeNode, CallersIndex } from '../types/callers';
 import type { CallGraphChunk } from '../types/schema';
+import { getIdName } from '@/utils/idParser';
 
 /**
  * コールグラフチャンクから Callers インデックスを構築する
@@ -38,7 +39,7 @@ export function buildIndex(chunks: CallGraphChunk[]): CallersIndex {
 
       const caller: Caller = {
         id: edge.from,
-        name: extractNameFromId(edge.from),
+        name: getIdName(edge.from),
         file: callerNode.file,
         line: callerNode.line,
         callSite: {
@@ -64,19 +65,6 @@ export function buildIndex(chunks: CallGraphChunk[]): CallersIndex {
   };
 }
 
-/**
- * ItemId から名前部分を抽出する
- *
- * @param id ItemId (例: "path/to/file.rs::FunctionName::fn")
- * @returns 名前部分 (例: "FunctionName")
- */
-function extractNameFromId(id: ItemId): string {
-  const parts = id.split('::');
-  if (parts.length >= 2) {
-    return parts[parts.length - 2]; // 型名の直前の部分
-  }
-  return id;
-}
 
 /**
  * 特定のアイテムを直接呼び出している Callers を取得する
@@ -107,7 +95,7 @@ export function getCallersTree(
   // ルートノードを作成（仮想的なルート）
   const rootCaller: Caller = {
     id: targetId,
-    name: extractNameFromId(targetId),
+    name: getIdName(targetId),
     file: '',
     line: 0,
     callSite: { file: '', line: 0 },

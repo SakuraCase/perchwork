@@ -7,3 +7,7 @@
 export { ErrorBoundary } from './ErrorBoundary';
 export { Loading } from './Loading';
 export { VirtualList } from './VirtualList';
+export { Badge } from './Badge';
+export { CollapsibleSection } from './CollapsibleSection';
+export { TestItem, CompactTestItem } from './TestItem';
+export { ToggleIcon, ToggleIconText } from './ToggleIcon';

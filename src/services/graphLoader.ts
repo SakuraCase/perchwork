@@ -9,12 +9,9 @@ import type {
   CytoscapeEdge,
 } from '../types/graph';
 import type { IndexFile, SplitFile, CodeItem } from '../types/schema';
-import {
-  DataNotFoundError,
-  ParseError,
-  NetworkError,
-} from '../types/errors';
 import * as cacheManager from './cacheManager';
+import { fetchJson } from './httpClient';
+import { getIdLabel, isTestId, inferTypeFromId } from '@/utils/idParser';
 
 /**
  * call_graph/edges.json を取得する
@@ -118,12 +115,6 @@ async function buildItemMap(): Promise<Map<string, CodeItemWithFile>> {
   return itemMap;
 }
 
-/**
- * テスト関数のIDかどうかを判定
- */
-function isTestId(id: string): boolean {
-  return id.endsWith('::test') || id.includes('::test_');
-}
 
 /**
  * 完全なコールグラフをCytoscape形式で取得する
@@ -161,8 +152,8 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
       nodes.push({
         data: {
           id: nodeId,
-          label: extractLabelFromId(nodeId),
-          type: extractTypeFromId(nodeId),
+          label: getIdLabel(nodeId),
+          type: inferTypeFromId(nodeId),
           file: 'unknown',
           line: 0,
         },
@@ -326,65 +317,4 @@ function generateNodeLabel(item: CodeItemWithFile): string {
     return `${item.impl_for}::${item.name}`;
   }
   return item.name;
-}
-
-/**
- * アイテムIDからラベル（表示名）を抽出する
- * 例: "domain::core::battle::BattleLoop::run" -> "run"
- */
-function extractLabelFromId(id: string): string {
-  const parts = id.split('::');
-  return parts[parts.length - 1] || id;
-}
-
-/**
- * アイテムIDから型情報を抽出する（簡易的）
- * 実際の型情報はCodeItemから取得すべきだが、フォールバックとして使用
- */
-function extractTypeFromId(id: string): 'fn' | 'struct' | 'enum' | 'trait' | 'mod' | 'const' | 'type' | 'method' | 'impl' {
-  // IDの最後の部分が大文字で始まる場合は構造体/列挙型と推定
-  const label = extractLabelFromId(id);
-  if (/^[A-Z]/.test(label)) {
-    return 'struct';
-  }
-  // それ以外は関数と推定
-  return 'fn';
-}
-
-/**
- * 汎用JSONフェッチ関数
- * @param url - 取得するJSONファイルのURL
- * @returns パースされたJSONデータ
- * @throws {DataNotFoundError} ファイルが見つからない場合（404）
- * @throws {ParseError} JSONパースに失敗した場合
- * @throws {NetworkError} ネットワークエラーが発生した場合
- */
-async function fetchJson<T>(url: string): Promise<T> {
-  let response: Response;
-
-  try {
-    response = await fetch(url);
-  } catch (error) {
-    throw new NetworkError(url, error);
-  }
-
-  // 404エラーの場合はDataNotFoundErrorをスロー
-  if (response.status === 404) {
-    throw new DataNotFoundError(url);
-  }
-
-  // その他のHTTPエラーの場合はNetworkErrorをスロー
-  if (!response.ok) {
-    throw new NetworkError(url, {
-      status: response.status,
-      statusText: response.statusText,
-    });
-  }
-
-  // JSONパース
-  try {
-    return await response.json() as T;
-  } catch (error) {
-    throw new ParseError(url, error);
-  }
 }

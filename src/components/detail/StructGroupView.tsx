@@ -6,8 +6,11 @@
  */
 
 import { useState } from 'react';
-import type { StructGroup, MethodWithTests, TestInfo } from '@/utils/itemGrouper';
+import type { StructGroup, MethodWithTests } from '@/utils/itemGrouper';
 import type { ItemId } from '@/types/schema';
+import { Badge } from '@/components/common/Badge';
+import { CompactTestItem } from '@/components/common/TestItem';
+import { typeToVariant } from '@/utils/badgeStyles';
 
 interface StructGroupViewProps {
   /** Struct/Enum グループデータ */
@@ -21,11 +24,6 @@ interface StructGroupViewProps {
  */
 export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
   const [expanded, setExpanded] = useState(true);
-
-  // バッジカラーの決定
-  const badgeColor = group.item.type === 'enum'
-    ? 'bg-orange-600/20 text-orange-400'
-    : 'bg-cyan-600/20 text-cyan-400';
 
   return (
     <div className="border border-gray-700 rounded mb-2">
@@ -43,13 +41,13 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
           ▶
         </span>
         <span className="font-semibold text-gray-200">{group.item.name}</span>
-        <span className={`px-2 py-0.5 text-xs font-medium rounded ${badgeColor}`}>
+        <Badge variant={typeToVariant(group.item.type)} withBorder={false}>
           {group.item.type}
-        </span>
+        </Badge>
         {group.item.visibility === 'pub' && (
-          <span className="px-2 py-0.5 text-xs font-medium bg-green-600/20 text-green-400 rounded">
+          <Badge variant="pub" withBorder={false}>
             pub
-          </span>
+          </Badge>
         )}
         {group.methods.length > 0 && (
           <span className="text-xs text-gray-500 ml-auto">
@@ -78,7 +76,9 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
                     {field.type && (
                       <>
                         <span className="text-gray-500">:</span>
-                        <span className="text-cyan-400 font-mono text-xs">{field.type}</span>
+                        <span className="text-cyan-400 font-mono text-xs">
+                          {field.type}
+                        </span>
                       </>
                     )}
                   </div>
@@ -91,8 +91,8 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
           {group.directTests.length > 0 && (
             <div className="space-y-1">
               <div className="text-xs text-gray-500 mb-1">直接テスト:</div>
-              {group.directTests.map(test => (
-                <TestItem key={test.id} test={test} />
+              {group.directTests.map((test) => (
+                <CompactTestItem key={test.id} testId={test.id} summary={test.summary} />
               ))}
             </div>
           )}
@@ -101,7 +101,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
           {group.methods.length > 0 && (
             <div className="space-y-1">
               <div className="text-xs text-gray-500 mb-1">関数一覧:</div>
-              {group.methods.map(method => (
+              {group.methods.map((method) => (
                 <MethodView
                   key={method.item.id}
                   method={method}
@@ -160,9 +160,7 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
             className="ml-auto flex items-center gap-1 p-1 hover:bg-gray-700 rounded transition-colors"
             title="テストを展開/折りたたみ"
           >
-            <span className="text-xs text-gray-500">
-              ({method.tests.length} テスト)
-            </span>
+            <span className="text-xs text-gray-500">({method.tests.length} テスト)</span>
             <span
               className={`text-xs text-gray-400 transform transition-transform inline-block ${
                 expanded ? 'rotate-180' : ''
@@ -182,33 +180,15 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
       {/* 関連テスト */}
       {expanded && hasTests && (
         <div className="pl-4 space-y-1 mt-1 mb-2">
-          {method.tests.map(test => (
-            <TestItem key={test.id} test={test} />
+          {method.tests.map((test) => (
+            <CompactTestItem
+              key={test.id}
+              testId={test.id}
+              summary={test.summary}
+              showName={false}
+            />
           ))}
         </div>
-      )}
-    </div>
-  );
-}
-
-interface TestItemProps {
-  test: TestInfo;
-}
-
-/**
- * テスト項目表示コンポーネント
- */
-function TestItem({ test }: TestItemProps) {
-  // テスト名を抽出（形式: "file.rs::test_function_name::test"）
-  const parts = test.id.split('::');
-  const testName = parts.length >= 2 ? parts[parts.length - 2] : test.id;
-
-  return (
-    <div className="flex items-start gap-2 text-sm py-0.5 overflow-hidden" title={test.id}>
-      <span className="text-green-400 flex-shrink-0">◇</span>
-      <span className="text-gray-300 truncate flex-shrink-0 max-w-[200px]">{testName}</span>
-      {test.summary && (
-        <span className="text-gray-400 truncate">- {test.summary}</span>
       )}
     </div>
   );

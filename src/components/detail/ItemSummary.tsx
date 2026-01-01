@@ -9,6 +9,10 @@
 import type { ReactNode } from 'react';
 import type { CodeItem, SemanticTest } from '@/types/schema';
 import { normalizeId, type TestInfo } from '@/utils/itemGrouper';
+import { Badge } from '@/components/common/Badge';
+import { CollapsibleSection } from '@/components/common/CollapsibleSection';
+import { TestItem } from '@/components/common/TestItem';
+import { typeToVariant, visibilityToVariant } from '@/utils/badgeStyles';
 
 interface ItemSummaryProps {
   /** 表示対象のコードアイテム */
@@ -24,78 +28,25 @@ interface ItemSummaryProps {
 }
 
 /**
- * 可視性バッジのスタイルを取得
- * @param visibility - アイテムの可視性
- * @returns Tailwind CSSクラス文字列
- */
-const getVisibilityBadgeClass = (visibility?: string): string => {
-  switch (visibility) {
-    case 'pub':
-      return 'bg-green-600/20 text-green-400 border-green-600/30';
-    case 'pub(crate)':
-      return 'bg-blue-600/20 text-blue-400 border-blue-600/30';
-    case 'pub(super)':
-      return 'bg-purple-600/20 text-purple-400 border-purple-600/30';
-    case 'private':
-      return 'bg-gray-600/20 text-gray-400 border-gray-600/30';
-    default:
-      return 'bg-gray-600/20 text-gray-400 border-gray-600/30';
-  }
-};
-
-/**
- * アイテムタイプバッジのスタイルを取得
- * @param type - アイテムのタイプ
- * @returns Tailwind CSSクラス文字列
- */
-const getTypeBadgeClass = (type: string): string => {
-  switch (type) {
-    case 'fn':
-      return 'bg-yellow-600/20 text-yellow-400 border-yellow-600/30';
-    case 'struct':
-      return 'bg-cyan-600/20 text-cyan-400 border-cyan-600/30';
-    case 'enum':
-      return 'bg-orange-600/20 text-orange-400 border-orange-600/30';
-    case 'trait':
-      return 'bg-pink-600/20 text-pink-400 border-pink-600/30';
-    case 'impl':
-      return 'bg-indigo-600/20 text-indigo-400 border-indigo-600/30';
-    case 'method':
-      return 'bg-lime-600/20 text-lime-400 border-lime-600/30';
-    default:
-      return 'bg-gray-600/20 text-gray-400 border-gray-600/30';
-  }
-};
-
-/**
  * ItemSummaryコンポーネント
  *
  * コードアイテムの詳細情報を階層的に表示。
  * シグネチャはコードブロック風に、テスト・依存関係はセクション化して提示。
  * 表示順序: 概要 → 責務 → シグネチャ → テスト → children(Callers) → フィールド → 依存関係
  */
-/**
- * テストIDから表示名を抽出
- * 形式: "file.rs::test_function_name::test"
- * 例: "unit_collection.rs::test_new::test" → "test_new"
- */
-function extractTestName(testId: string): string {
-  const parts = testId.split('::');
-  // 最後から2番目のセグメント（テスト関数名）を取得
-  return parts.length >= 2 ? parts[parts.length - 2] : testId;
-}
-
 export function ItemSummary({
   item,
   semanticTests = [],
   children,
   testsExpanded = true,
-  onToggleTests
+  onToggleTests,
 }: ItemSummaryProps) {
   // semanticTestsからこのアイテムに紐づくテストを検索
   const normalizedItemId = normalizeId(item.id);
   const itemTests: TestInfo[] = semanticTests
-    .filter((test) => test.tested_item && normalizeId(test.tested_item) === normalizedItemId)
+    .filter(
+      (test) => test.tested_item && normalizeId(test.tested_item) === normalizedItemId
+    )
     .map((test) => ({ id: test.id, summary: test.summary }));
 
   return (
@@ -105,18 +56,12 @@ export function ItemSummary({
         {/* タグ（上段） */}
         <div className="flex items-center gap-2 mb-2">
           {/* タイプバッジ */}
-          <span
-            className={`px-2 py-1 text-xs font-medium rounded border ${getTypeBadgeClass(item.type)}`}
-          >
-            {item.type}
-          </span>
+          <Badge variant={typeToVariant(item.type)}>{item.type}</Badge>
           {/* 可視性バッジ */}
           {item.visibility && (
-            <span
-              className={`px-2 py-1 text-xs font-medium rounded border ${getVisibilityBadgeClass(item.visibility)}`}
-            >
+            <Badge variant={visibilityToVariant(item.visibility)}>
               {item.visibility}
-            </span>
+            </Badge>
           )}
         </div>
         {/* 名前（下段、長い場合は省略） */}
@@ -157,59 +102,19 @@ export function ItemSummary({
       </div>
 
       {/* テスト参照（semanticTestsから直接取得） */}
-      {itemTests.length > 0 && (
-        <div>
-          <button
-            type="button"
-            onClick={onToggleTests}
-            className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-200">
-                テスト
-              </span>
-              <span className="text-xs text-gray-500">
-                ({itemTests.length}件)
-              </span>
-            </div>
-            <svg
-              className={`w-5 h-5 text-gray-400 transition-transform ${
-                testsExpanded ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-
-          {testsExpanded && (
-            <div className="mt-2 space-y-2">
-              {itemTests.map((test) => (
-                <div
-                  key={test.id}
-                  className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-left hover:bg-gray-750 hover:border-green-600/50 transition-colors overflow-hidden"
-                  title={test.id}
-                >
-                  <div className="text-sm font-mono text-green-400 truncate">
-                    {extractTestName(test.id)}
-                  </div>
-                  {test.summary && (
-                    <div className="text-xs text-gray-400 mt-1 truncate">
-                      {test.summary}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {itemTests.length > 0 && onToggleTests && (
+        <CollapsibleSection
+          title="テスト"
+          count={itemTests.length}
+          expanded={testsExpanded}
+          onToggle={onToggleTests}
+        >
+          <div className="space-y-2">
+            {itemTests.map((test) => (
+              <TestItem key={test.id} testId={test.id} summary={test.summary} />
+            ))}
+          </div>
+        </CollapsibleSection>
       )}
 
       {/* children: Callersセクション等 */}
@@ -233,7 +138,9 @@ export function ItemSummary({
                 {item.fields.map((field) => (
                   <tr key={field.name} className="hover:bg-gray-750 transition-colors">
                     <td className="px-3 py-2 font-mono text-cyan-400">{field.name}</td>
-                    <td className="px-3 py-2 font-mono text-gray-300">{field.type || '-'}</td>
+                    <td className="px-3 py-2 font-mono text-gray-300">
+                      {field.type || '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

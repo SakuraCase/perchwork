@@ -12,6 +12,7 @@ import { useMemo } from 'react';
 import type { CodeItem, ItemId, SemanticTest } from '@/types/schema';
 import { groupItems } from '@/utils/itemGrouper';
 import { StructGroupView } from './StructGroupView';
+import { Badge } from '@/components/common/Badge';
 
 interface GroupedItemListProps {
   /** ファイル内のすべてのCodeItem */
@@ -52,7 +53,7 @@ export function GroupedItemList({
             <span>Enum</span>
             <span className="text-gray-500 font-normal">({grouped.enums.length})</span>
           </h3>
-          {grouped.enums.map(group => (
+          {grouped.enums.map((group) => (
             <StructGroupView
               key={group.item.id}
               group={group}
@@ -69,7 +70,7 @@ export function GroupedItemList({
             <span>Struct</span>
             <span className="text-gray-500 font-normal">({grouped.structs.length})</span>
           </h3>
-          {grouped.structs.map(group => (
+          {grouped.structs.map((group) => (
             <StructGroupView
               key={group.item.id}
               group={group}
@@ -87,7 +88,7 @@ export function GroupedItemList({
             <span className="text-gray-500 font-normal">({grouped.traits.length})</span>
           </h3>
           <div className="space-y-2">
-            {grouped.traits.map(item => (
+            {grouped.traits.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -96,13 +97,13 @@ export function GroupedItemList({
               >
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-gray-200">{item.name}</span>
-                  <span className="px-2 py-0.5 text-xs font-medium bg-pink-600/20 text-pink-400 rounded">
+                  <Badge variant="trait" withBorder={false}>
                     trait
-                  </span>
+                  </Badge>
                   {item.visibility === 'pub' && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-green-600/20 text-green-400 rounded">
+                    <Badge variant="pub" withBorder={false}>
                       pub
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 {item.summary && (
@@ -119,10 +120,12 @@ export function GroupedItemList({
         <section>
           <h3 className="text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-2">
             <span>Functions</span>
-            <span className="text-gray-500 font-normal">({grouped.functions.length})</span>
+            <span className="text-gray-500 font-normal">
+              ({grouped.functions.length})
+            </span>
           </h3>
           <div className="space-y-2">
-            {grouped.functions.map(item => (
+            {grouped.functions.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -131,18 +134,18 @@ export function GroupedItemList({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-yellow-400">{item.name}()</span>
-                  <span className="px-2 py-0.5 text-xs font-medium bg-yellow-600/20 text-yellow-400 rounded">
+                  <Badge variant="fn" withBorder={false}>
                     fn
-                  </span>
+                  </Badge>
                   {item.visibility === 'pub' && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-green-600/20 text-green-400 rounded">
+                    <Badge variant="pub" withBorder={false}>
                       pub
-                    </span>
+                    </Badge>
                   )}
                   {item.is_async && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-purple-600/20 text-purple-400 rounded">
+                    <Badge variant="async" withBorder={false}>
                       async
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 {item.summary && (

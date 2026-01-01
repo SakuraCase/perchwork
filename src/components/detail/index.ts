@@ -4,4 +4,5 @@
 
 export { DetailPanel } from './DetailPanel';
 export { ItemSummary } from './ItemSummary';
-export { TestList } from './TestList';
+export { GroupedItemList } from './GroupedItemList';
+export { StructGroupView } from './StructGroupView';
