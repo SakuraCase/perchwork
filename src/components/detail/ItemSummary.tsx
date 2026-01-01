@@ -2,15 +2,25 @@
  * ItemSummary コンポーネント
  *
  * 選択されたコードアイテムの詳細情報を表示する。
- * 概要、責務、シグネチャ、行番号、テスト参照、依存関係を視覚的に提示。
+ * 概要、責務、シグネチャ、テスト参照、フィールド、依存関係を視覚的に提示。
+ * childrenはテストセクションの後に挿入される（Callers等）。
  */
 
-import type { CodeItem } from '@/types/schema';
-import { TestList } from './TestList';
+import type { ReactNode } from 'react';
+import type { CodeItem, SemanticTest } from '@/types/schema';
+import { normalizeId, type TestInfo } from '@/utils/itemGrouper';
 
 interface ItemSummaryProps {
   /** 表示対象のコードアイテム */
   item: CodeItem;
+  /** セマンティックテスト情報 */
+  semanticTests?: SemanticTest[];
+  /** テストセクションの後に挿入されるコンテンツ（Callers等） */
+  children?: ReactNode;
+  /** テストセクションの展開状態 */
+  testsExpanded?: boolean;
+  /** テストセクションの展開切り替えコールバック */
+  onToggleTests?: () => void;
 }
 
 /**
@@ -62,14 +72,38 @@ const getTypeBadgeClass = (type: string): string => {
  *
  * コードアイテムの詳細情報を階層的に表示。
  * シグネチャはコードブロック風に、テスト・依存関係はセクション化して提示。
+ * 表示順序: 概要 → 責務 → シグネチャ → テスト → children(Callers) → フィールド → 依存関係
  */
-export function ItemSummary({ item }: ItemSummaryProps) {
+/**
+ * テストIDから表示名を抽出
+ * 形式: "file.rs::test_function_name::test"
+ * 例: "unit_collection.rs::test_new::test" → "test_new"
+ */
+function extractTestName(testId: string): string {
+  const parts = testId.split('::');
+  // 最後から2番目のセグメント（テスト関数名）を取得
+  return parts.length >= 2 ? parts[parts.length - 2] : testId;
+}
+
+export function ItemSummary({
+  item,
+  semanticTests = [],
+  children,
+  testsExpanded = true,
+  onToggleTests
+}: ItemSummaryProps) {
+  // semanticTestsからこのアイテムに紐づくテストを検索
+  const normalizedItemId = normalizeId(item.id);
+  const itemTests: TestInfo[] = semanticTests
+    .filter((test) => test.tested_item && normalizeId(test.tested_item) === normalizedItemId)
+    .map((test) => ({ id: test.id, summary: test.summary }));
+
   return (
     <div className="space-y-4">
-      {/* ヘッダー: 名前とバッジ */}
-      <div className="border-b border-gray-700 pb-4">
+      {/* ヘッダー: バッジと名前 */}
+      <div className="border-b border-gray-700 pb-4 overflow-hidden">
+        {/* タグ（上段） */}
         <div className="flex items-center gap-2 mb-2">
-          <h2 className="text-xl font-bold text-gray-100">{item.name}</h2>
           {/* タイプバッジ */}
           <span
             className={`px-2 py-1 text-xs font-medium rounded border ${getTypeBadgeClass(item.type)}`}
@@ -85,6 +119,10 @@ export function ItemSummary({ item }: ItemSummaryProps) {
             </span>
           )}
         </div>
+        {/* 名前（下段、長い場合は省略） */}
+        <h2 className="text-xl font-bold text-gray-100 truncate" title={item.name}>
+          {item.name}
+        </h2>
         {/* 行番号 */}
         <p className="text-sm text-gray-500">
           行: {item.line_start}
@@ -118,15 +156,64 @@ export function ItemSummary({ item }: ItemSummaryProps) {
         </pre>
       </div>
 
-      {/* テスト参照（存在する場合のみ） */}
-      {item.tested_by && item.tested_by.length > 0 && (
+      {/* テスト参照（semanticTestsから直接取得） */}
+      {itemTests.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-400 mb-2">
-            テスト ({item.tested_by.length})
-          </h3>
-          <TestList testIds={item.tested_by} />
+          <button
+            type="button"
+            onClick={onToggleTests}
+            className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-200">
+                テスト
+              </span>
+              <span className="text-xs text-gray-500">
+                ({itemTests.length}件)
+              </span>
+            </div>
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform ${
+                testsExpanded ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {testsExpanded && (
+            <div className="mt-2 space-y-2">
+              {itemTests.map((test) => (
+                <div
+                  key={test.id}
+                  className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-left hover:bg-gray-750 hover:border-green-600/50 transition-colors overflow-hidden"
+                  title={test.id}
+                >
+                  <div className="text-sm font-mono text-green-400 truncate">
+                    {extractTestName(test.id)}
+                  </div>
+                  {test.summary && (
+                    <div className="text-xs text-gray-400 mt-1 truncate">
+                      {test.summary}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
+
+      {/* children: Callersセクション等 */}
+      {children}
 
       {/* フィールド一覧（struct/enumのみ） */}
       {item.fields && item.fields.length > 0 && (

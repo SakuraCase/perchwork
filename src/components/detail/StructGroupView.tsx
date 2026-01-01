@@ -199,13 +199,14 @@ interface TestItemProps {
  * テスト項目表示コンポーネント
  */
 function TestItem({ test }: TestItemProps) {
-  // テスト名を抽出（最後の :: 以降）
-  const testName = test.id.split('::').pop() || test.id;
+  // テスト名を抽出（形式: "file.rs::test_function_name::test"）
+  const parts = test.id.split('::');
+  const testName = parts.length >= 2 ? parts[parts.length - 2] : test.id;
 
   return (
-    <div className="flex items-start gap-2 text-sm py-0.5">
+    <div className="flex items-start gap-2 text-sm py-0.5 overflow-hidden" title={test.id}>
       <span className="text-green-400 flex-shrink-0">◇</span>
-      <span className="text-gray-300">{testName}</span>
+      <span className="text-gray-300 truncate flex-shrink-0 max-w-[200px]">{testName}</span>
       {test.summary && (
         <span className="text-gray-400 truncate">- {test.summary}</span>
       )}

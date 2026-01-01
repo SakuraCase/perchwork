@@ -44,6 +44,7 @@ export function DetailPanel({
 }: DetailPanelProps) {
   // 折りたたみ状態の管理
   const [callersExpanded, setCallersExpanded] = useState(false);
+  const [testsExpanded, setTestsExpanded] = useState(true); // デフォルト展開
 
   // useCallers を使用（アイテム選択時に自動実行）
   const { callers, isLoading: callersLoading } = useCallers(
@@ -82,75 +83,80 @@ export function DetailPanel({
             <span>アイテム一覧に戻る</span>
           </button>
 
-          {/* アイテム詳細 */}
-          <ItemSummary item={selectedItem} />
-
-          {/* Callers セクション */}
-          <div className="mt-6 border-t border-gray-700 pt-6">
-            <button
-              type="button"
-              onClick={() => setCallersExpanded(!callersExpanded)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-200">
-                  Callers
-                </span>
-                {callersLoading ? (
-                  <span className="text-xs text-gray-500">読み込み中...</span>
-                ) : (
-                  <span className="text-xs text-gray-500">
-                    ({callers.length}件)
-                  </span>
-                )}
-              </div>
-              <svg
-                className={`w-5 h-5 text-gray-400 transition-transform ${
-                  callersExpanded ? 'rotate-180' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          {/* アイテム詳細（Callersは概要→責務→シグネチャ→テストの後に挿入） */}
+          <ItemSummary
+            item={selectedItem}
+            semanticTests={semanticTests}
+            testsExpanded={testsExpanded}
+            onToggleTests={() => setTestsExpanded(!testsExpanded)}
+          >
+            {/* Callers セクション */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setCallersExpanded(!callersExpanded)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-200">
+                    Callers
+                  </span>
+                  {callersLoading ? (
+                    <span className="text-xs text-gray-500">読み込み中...</span>
+                  ) : (
+                    <span className="text-xs text-gray-500">
+                      ({callers.length}件)
+                    </span>
+                  )}
+                </div>
+                <svg
+                  className={`w-5 h-5 text-gray-400 transition-transform ${
+                    callersExpanded ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
 
-            {callersExpanded && (
-              <div className="mt-2 px-4 py-3 bg-gray-850 rounded">
-                {callersLoading ? (
-                  <p className="text-sm text-gray-500">読み込み中...</p>
-                ) : callers.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    この関数を呼んでいる関数はありません（エントリポイント）
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {callers.map((caller) => (
-                      <button
-                        key={caller.id}
-                        type="button"
-                        onClick={() => onSelectItem(caller.id)}
-                        className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-750 rounded transition-colors"
-                      >
-                        <div className="text-sm font-medium text-blue-400">
-                          {caller.name}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {caller.file}:{caller.line}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              {callersExpanded && (
+                <div className="mt-2 space-y-2">
+                  {callersLoading ? (
+                    <p className="text-sm text-gray-500">読み込み中...</p>
+                  ) : callers.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      この関数を呼んでいる関数はありません（エントリポイント）
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {callers.map((caller) => (
+                        <button
+                          key={caller.id}
+                          type="button"
+                          onClick={() => onSelectItem(caller.id)}
+                          className="w-full text-left px-3 py-2 bg-gray-800 border border-gray-700 rounded hover:bg-gray-750 hover:border-blue-600/50 transition-colors"
+                        >
+                          <div className="text-sm font-medium text-blue-400">
+                            {caller.name}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {caller.file}:{caller.line}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </ItemSummary>
         </div>
       </div>
     );
