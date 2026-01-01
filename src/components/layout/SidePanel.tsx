@@ -1,7 +1,7 @@
 /**
  * SidePanel.tsx
  *
- * 開閉可能な右サイドパネルコンポーネント
+ * 開閉可能な左サイドパネルコンポーネント
  * ノード詳細表示用のパネルを提供する
  */
 import type { ReactNode } from "react";
@@ -16,14 +16,14 @@ interface SidePanelProps {
 }
 
 /**
- * 右サイドパネル
+ * 左サイドパネル
  * @param props - サイドパネルのプロパティ
  */
 export function SidePanel({ isOpen, onToggle, children }: SidePanelProps) {
   if (!isOpen) {
     // 閉じた状態：開くボタンのみ表示
     return (
-      <div className="flex items-start bg-gray-800 border-l border-gray-700">
+      <div className="flex items-start bg-gray-800 border-r border-gray-700">
         <button
           onClick={onToggle}
           className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
@@ -39,7 +39,7 @@ export function SidePanel({ isOpen, onToggle, children }: SidePanelProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M15 19l-7-7 7-7"
+              d="M9 5l7 7-7 7"
             />
           </svg>
         </button>
@@ -49,9 +49,9 @@ export function SidePanel({ isOpen, onToggle, children }: SidePanelProps) {
 
   // 開いた状態：パネル全体を表示
   return (
-    <aside className="w-[30%] min-w-[300px] max-w-[500px] flex flex-col bg-gray-800 border-l border-gray-700 overflow-hidden">
+    <aside className="w-[30%] min-w-[300px] max-w-[500px] flex flex-col bg-gray-800 border-r border-gray-700 overflow-hidden">
       {/* ヘッダー：閉じるボタン */}
-      <div className="flex justify-end p-2 border-b border-gray-700">
+      <div className="flex justify-start p-2 border-b border-gray-700">
         <button
           onClick={onToggle}
           className="p-1 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded"

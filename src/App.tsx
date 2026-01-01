@@ -2,11 +2,12 @@
  * App.tsx
  *
  * アプリケーションのルートコンポーネント
- * グラフ表示（メイン）+ サイドパネル（詳細）の構成
+ * グラフ表示/ツリー表示の切り替えに対応
  */
 
 import { useState, useCallback, useMemo } from 'react';
 import type { SourceFile, ItemId, SemanticTest, ItemType } from './types/schema';
+import type { ViewTab } from './types/view';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
 import { useGraphLayout } from './hooks/useGraphLayout';
@@ -16,6 +17,7 @@ import { Header } from './components/layout/Header';
 import { MainContent } from './components/layout/MainContent';
 import { SidePanel } from './components/layout/SidePanel';
 import { DetailPanel } from './components/detail/DetailPanel';
+import { TreeView } from './components/tree/TreeView';
 import { GraphView } from './components/graph/GraphView';
 import { GraphToolbar } from './components/graph/GraphToolbar';
 import { NodeContextMenu } from './components/graph/NodeContextMenu';
@@ -26,29 +28,37 @@ import type { CallersIndex } from './types/callers';
  * アプリケーションルートコンポーネント
  *
  * 状態管理:
+ * - タブ切り替え（グラフ / ツリー）
  * - index.json の読み込み（useDataLoader）
  * - グラフデータ読み込み（useGraphTraversal）
  * - グラフレイアウト設定（useGraphLayout）
  * - サイドパネル開閉状態
- * - 選択ノードからのファイル・アイテム状態
+ * - 各ビューの選択状態（独立して管理）
  *
- * データフロー:
- * 1. 初期ロード: index.json、グラフデータを取得
- * 2. グラフ表示: 常時メインエリアに表示
- * 3. ノード選択: GraphView -> ファイルロード -> DetailPanel
- * 4. サイドパネル: 右側にDetailPanelを表示
+ * レイアウト:
+ * - グラフ表示: サイドパネル(DetailPanel) + メイン(GraphView)
+ * - ツリー表示: サイドパネル(TreeView) + メイン(DetailPanel)
  */
 function App() {
   // データ読み込みとキャッシュ管理
   const { index, loadFileWithSemantic, isLoading, error } = useDataLoader();
 
+  // タブ状態
+  const [activeTab, setActiveTab] = useState<ViewTab>('graph');
+
   // サイドパネル開閉状態
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
-  // ファイル・アイテム選択状態（グラフノード選択から設定）
-  const [currentFile, setCurrentFile] = useState<SourceFile | null>(null);
-  const [selectedItemId, setSelectedItemId] = useState<ItemId | null>(null);
-  const [semanticTests, setSemanticTests] = useState<SemanticTest[]>([]);
+  // グラフビュー用: ファイル・アイテム選択状態
+  const [graphCurrentFile, setGraphCurrentFile] = useState<SourceFile | null>(null);
+  const [graphSelectedItemId, setGraphSelectedItemId] = useState<ItemId | null>(null);
+  const [graphSemanticTests, setGraphSemanticTests] = useState<SemanticTest[]>([]);
+
+  // ツリービュー用: ファイル・アイテム選択状態
+  const [treeSelectedFilePath, setTreeSelectedFilePath] = useState<string | null>(null);
+  const [treeCurrentFile, setTreeCurrentFile] = useState<SourceFile | null>(null);
+  const [treeSelectedItemId, setTreeSelectedItemId] = useState<ItemId | null>(null);
+  const [treeSemanticTests, setTreeSemanticTests] = useState<SemanticTest[]>([]);
 
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
@@ -98,7 +108,7 @@ function App() {
    * グラフノードクリック時のハンドラ
    * ノードのファイルをロードし、DetailPanelに表示
    */
-  const handleNodeClick = useCallback(
+  const handleGraphNodeClick = useCallback(
     async (nodeId: string, filePath: string) => {
       try {
         const { splitFile, semanticTests: tests } = await loadFileWithSemantic(filePath);
@@ -110,24 +120,60 @@ function App() {
           last_modified: '',
           items: rawData.items || [],
         };
-        setCurrentFile(sourceFile);
-        setSemanticTests(tests);
-        setSelectedItemId(nodeId as ItemId);
+        setGraphCurrentFile(sourceFile);
+        setGraphSemanticTests(tests);
+        setGraphSelectedItemId(nodeId as ItemId);
       } catch (err) {
         console.error('Failed to load file:', err);
-        setCurrentFile(null);
-        setSemanticTests([]);
-        setSelectedItemId(null);
+        setGraphCurrentFile(null);
+        setGraphSemanticTests([]);
+        setGraphSelectedItemId(null);
       }
     },
     [loadFileWithSemantic]
   );
 
   /**
-   * アイテム選択時のハンドラ
+   * グラフビューでのアイテム選択時のハンドラ
    */
-  const handleSelectItem = useCallback((id: ItemId) => {
-    setSelectedItemId(id);
+  const handleGraphSelectItem = useCallback((id: ItemId) => {
+    setGraphSelectedItemId(id);
+  }, []);
+
+  /**
+   * ツリービューでのファイル選択時のハンドラ
+   */
+  const handleTreeSelectFile = useCallback(
+    async (filePath: string) => {
+      setTreeSelectedFilePath(filePath);
+      setTreeSelectedItemId(null);
+
+      try {
+        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(filePath);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawData = splitFile as any;
+        const sourceFile: SourceFile = {
+          path: rawData.path || filePath,
+          hash: '',
+          last_modified: '',
+          items: rawData.items || [],
+        };
+        setTreeCurrentFile(sourceFile);
+        setTreeSemanticTests(tests);
+      } catch (err) {
+        console.error('Failed to load file:', err);
+        setTreeCurrentFile(null);
+        setTreeSemanticTests([]);
+      }
+    },
+    [loadFileWithSemantic]
+  );
+
+  /**
+   * ツリービューでのアイテム選択時のハンドラ
+   */
+  const handleTreeSelectItem = useCallback((id: ItemId) => {
+    setTreeSelectedItemId(id);
   }, []);
 
   /**
@@ -194,10 +240,10 @@ function App() {
   const handleOpenFileFromContext = useCallback(async (filePath: string) => {
     const nodeId = contextMenu?.nodeId;
     if (nodeId) {
-      await handleNodeClick(nodeId, filePath);
+      await handleGraphNodeClick(nodeId, filePath);
     }
     setContextMenu(null);
-  }, [contextMenu, handleNodeClick]);
+  }, [contextMenu, handleGraphNodeClick]);
 
   /**
    * フォーカスノードのラベルを取得（表示用）
@@ -253,78 +299,108 @@ function App() {
     <ErrorBoundary>
       <div className="flex flex-col h-screen bg-gray-900 text-gray-100">
         {/* ヘッダー */}
-        <Header projectName="Perchwork" />
+        <Header
+          projectName="Perchwork"
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         {/* メインコンテンツエリア */}
         <div className="flex flex-1 overflow-hidden">
-          {/* メインエリア: グラフ表示 */}
+          {/* サイドパネル（左側） */}
+          <SidePanel isOpen={isSidePanelOpen} onToggle={handleToggleSidePanel}>
+            {activeTab === 'graph' ? (
+              // グラフ表示: サイドパネルに DetailPanel
+              <DetailPanel
+                file={graphCurrentFile}
+                selectedItemId={graphSelectedItemId}
+                onSelectItem={handleGraphSelectItem}
+                callersIndex={callersIndex}
+                semanticTests={graphSemanticTests}
+              />
+            ) : (
+              // ツリー表示: サイドパネルに TreeView
+              <TreeView
+                index={index}
+                selectedFilePath={treeSelectedFilePath}
+                onSelectFile={handleTreeSelectFile}
+              />
+            )}
+          </SidePanel>
+
+          {/* メインエリア（右側） */}
           <MainContent>
-            {/* グラフツールバー */}
-            <GraphToolbar
-              layout={layoutOptions.type}
-              onLayoutChange={setLayoutType}
-              filter={filter}
-              onFilterChange={updateFilter}
-              focusNodeLabel={focusNodeLabel}
-              onClearFocus={clearFocusNode}
-              onClearExcluded={clearExcludedNodes}
-            />
-
-            {/* グラフビュー */}
-            {graphLoading && (
-              <div className="flex-1 flex items-center justify-center">
-                <Loading message="グラフデータを読み込んでいます..." />
-              </div>
-            )}
-
-            {graphError && (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-red-400 mb-4">グラフデータの読み込みに失敗しました</p>
-                  <p className="text-sm text-gray-500">{graphError.message}</p>
-                </div>
-              </div>
-            )}
-
-            {!graphLoading && !graphError && graphData && (
-              <div className="flex-1 relative">
-                <GraphView
-                  data={graphData}
-                  layout={layoutOptions}
+            {activeTab === 'graph' ? (
+              // グラフ表示: メインエリアに GraphView
+              <>
+                {/* グラフツールバー */}
+                <GraphToolbar
+                  layout={layoutOptions.type}
+                  onLayoutChange={setLayoutType}
                   filter={filter}
-                  onContextMenuNode={handleContextMenuNode}
-                  onNodeClick={handleNodeClick}
-                  centerOnNodeId={centerNodeId}
+                  onFilterChange={updateFilter}
+                  focusNodeLabel={focusNodeLabel}
+                  onClearFocus={clearFocusNode}
+                  onClearExcluded={clearExcludedNodes}
                 />
 
-                {/* ノードコンテキストメニュー */}
-                <NodeContextMenu
-                  position={contextMenu?.position ?? null}
-                  nodeId={contextMenu?.nodeId ?? null}
-                  nodeLabel={contextMenu?.nodeLabel ?? null}
-                  nodeType={contextMenu?.nodeType ?? null}
-                  nodeFile={contextMenu?.nodeFile ?? null}
-                  nodeLine={contextMenu?.nodeLine ?? null}
-                  onClose={() => setContextMenu(null)}
-                  onExclude={handleExcludeNode}
-                  onFocus={handleCenterOnNode}
-                  onShowRelated={handleShowRelatedNodes}
-                  onOpenFile={handleOpenFileFromContext}
+                {/* グラフビュー */}
+                {graphLoading && (
+                  <div className="flex-1 flex items-center justify-center">
+                    <Loading message="グラフデータを読み込んでいます..." />
+                  </div>
+                )}
+
+                {graphError && (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-red-400 mb-4">グラフデータの読み込みに失敗しました</p>
+                      <p className="text-sm text-gray-500">{graphError.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                {!graphLoading && !graphError && graphData && (
+                  <div className="flex-1 relative">
+                    <GraphView
+                      data={graphData}
+                      layout={layoutOptions}
+                      filter={filter}
+                      onContextMenuNode={handleContextMenuNode}
+                      onNodeClick={handleGraphNodeClick}
+                      centerOnNodeId={centerNodeId}
+                    />
+
+                    {/* ノードコンテキストメニュー */}
+                    <NodeContextMenu
+                      position={contextMenu?.position ?? null}
+                      nodeId={contextMenu?.nodeId ?? null}
+                      nodeLabel={contextMenu?.nodeLabel ?? null}
+                      nodeType={contextMenu?.nodeType ?? null}
+                      nodeFile={contextMenu?.nodeFile ?? null}
+                      nodeLine={contextMenu?.nodeLine ?? null}
+                      onClose={() => setContextMenu(null)}
+                      onExclude={handleExcludeNode}
+                      onFocus={handleCenterOnNode}
+                      onShowRelated={handleShowRelatedNodes}
+                      onOpenFile={handleOpenFileFromContext}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              // ツリー表示: メインエリアに DetailPanel
+              <div className="flex-1 overflow-auto">
+                <DetailPanel
+                  file={treeCurrentFile}
+                  selectedItemId={treeSelectedItemId}
+                  onSelectItem={handleTreeSelectItem}
+                  callersIndex={null}
+                  semanticTests={treeSemanticTests}
                 />
               </div>
             )}
           </MainContent>
-
-          {/* サイドパネル: 詳細表示 */}
-          <SidePanel isOpen={isSidePanelOpen} onToggle={handleToggleSidePanel}>
-            <DetailPanel
-              file={currentFile}
-              selectedItemId={selectedItemId}
-              onSelectItem={handleSelectItem}
-              callersIndex={callersIndex}
-              semanticTests={semanticTests}
-            />
-          </SidePanel>
         </div>
       </div>
     </ErrorBoundary>
