@@ -94,8 +94,11 @@ export function ItemSummary({
       {/* シグネチャ */}
       <div>
         <h3 className="text-sm font-semibold text-gray-400 mb-2">シグネチャ</h3>
-        <pre className="bg-gray-800 border border-gray-700 rounded p-3 overflow-x-auto">
-          <code className="text-sm font-mono text-gray-300 whitespace-pre">
+        <pre
+          className="bg-gray-800 border border-gray-700 rounded p-3 overflow-hidden"
+          title={item.signature}
+        >
+          <code className="text-sm font-mono text-gray-300 whitespace-nowrap truncate block">
             {item.signature}
           </code>
         </pre>

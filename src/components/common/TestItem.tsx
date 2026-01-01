@@ -37,7 +37,7 @@ export function TestItem({ testId, displayName, summary, onClick }: TestItemProp
       >
         <div className="text-sm font-mono text-green-400 truncate">{testName}</div>
         {summary && (
-          <div className="text-xs text-gray-400 mt-1 truncate">{summary}</div>
+          <div className="text-xs text-gray-400 mt-1 break-words">{summary}</div>
         )}
       </button>
     );
@@ -51,7 +51,7 @@ export function TestItem({ testId, displayName, summary, onClick }: TestItemProp
     >
       <div className="text-sm font-mono text-green-400 truncate">{testName}</div>
       {summary && (
-        <div className="text-xs text-gray-400 mt-1 truncate">{summary}</div>
+        <div className="text-xs text-gray-400 mt-1 break-words">{summary}</div>
       )}
     </div>
   );
@@ -82,21 +82,17 @@ export function CompactTestItem({
   const testName = displayName || extractTestName(testId);
 
   return (
-    <div
-      className="flex items-start gap-2 text-sm py-0.5 overflow-hidden"
-      title={testId}
-    >
-      <span className="text-green-400 flex-shrink-0">◇</span>
-      {showName && (
-        <span className="text-gray-300 truncate flex-shrink-0 max-w-[200px]">
-          {testName}
-        </span>
-      )}
+    <div className="text-sm py-0.5" title={testId}>
+      <div className="flex items-start gap-2">
+        <span className="text-green-400 flex-shrink-0">◇</span>
+        {showName && (
+          <span className="text-gray-300 truncate max-w-[200px]">{testName}</span>
+        )}
+      </div>
       {summary && (
-        <span className="text-gray-400 truncate">
-          {showName ? '- ' : ''}
+        <div className="text-gray-400 break-words pl-5 mt-0.5">
           {summary}
-        </span>
+        </div>
       )}
     </div>
   );

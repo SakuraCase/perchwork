@@ -466,20 +466,43 @@ class PerchworkAnalyzer {
 
     // ボディの開始位置を探す（{の位置）
     let bodyStartLine = endLine;
+    let bodyStartColumn = 0;
     for (let i = 0; i < node.childCount; i++) {
       const child = node.child(i);
       if (child && child.type === 'block') {
         bodyStartLine = child.startPosition.row;
+        bodyStartColumn = child.startPosition.column;
         break;
       }
     }
 
-    // シグネチャ部分のみを抽出
     const lines = fileContent.split('\n');
-    const signatureLines = lines.slice(startLine, bodyStartLine);
 
-    // 各行のインデントを除去し、改行を保持
-    const trimmedLines = signatureLines.map(line => line.trimStart());
+    // シグネチャと{が同じ行にある場合（1行シグネチャ）
+    if (startLine === bodyStartLine) {
+      const line = lines[startLine];
+      // {の直前までを抽出
+      const signaturePart = line.substring(0, bodyStartColumn).trimStart().trimEnd();
+      return signaturePart;
+    }
+
+    // 複数行シグネチャの場合
+    // bodyStartLineを含めて取得し、{以降を除去する
+    const signatureLines = lines.slice(startLine, bodyStartLine + 1);
+
+    // 各行のインデントを除去
+    const trimmedLines = signatureLines.map((line, index) => {
+      const trimmed = line.trimStart();
+      // 最後の行の場合、{以降を除去
+      if (index === signatureLines.length - 1) {
+        const braceIndex = trimmed.indexOf('{');
+        if (braceIndex !== -1) {
+          return trimmed.substring(0, braceIndex).trimEnd();
+        }
+      }
+      return trimmed;
+    });
+
     const signature = trimmedLines.join('\n').trim();
 
     return signature;
