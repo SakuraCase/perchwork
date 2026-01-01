@@ -5,7 +5,7 @@
  * tree-sitter のネイティブバインディングを使って Rust コードを解析し、構造化JSONを生成する
  */
 
-import Parser from 'tree-sitter';
+import Parser, { Language } from 'tree-sitter';
 import Rust from 'tree-sitter-rust';
 import fs from 'fs/promises';
 import path from 'path';
@@ -52,6 +52,15 @@ interface TestInfo {
 }
 
 /**
+ * 呼び出しコンテキスト（制御構造情報）
+ */
+interface CallContext {
+  type: 'normal' | 'if' | 'else' | 'match_arm' | 'loop' | 'while' | 'for';
+  condition?: string;    // if/while の条件式
+  arm_pattern?: string;  // match のパターン
+}
+
+/**
  * コールグラフのエッジ
  */
 interface CallEdge {
@@ -59,6 +68,7 @@ interface CallEdge {
   to: string;
   file: string;
   line: number;
+  context?: CallContext;
 }
 
 /**
@@ -80,7 +90,7 @@ class PerchworkAnalyzer {
 
   constructor() {
     this.parser = new Parser();
-    this.parser.setLanguage(Rust as any);
+    this.parser.setLanguage(Rust as unknown as Language);
   }
 
   /**
@@ -585,23 +595,36 @@ class PerchworkAnalyzer {
       if (functionNode) {
         // 改行や余分な空白を除去して正規化
         const normalized = this.normalizeCallName(functionNode.text);
-        edges.push({
+        // コンテキスト（制御構造）を取得
+        const context = this.getCallContext(node);
+        const edge: CallEdge = {
           from: fromId,
           to: normalized,
           file: path.basename(filePath),
           line: node.startPosition.row + 1,
-        });
+        };
+        // normalでない場合のみcontextを追加
+        if (context.type !== 'normal') {
+          edge.context = context;
+        }
+        edges.push(edge);
       }
     } else if (node.type === 'method_call_expression') {
       const methodNode = node.childForFieldName('method');
       if (methodNode) {
-        // メソッド呼び出しの場合は単純にメソッド名のみ
-        edges.push({
+        // コンテキスト（制御構造）を取得
+        const context = this.getCallContext(node);
+        const edge: CallEdge = {
           from: fromId,
           to: methodNode.text,
           file: path.basename(filePath),
           line: node.startPosition.row + 1,
-        });
+        };
+        // normalでない場合のみcontextを追加
+        if (context.type !== 'normal') {
+          edge.context = context;
+        }
+        edges.push(edge);
       }
     }
 
@@ -619,6 +642,100 @@ class PerchworkAnalyzer {
   private normalizeCallName(text: string): string {
     // 改行を除去し、連続する空白を1つにまとめる
     return text.replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * 呼び出しのコンテキスト（制御構造）を取得
+   */
+  private getCallContext(node: Parser.SyntaxNode): CallContext {
+    let current = node.parent;
+    while (current) {
+      switch (current.type) {
+        case 'if_expression': {
+          const condition = current.childForFieldName('condition');
+          const consequence = current.childForFieldName('consequence');
+          const alternative = current.childForFieldName('alternative');
+
+          // 呼び出しが consequence (then) 内か alternative (else) 内かを判定
+          if (consequence && this.isDescendant(node, consequence)) {
+            return {
+              type: 'if',
+              condition: condition ? this.normalizeCallName(condition.text) : undefined
+            };
+          }
+          if (alternative && this.isDescendant(node, alternative)) {
+            return {
+              type: 'else',
+              condition: condition ? this.normalizeCallName(condition.text) : undefined
+            };
+          }
+          break;
+        }
+        case 'match_expression': {
+          // match アーム内の呼び出しを検出
+          const arm = this.findParentMatchArm(node, current);
+          if (arm) {
+            const pattern = arm.childForFieldName('pattern');
+            return {
+              type: 'match_arm',
+              arm_pattern: pattern ? pattern.text : undefined
+            };
+          }
+          break;
+        }
+        case 'loop_expression':
+          return { type: 'loop' };
+        case 'while_expression': {
+          const condition = current.childForFieldName('condition');
+          return {
+            type: 'while',
+            condition: condition ? this.normalizeCallName(condition.text) : undefined
+          };
+        }
+        case 'for_expression': {
+          const pattern = current.childForFieldName('pattern');
+          const value = current.childForFieldName('value');
+          const conditionText = pattern && value
+            ? `${pattern.text} in ${this.normalizeCallName(value.text)}`
+            : pattern?.text;
+          return {
+            type: 'for',
+            condition: conditionText
+          };
+        }
+      }
+      current = current.parent;
+    }
+    return { type: 'normal' };
+  }
+
+  /**
+   * ノードが祖先ノードの子孫かどうかをチェック
+   */
+  private isDescendant(node: Parser.SyntaxNode, ancestor: Parser.SyntaxNode): boolean {
+    let current = node.parent;
+    while (current) {
+      if (current === ancestor) return true;
+      current = current.parent;
+    }
+    return false;
+  }
+
+  /**
+   * match式内の親アームを検索
+   */
+  private findParentMatchArm(
+    node: Parser.SyntaxNode,
+    matchExpr: Parser.SyntaxNode
+  ): Parser.SyntaxNode | null {
+    let current = node.parent;
+    while (current && current !== matchExpr) {
+      if (current.type === 'match_arm') {
+        return current;
+      }
+      current = current.parent;
+    }
+    return null;
   }
 
   /**

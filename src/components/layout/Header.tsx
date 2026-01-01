@@ -65,6 +65,16 @@ export function Header({
         >
           ツリー
         </button>
+        <button
+          onClick={() => onTabChange("sequence")}
+          className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
+            activeTab === "sequence"
+              ? "bg-gray-800 text-white border-b-2 border-blue-500"
+              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+          }`}
+        >
+          シーケンス
+        </button>
       </div>
 
       {/* 検索ボックス（右寄せ） */}

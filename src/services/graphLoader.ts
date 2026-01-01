@@ -217,6 +217,7 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
           file: edge.file,
           line: edge.line,
         },
+        context: edge.context,
       },
     });
   }

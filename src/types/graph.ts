@@ -3,6 +3,7 @@
  */
 
 import type { ItemType } from './schema';
+import type { CallContext } from './sequence';
 
 // ============================================
 // Cytoscape.js 用のノード/エッジ型
@@ -62,6 +63,9 @@ export interface CytoscapeEdge {
       file: string;
       line: number;
     };
+
+    /** 呼び出しコンテキスト（制御構造情報） */
+    context?: CallContext;
   };
 }
 
@@ -174,6 +178,9 @@ export interface CallGraphEdgeData {
 
   /** 呼び出しが発生した行番号 */
   line: number;
+
+  /** 呼び出しコンテキスト（制御構造情報） */
+  context?: CallContext;
 }
 
 // ============================================

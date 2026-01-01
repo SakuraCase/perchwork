@@ -64,7 +64,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
       )}
 
       {expanded && (
-        <div className="px-4 py-3 space-y-3 bg-gray-850">
+        <div className="px-4 py-3 space-y-3 bg-gray-800">
           {/* 責務 */}
           {group.item.responsibility && (
             <div className="text-sm">
