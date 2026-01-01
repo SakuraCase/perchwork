@@ -13,6 +13,7 @@ import type {
   SequenceDiagramData,
   FunctionDepthSetting,
 } from '../types/sequence';
+import type { SummaryMap } from './semanticLoader';
 
 /**
  * 深さ設定
@@ -32,6 +33,8 @@ export interface SequenceDiagramOptions {
   startFunctionId: ItemId;
   /** 深さ設定 */
   depthConfig: DepthConfig;
+  /** ItemId → summary のマップ（オプション） */
+  summaries?: SummaryMap;
 }
 
 /**
@@ -62,7 +65,59 @@ export function extractDisplayName(id: ItemId): string {
 }
 
 /**
- * 深さ制限付きで呼び出しチェーンを収集する
+ * ItemIdから構造体名を抽出する
+ * 例: "battle_loop.rs::BattleLoop::run::method" -> "BattleLoop"
+ */
+export function extractStructName(id: ItemId): string {
+  const parts = id.split('::');
+  if (parts.length >= 3) {
+    return parts[parts.length - 3];
+  }
+  if (parts.length >= 2) {
+    return parts[parts.length - 2];
+  }
+  return parts[0];
+}
+
+/**
+ * ItemIdからメソッド名を抽出する
+ * 例: "battle_loop.rs::BattleLoop::run::method" -> "run"
+ */
+export function extractMethodName(id: ItemId): string {
+  const parts = id.split('::');
+  if (parts.length >= 2) {
+    return parts[parts.length - 2];
+  }
+  return parts[0];
+}
+
+/**
+ * Mermaidラベル用に文字列をエスケープする
+ */
+function escapeMermaidLabel(text: string): string {
+  return text
+    .replace(/[<>]/g, '')
+    .replace(/:/g, '：')
+    .replace(/"/g, "'")
+    .replace(/\n/g, ' ');
+}
+
+/**
+ * 概要を省略する（30文字以上の場合）
+ */
+function truncateSummary(summary: string, maxLength = 30): string {
+  if (summary.length <= maxLength) {
+    return summary;
+  }
+  return summary.slice(0, maxLength - 1) + '…';
+}
+
+/**
+ * 深さ制限付きで呼び出しチェーンを収集する（DFS: 深さ優先探索）
+ *
+ * DFSを使用することで、ネストした呼び出しが実行順に表示される。
+ * 例: run() -> update_game_state() -> (内部の呼び出し) -> result()
+ * BFSの場合は: run() -> update_game_state() -> result() -> (内部の呼び出し)
  */
 function collectCallChain(
   graphData: CytoscapeData,
@@ -82,36 +137,19 @@ function collectCallChain(
     outgoingEdges.get(edge.data.source)!.push(edge);
   }
 
-  // BFSで探索
-  interface QueueItem {
-    nodeId: ItemId;
-    currentDepth: number;
-    parentDepthLimit: number;
-  }
-
-  const queue: QueueItem[] = [
-    {
-      nodeId: startId,
-      currentDepth: 0,
-      // ルート関数からの呼び出しは常に表示（深さ1）
-      parentDepthLimit: 1,
-    },
-  ];
-
   participants.add(startId);
 
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-
+  // DFS（深さ優先探索）で再帰的に探索
+  function dfs(nodeId: ItemId, depthLimit: number): void {
     // 深さ制限に達したらスキップ
-    if (current.currentDepth >= current.parentDepthLimit) {
-      continue;
+    if (depthLimit <= 0) {
+      return;
     }
 
     // この関数からの呼び出しを取得
-    const edges = outgoingEdges.get(current.nodeId) || [];
+    const edges = outgoingEdges.get(nodeId) || [];
 
-    // 行番号でソート
+    // 行番号でソート（実行順を保持）
     const sortedEdges = [...edges].sort(
       (a, b) => a.data.callSite.line - b.data.callSite.line
     );
@@ -126,6 +164,7 @@ function collectCallChain(
       const targetId = edge.data.target as ItemId;
       participants.add(targetId);
 
+      // 呼び出しを記録
       calls.push({
         from: edge.data.source as ItemId,
         to: targetId,
@@ -134,15 +173,15 @@ function collectCallChain(
         context: edge.data.context,
       });
 
-      // 子ノードをキューに追加（その関数の深さ設定を使用）
+      // 子ノードを再帰的に探索（深さ優先）
+      // その関数の深さ設定を使用
       const targetDepth = depthConfig.functionDepths.get(targetId) ?? 0;
-      queue.push({
-        nodeId: targetId,
-        currentDepth: 0, // 各関数からの深さは0からカウント
-        parentDepthLimit: targetDepth,
-      });
+      dfs(targetId, targetDepth);
     }
   }
+
+  // ルート関数から探索開始（深さ1: 直接の呼び出しは常に表示）
+  dfs(startId, 1);
 
   return { calls, participants };
 }
@@ -154,7 +193,7 @@ export function generateSequenceDiagram(
   graphData: CytoscapeData,
   options: SequenceDiagramOptions
 ): SequenceDiagramData {
-  const { startFunctionId, depthConfig } = options;
+  const { startFunctionId, depthConfig, summaries } = options;
 
   // 呼び出しチェーンを収集
   const { calls, participants: participantIds } = collectCallChain(
@@ -163,30 +202,34 @@ export function generateSequenceDiagram(
     depthConfig
   );
 
-  // 参加者情報を構築
-  const participants: ParticipantInfo[] = [];
+  // 構造体単位のparticipantを構築
+  const structParticipants = new Map<string, ParticipantInfo>();
   let order = 0;
 
-  // 起点を最初に追加
-  participants.push({
-    id: startFunctionId,
-    displayName: extractDisplayName(startFunctionId),
+  // 起点の構造体を最初に追加
+  const startStructName = extractStructName(startFunctionId);
+  structParticipants.set(startStructName, {
+    id: startStructName as ItemId,
+    displayName: startStructName,
     order: order++,
   });
 
-  // 残りの参加者を追加
+  // 残りの構造体を追加
   for (const id of participantIds) {
-    if (id !== startFunctionId) {
-      participants.push({
-        id,
-        displayName: extractDisplayName(id),
+    const structName = extractStructName(id);
+    if (!structParticipants.has(structName)) {
+      structParticipants.set(structName, {
+        id: structName as ItemId,
+        displayName: structName,
         order: order++,
       });
     }
   }
 
+  const participants = Array.from(structParticipants.values());
+
   // Mermaidコードを生成
-  const mermaidCode = generateMermaidCode(participants, calls);
+  const mermaidCode = generateMermaidCode(participants, calls, summaries);
 
   return {
     mermaidCode,
@@ -200,11 +243,12 @@ export function generateSequenceDiagram(
  */
 function generateMermaidCode(
   participants: ParticipantInfo[],
-  calls: CallInfo[]
+  calls: CallInfo[],
+  summaries?: SummaryMap
 ): string {
   let code = 'sequenceDiagram\n';
 
-  // 参加者宣言
+  // 参加者宣言（構造体単位）
   for (const p of participants) {
     code += `    participant ${sanitizeId(p.id)} as ${p.displayName}\n`;
   }
@@ -218,6 +262,21 @@ function generateMermaidCode(
   for (let i = 0; i < calls.length; i++) {
     const call = calls[i];
     const nextCall = calls[i + 1];
+
+    // 構造体名を抽出
+    const fromStruct = extractStructName(call.from);
+    const toStruct = extractStructName(call.to);
+    const methodName = extractMethodName(call.to);
+
+    // ラベルを構築（メソッド名 + 概要）
+    const summary = summaries?.get(call.to);
+    let label: string;
+    if (summary) {
+      const escapedSummary = escapeMermaidLabel(truncateSummary(summary));
+      label = `${methodName}<br/>${escapedSummary}`;
+    } else {
+      label = methodName;
+    }
 
     // コンテキストの開始を検出
     if (call.context && call.context.type !== 'normal') {
@@ -260,10 +319,10 @@ function generateMermaidCode(
       }
     }
 
-    // 呼び出し
+    // 呼び出し（構造体単位 + メソッド名・概要ラベル）
     const callIndent = '    '.repeat(contextStack.length + 1);
-    code += `${callIndent}${sanitizeId(call.from)}->>+${sanitizeId(call.to)}: call\n`;
-    code += `${callIndent}${sanitizeId(call.to)}-->>-${sanitizeId(call.from)}: return\n`;
+    code += `${callIndent}${sanitizeId(fromStruct as ItemId)}->>+${sanitizeId(toStruct as ItemId)}: ${label}\n`;
+    code += `${callIndent}${sanitizeId(toStruct as ItemId)}-->>-${sanitizeId(fromStruct as ItemId)}: \n`;
 
     // コンテキストの終了を検出
     if (contextStack.length > 0) {

@@ -48,6 +48,9 @@ export interface NodeContextMenuProps {
 
   /** ファイルを開く */
   onOpenFile?: (filePath: string) => void;
+
+  /** シーケンス図を表示（method/fn の場合のみ） */
+  onOpenSequenceDiagram?: (nodeId: string) => void;
 }
 
 // ============================================
@@ -66,6 +69,7 @@ export function NodeContextMenu({
   onFocus,
   onShowRelated,
   onOpenFile,
+  onOpenSequenceDiagram,
 }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +136,17 @@ export function NodeContextMenu({
       onClose();
     }
   };
+
+  const handleOpenSequenceDiagram = () => {
+    if (nodeId && onOpenSequenceDiagram) {
+      onOpenSequenceDiagram(nodeId);
+      onClose();
+    }
+  };
+
+  // シーケンス図表示可能かどうか（method/fn のみ）
+  const canShowSequenceDiagram =
+    onOpenSequenceDiagram && (nodeType === 'method' || nodeType === 'fn');
 
   // ============================================
   // レンダリング
@@ -214,6 +229,16 @@ export function NodeContextMenu({
             className="w-full px-3 py-2 text-sm text-green-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
           >
             関連ノードのみ表示
+          </button>
+        )}
+
+        {/* シーケンス図表示（method/fn のみ） */}
+        {canShowSequenceDiagram && (
+          <button
+            onClick={handleOpenSequenceDiagram}
+            className="w-full px-3 py-2 text-sm text-purple-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+          >
+            シーケンス図表示
           </button>
         )}
 

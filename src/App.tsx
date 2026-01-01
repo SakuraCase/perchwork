@@ -5,7 +5,7 @@
  * グラフ表示/ツリー表示の切り替えに対応
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { SourceFile, ItemId, SemanticTest, ItemType } from './types/schema';
 import type { ViewTab } from './types/view';
 import { useDataLoader } from './hooks/useDataLoader';
@@ -26,6 +26,7 @@ import { NodeContextMenu } from './components/graph/NodeContextMenu';
 import { SequenceView } from './components/sequence';
 import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
+import { loadAllSummaries, type SummaryMap } from './services/semanticLoader';
 
 /**
  * アプリケーションルートコンポーネント
@@ -67,12 +68,22 @@ function App() {
   const [treeSelectedItemId, setTreeSelectedItemId] = useState<ItemId | null>(null);
   const [treeSemanticTests, setTreeSemanticTests] = useState<SemanticTest[]>([]);
 
+  // semantic情報（シーケンス図用）
+  const [summaries, setSummaries] = useState<SummaryMap | undefined>(undefined);
+
+  // semantic情報の読み込み
+  useEffect(() => {
+    loadAllSummaries()
+      .then(setSummaries)
+      .catch((err) => console.error('Failed to load summaries:', err));
+  }, []);
+
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
   const { layoutOptions, filter, setLayoutType, updateFilter, clearFocusNode, excludeNode, clearExcludedNodes } = useGraphLayout();
 
   // シーケンス図関連
-  const sequenceDiagram = useSequenceDiagram(graphData);
+  const sequenceDiagram = useSequenceDiagram(graphData, summaries);
 
   // ノード中心表示用の状態（変更されるとGraphViewが該当ノードを中心に表示）
   const [centerNodeId, setCenterNodeId] = useState<string | null>(null);
@@ -374,7 +385,6 @@ function App() {
                     onSelectItem={handleGraphSelectItem}
                     callersIndex={callersIndex}
                     semanticTests={graphSemanticTests}
-                    onOpenSequenceDiagram={handleOpenSequenceDiagram}
                   />
                 ) : (
                   // ツリー表示: サイドパネルに TreeView
@@ -442,6 +452,7 @@ function App() {
                           onFocus={handleCenterOnNode}
                           onShowRelated={handleShowRelatedNodes}
                           onOpenFile={handleOpenFileFromContext}
+                          onOpenSequenceDiagram={(nodeId) => handleOpenSequenceDiagram(nodeId as ItemId)}
                         />
                       </div>
                     )}

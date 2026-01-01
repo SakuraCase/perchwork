@@ -26,8 +26,6 @@ interface DetailPanelProps {
   callersIndex: CallersIndex | null;
   /** セマンティックテスト情報 */
   semanticTests: SemanticTest[];
-  /** シーケンス図を開くコールバック */
-  onOpenSequenceDiagram?: (functionId: ItemId) => void;
 }
 
 /**
@@ -44,7 +42,6 @@ export function DetailPanel({
   onSelectItem,
   callersIndex,
   semanticTests,
-  onOpenSequenceDiagram,
 }: DetailPanelProps) {
   // 折りたたみ状態の管理
   const [callersExpanded, setCallersExpanded] = useState(false);
@@ -86,31 +83,6 @@ export function DetailPanel({
             <span>←</span>
             <span>定義一覧に戻る</span>
           </button>
-
-          {/* シーケンス図ボタン（method/fn の場合のみ） */}
-          {onOpenSequenceDiagram &&
-            (selectedItem.type === 'method' || selectedItem.type === 'fn') && (
-              <button
-                type="button"
-                onClick={() => onOpenSequenceDiagram(selectedItem.id)}
-                className="mb-4 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center gap-2"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-                  />
-                </svg>
-                <span>シーケンス図表示</span>
-              </button>
-            )}
 
           {/* アイテム詳細（Callersは概要→責務→シグネチャ→テストの後に挿入） */}
           <ItemSummary

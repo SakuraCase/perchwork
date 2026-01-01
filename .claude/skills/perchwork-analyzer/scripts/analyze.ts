@@ -445,8 +445,8 @@ class PerchworkAnalyzer {
           };
           items.push(item);
 
-          // エッジを収集
-          this.collectEdges(child, methodId, filePath, edges);
+          // エッジを収集（implForを渡してSelf::を置換）
+          this.collectEdges(child, methodId, filePath, edges, implFor);
         }
       }
     }
@@ -571,30 +571,38 @@ class PerchworkAnalyzer {
 
   /**
    * 関数呼び出しエッジを収集
+   * @param implFor メソッドが属する型名（Self::を置換するため）
    */
   private collectEdges(
     node: Parser.SyntaxNode,
     fromId: string,
     filePath: string,
-    edges: CallEdge[]
+    edges: CallEdge[],
+    implFor?: string
   ): void {
-    this.findEdges(node, fromId, filePath, edges);
+    this.findEdges(node, fromId, filePath, edges, implFor);
   }
 
   /**
    * 関数呼び出しエッジを再帰的に検索
+   * @param implFor メソッドが属する型名（Self::を置換するため）
    */
   private findEdges(
     node: Parser.SyntaxNode,
     fromId: string,
     filePath: string,
-    edges: CallEdge[]
+    edges: CallEdge[],
+    implFor?: string
   ): void {
     if (node.type === 'call_expression') {
       const functionNode = node.childForFieldName('function');
       if (functionNode) {
         // 改行や余分な空白を除去して正規化
-        const normalized = this.normalizeCallName(functionNode.text);
+        let normalized = this.normalizeCallName(functionNode.text);
+        // Self:: を実際の型名に置換
+        if (implFor && normalized.startsWith('Self::')) {
+          normalized = normalized.replace('Self::', `${implFor}::`);
+        }
         // コンテキスト（制御構造）を取得
         const context = this.getCallContext(node);
         const edge: CallEdge = {
@@ -631,7 +639,7 @@ class PerchworkAnalyzer {
     for (let i = 0; i < node.childCount; i++) {
       const child = node.child(i);
       if (child) {
-        this.findEdges(child, fromId, filePath, edges);
+        this.findEdges(child, fromId, filePath, edges, implFor);
       }
     }
   }
@@ -945,11 +953,8 @@ class PerchworkAnalyzer {
       }
     }
 
-    // 3. 末尾の名前のみで試行
-    const lastPart = parts[parts.length - 1];
-    if (nameToId.has(lastPart)) {
-      return nameToId.get(lastPart)!;
-    }
+    // 末尾の名前のみでのマッチは削除（異なる型の同名メソッドに誤マッチするため）
+    // 例: InternalEventLog::new が FrontendEventLog::new にマッチする問題を防ぐ
 
     // 解決できない（外部呼び出し）
     return null;
