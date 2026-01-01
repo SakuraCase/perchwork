@@ -149,6 +149,7 @@ export function NodeContextMenu({
         left: position.x,
         top: position.y,
       }}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* ヘッダー: ノードラベルとタイプ */}
       <div className="px-3 py-2 border-b border-gray-700">
