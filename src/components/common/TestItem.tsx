@@ -82,18 +82,9 @@ export function CompactTestItem({
   const testName = displayName || extractTestName(testId);
 
   return (
-    <div className="text-sm py-0.5" title={testId}>
-      <div className="flex items-start gap-2">
-        <span className="text-green-400 flex-shrink-0">◇</span>
-        {showName && (
-          <span className="text-gray-300 truncate max-w-[200px]">{testName}</span>
-        )}
-      </div>
-      {summary && (
-        <div className="text-gray-400 break-words pl-5 mt-0.5">
-          {summary}
-        </div>
-      )}
+    <div className="text-sm text-gray-300 py-0.5" title={testId}>
+      {showName && <span>• {testName}</span>}
+      {summary && <span className="text-gray-400 ml-1">- {summary}</span>}
     </div>
   );
 }

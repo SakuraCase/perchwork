@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { IndexFile, SplitFile, CodeItem, ItemId, SemanticTest } from '../types/schema';
 import { fetchIndex, fetchSplitFile, fetchSemanticFile } from '../services/dataLoader';
 import * as cacheManager from '../services/cacheManager';
+import { normalizeId } from '../utils/itemGrouper';
 
 /**
  * JSONデータの読み込みと管理を行うフック
@@ -137,7 +138,8 @@ export function useDataLoader() {
           mergedSplitFile = {
             ...rawData,
             items: rawData.items.map((item: CodeItem) => {
-              const semanticItem = semanticData.items.find(s => s.id === item.id);
+              const normalizedItemId = normalizeId(item.id);
+              const semanticItem = semanticData.items.find(s => normalizeId(s.id) === normalizedItemId);
               if (semanticItem) {
                 return {
                   ...item,
@@ -155,7 +157,8 @@ export function useDataLoader() {
             files: rawData.files.map((file: { items: CodeItem[] }) => ({
               ...file,
               items: file.items.map((item: CodeItem) => {
-                const semanticItem = semanticData.items.find(s => s.id === item.id);
+                const normalizedItemId = normalizeId(item.id);
+                const semanticItem = semanticData.items.find(s => normalizeId(s.id) === normalizedItemId);
                 if (semanticItem) {
                   return {
                     ...item,

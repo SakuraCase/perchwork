@@ -81,7 +81,7 @@ export function DetailPanel({
             className="mb-4 px-3 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded transition-colors flex items-center gap-2"
           >
             <span>←</span>
-            <span>アイテム一覧に戻る</span>
+            <span>定義一覧に戻る</span>
           </button>
 
           {/* アイテム詳細（Callersは概要→責務→シグネチャ→テストの後に挿入） */}
