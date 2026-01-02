@@ -144,7 +144,8 @@ function collectCallEvents(
   participants.add(startId);
 
   // DFS（深さ優先探索）で再帰的に探索
-  function dfs(nodeId: ItemId, depthLimit: number): void {
+  // callPathKey: 呼び出し元のパスを表すキー（異なるパスからの同一エッジを区別するため）
+  function dfs(nodeId: ItemId, depthLimit: number, callPathKey: string): void {
     // 深さ制限に達したらスキップ
     if (depthLimit <= 0) {
       return;
@@ -159,7 +160,8 @@ function collectCallEvents(
     );
 
     for (const edge of sortedEdges) {
-      const edgeKey = `${edge.data.source}->${edge.data.target}@${edge.data.callSite.line}`;
+      // エッジキーに呼び出し元パスを含める（異なるパスからの呼び出しを区別）
+      const edgeKey = `${callPathKey}>${edge.data.source}->${edge.data.target}@${edge.data.callSite.line}`;
       if (visited.has(edgeKey)) {
         continue;
       }
@@ -186,7 +188,9 @@ function collectCallEvents(
       // 子ノードを再帰的に探索（深さ優先）
       // その関数の深さ設定を使用
       const targetDepth = depthConfig.functionDepths.get(targetId) ?? 0;
-      dfs(targetId, targetDepth);
+      // 新しい呼び出しパスキーを生成
+      const newCallPathKey = `${nodeId}@${edge.data.callSite.line}`;
+      dfs(targetId, targetDepth, newCallPathKey);
 
       // 終了イベントを記録（子ノードの探索が終わった後）
       events.push({ type: 'end', call: callInfo });
@@ -194,7 +198,7 @@ function collectCallEvents(
   }
 
   // ルート関数から探索開始（深さ1: 直接の呼び出しは常に表示）
-  dfs(startId, 1);
+  dfs(startId, 1, 'root');
 
   return { events, participants, calls };
 }
