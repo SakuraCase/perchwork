@@ -11,6 +11,7 @@ import type { ViewTab } from './types/view';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
 import { useGraphLayout } from './hooks/useGraphLayout';
+import { useProfile } from './hooks/useProfile';
 import { useSearchIndex } from './hooks/useSearchIndex';
 import { useSequenceDiagram } from './hooks/useSequenceDiagram';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -79,6 +80,19 @@ function App() {
       .catch((err) => console.error('Failed to load summaries:', err));
   }, []);
 
+  // プロファイル管理
+  const {
+    activeProfile,
+    profiles,
+    isLoading: profileLoading,
+    switchProfile,
+    createProfile,
+    renameProfile,
+    deleteProfile,
+    settings,
+    updateSettings,
+  } = useProfile();
+
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
   const {
@@ -92,7 +106,7 @@ function App() {
     colorRules,
     addColorRule,
     setColorRules,
-  } = useGraphLayout();
+  } = useGraphLayout({ settings, updateSettings });
 
   // シーケンス図関連
   const sequenceDiagram = useSequenceDiagram(graphData, summaries);
@@ -345,6 +359,15 @@ function App() {
     return node?.data.label;
   }, [filter.focusNodeId, graphData]);
 
+  // プロファイル初期化中の表示
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+        <Loading message="設定を読み込んでいます..." />
+      </div>
+    );
+  }
+
   // 初期ロード中の表示
   if (isLoading && !index) {
     return (
@@ -399,6 +422,13 @@ function App() {
           onSearchSelectGraph={handleSearchSelectGraph}
           onSearchSelectTree={handleSearchSelectTree}
           onSearchSelectSequence={handleSearchSelectSequence}
+          profiles={profiles}
+          activeProfileId={activeProfile?.id ?? ''}
+          activeProfileName={activeProfile?.name ?? 'デフォルト'}
+          onProfileSelect={switchProfile}
+          onProfileCreate={createProfile}
+          onProfileRename={renameProfile}
+          onProfileDelete={deleteProfile}
         />
 
         {/* メインコンテンツエリア */}
