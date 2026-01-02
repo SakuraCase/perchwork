@@ -4,4 +4,4 @@
 
 ## スキル
 
-`/perchwork` - コードベースを解析し `public/data/` に構造化JSONを生成
+`/analyze` - コードベースを解析し `public/data/` に構造化JSONを生成

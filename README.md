@@ -11,16 +11,8 @@ cp config.example.json config.json
 
 ## 使い方
 
+詳細は [.claude/commands/analyze.md](.claude/commands/analyze.md) を参照。
+
 ```bash
-/perchwork              # 差分更新（初回は全ファイル）
-/perchwork --full       # 全体再生成
-/perchwork --target dir # 対象ディレクトリ指定
+npm run dev    # 開発サーバー起動
 ```
-
-## 出力
-
-`public/data/` に以下を生成:
-
-- `index.json` - メインインデックス
-- `search_index.json` - 検索用
-- `call_graph/` - コールグラフ

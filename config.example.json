@@ -1,9 +1,7 @@
 {
-  "target_dir": "backend/src/lib",
-  "split_depth": 2,
-  "output_dir": "public/data",
+  "target_dir": "../projects/src",
   "extensions": [".rs"],
-  "exclude": ["**/tests/**", "**/test_*.rs"],
+  "exclude": ["**/tests/**"],
   "language": "ja",
   "last_commit": null,
   "last_run": null
