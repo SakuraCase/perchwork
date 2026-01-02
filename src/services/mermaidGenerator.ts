@@ -13,7 +13,10 @@ import type {
   ParticipantInfo,
   SequenceDiagramData,
   FunctionDepthSetting,
+  SequenceEditState,
+  CallEntryId,
 } from '../types/sequence';
+import { generateCallEntryId } from '../types/sequence';
 import type { SummaryMap } from './semanticLoader';
 
 /**
@@ -38,6 +41,8 @@ export interface SequenceDiagramOptions {
   summaries?: SummaryMap;
   /** アクティベーション（+/-）を使用するか（デフォルト: true） */
   useActivation?: boolean;
+  /** 編集状態（オプション） */
+  editState?: SequenceEditState;
 }
 
 /**
@@ -102,7 +107,7 @@ function escapeMermaidLabel(text: string): string {
     .replace(/[<>]/g, '')
     .replace(/:/g, '：')
     .replace(/"/g, "'")
-    .replace(/\n/g, ' ');
+    .replace(/\n/g, '<br/>');
 }
 
 /**
@@ -210,7 +215,7 @@ export function generateSequenceDiagram(
   graphData: CytoscapeData,
   options: SequenceDiagramOptions
 ): SequenceDiagramData {
-  const { startFunctionId, depthConfig, summaries, useActivation = true } = options;
+  const { startFunctionId, depthConfig, summaries, useActivation = true, editState } = options;
 
   // 呼び出しイベントを収集
   const { events, participants: participantIds, calls } = collectCallEvents(
@@ -246,7 +251,7 @@ export function generateSequenceDiagram(
   const participants = Array.from(structParticipants.values());
 
   // Mermaidコードを生成
-  const mermaidCode = generateMermaidCode(participants, events, summaries, useActivation);
+  const mermaidCode = generateMermaidCode(participants, events, summaries, useActivation, editState);
 
   return {
     mermaidCode,
@@ -271,6 +276,83 @@ function isSameCall(a: CallInfo, b: CallInfo): boolean {
 }
 
 /**
+ * 編集状態のヘルパー: 呼び出しが省略されているかチェック
+ */
+function isCallOmitted(callEntryId: CallEntryId, editState?: SequenceEditState): boolean {
+  if (!editState) return false;
+  return editState.omissions.some(o => o.callEntryIds.includes(callEntryId));
+}
+
+/**
+ * 編集状態のヘルパー: 省略のプレースホルダーを取得
+ * @param callEntryId 対象の呼び出しID
+ * @param editState 編集状態
+ * @param previousOmittedCallId 前回省略された呼び出しID（連続判定用）
+ * @returns プレースホルダー文字列、または null
+ */
+function getOmissionPlaceholder(
+  callEntryId: CallEntryId,
+  editState?: SequenceEditState,
+  previousOmittedCallId?: CallEntryId | null
+): string | null {
+  if (!editState) return null;
+  const omission = editState.omissions.find(o => o.callEntryIds.includes(callEntryId));
+  if (omission) {
+    // 前回省略された呼び出しが同じ省略グループに属していない場合は、プレースホルダーを表示
+    // これにより、非連続の省略でもそれぞれの位置で ... を表示する
+    if (!previousOmittedCallId || !omission.callEntryIds.includes(previousOmittedCallId)) {
+      return omission.placeholder;
+    }
+  }
+  return null;
+}
+
+/**
+ * 編集状態のヘルパー: カスタムラベルを取得
+ */
+function getCustomLabel(callEntryId: CallEntryId, editState?: SequenceEditState): string | null {
+  if (!editState) return null;
+  const labelEdit = editState.labelEdits.find(l => l.callEntryId === callEntryId);
+  return labelEdit?.customLabel ?? null;
+}
+
+/**
+ * 編集状態のヘルパー: 呼び出しが属するグループを取得
+ */
+function getCallGroup(callEntryId: CallEntryId, editState?: SequenceEditState) {
+  if (!editState) return null;
+  return editState.groups.find(g => g.callEntryIds.includes(callEntryId)) ?? null;
+}
+
+/**
+ * 編集状態のヘルパー: グループの最初の呼び出しかチェック
+ */
+function isGroupStart(callEntryId: CallEntryId, editState?: SequenceEditState): boolean {
+  if (!editState) return false;
+  return editState.groups.some(g => g.callEntryIds[0] === callEntryId);
+}
+
+/**
+ * 編集状態のヘルパー: グループの最後の呼び出しかチェック
+ */
+function isGroupEnd(callEntryId: CallEntryId, editState?: SequenceEditState): boolean {
+  if (!editState) return false;
+  return editState.groups.some(g => g.callEntryIds[g.callEntryIds.length - 1] === callEntryId);
+}
+
+/**
+ * 編集状態のヘルパー: 指定位置のNoteを取得
+ */
+function getNotesAtPosition(
+  callEntryId: CallEntryId,
+  position: 'before' | 'after',
+  editState?: SequenceEditState
+) {
+  if (!editState) return [];
+  return editState.notes.filter(n => n.callEntryId === callEntryId && n.position === position);
+}
+
+/**
  * Mermaidコードを生成する
  * イベントベースで開始/終了を処理し、アクティベーションの入れ子を正しく表現する
  */
@@ -278,7 +360,8 @@ function generateMermaidCode(
   participants: ParticipantInfo[],
   events: CallEvent[],
   summaries?: SummaryMap,
-  useActivation: boolean = true
+  useActivation: boolean = true,
+  editState?: SequenceEditState
 ): string {
   let code = 'sequenceDiagram\n';
 
@@ -291,11 +374,21 @@ function generateMermaidCode(
 
   // コンテキストスタック（ネスト管理用）- どの呼び出しがコンテキストを開いたかを追跡
   const contextStack: ContextEntry[] = [];
+  // グループスタック（開いているグループを追跡）
+  const openGroups = new Set<string>();
+  // 前回省略された呼び出しID（非連続の省略検出用）
+  let lastOmittedCallId: CallEntryId | null = null;
+
+  // DEBUG: 省略設定をログ出力
+  if (editState?.omissions && editState.omissions.length > 0) {
+    console.log('[generateMermaidCode] omissions:', editState.omissions);
+  }
 
   // イベントを順に処理
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
     const call = event.call;
+    const callEntryId = generateCallEntryId(call);
 
     // 構造体名を抽出
     const fromStruct = extractStructName(call.from);
@@ -303,12 +396,73 @@ function generateMermaidCode(
     const isSelfCall = fromStruct === toStruct;
 
     if (event.type === 'start') {
+      // DEBUG: 省略チェックのログ
+      if (editState?.omissions && editState.omissions.length > 0) {
+        const isOmitted = isCallOmitted(callEntryId, editState);
+        const placeholder = getOmissionPlaceholder(callEntryId, editState, lastOmittedCallId);
+        console.log(`[generateMermaidCode] callEntryId: ${callEntryId}, isOmitted: ${isOmitted}, placeholder: ${placeholder}, lastOmittedCallId: ${lastOmittedCallId}`);
+      }
+
+      // 省略チェック
+      const omissionPlaceholder = getOmissionPlaceholder(callEntryId, editState, lastOmittedCallId);
+      if (omissionPlaceholder !== null) {
+        // 省略呼び出し: プレースホルダーを表示（非連続または最初の省略）
+        const callIndent = '    '.repeat(contextStack.length + 1);
+        code += `${callIndent}Note over ${sanitizeId(fromStruct as ItemId)}: ${escapeMermaidLabel(omissionPlaceholder)}\n`;
+        lastOmittedCallId = callEntryId;
+        continue;
+      }
+      if (isCallOmitted(callEntryId, editState)) {
+        // 省略された呼び出し（同じ省略グループ内で連続）: スキップ
+        lastOmittedCallId = callEntryId;
+        continue;
+      }
+
+      // 非省略の呼び出しを処理する前に、lastOmittedCallId をリセット
+      lastOmittedCallId = null;
+
+      // グループ開始チェック
+      if (isGroupStart(callEntryId, editState)) {
+        const group = getCallGroup(callEntryId, editState);
+        if (group && !group.isCollapsed) {
+          const callIndent = '    '.repeat(contextStack.length + 1);
+          code += `${callIndent}rect rgb(60, 60, 80)\n`;
+          code += `${callIndent}Note left of ${sanitizeId(fromStruct as ItemId)}: ${escapeMermaidLabel(group.name)}\n`;
+          openGroups.add(group.id);
+        } else if (group && group.isCollapsed) {
+          // 折りたたまれたグループ: サマリーのみ表示してグループ内の呼び出しをスキップ
+          const callIndent = '    '.repeat(contextStack.length + 1);
+          code += `${callIndent}Note over ${sanitizeId(fromStruct as ItemId)}: [${escapeMermaidLabel(group.name)}]\n`;
+          // グループ内の呼び出しをスキップするためにインデックスを進める
+          // Note: 折りたたまれたグループの呼び出しは後続のループで個別にスキップされる
+        }
+      }
+
+      // 折りたたまれたグループ内の呼び出しはスキップ
+      const group = getCallGroup(callEntryId, editState);
+      if (group?.isCollapsed && !isGroupStart(callEntryId, editState)) {
+        continue;
+      }
+
+      // before Noteを挿入
+      const beforeNotes = getNotesAtPosition(callEntryId, 'before', editState);
+      for (const note of beforeNotes) {
+        const callIndent = '    '.repeat(contextStack.length + 1);
+        const participantStr = note.participants.map(p => sanitizeId(p as ItemId)).join(',');
+        code += `${callIndent}Note ${note.placement} ${participantStr}: ${escapeMermaidLabel(note.text)}\n`;
+      }
+
       // 開始イベント: 呼び出し矢印を出力
       const toMethodName = extractMethodName(call.to);
 
-      // ラベルを構築
+      // カスタムラベルチェック
+      const customLabel = getCustomLabel(callEntryId, editState);
       let label: string;
-      if (isSelfCall) {
+
+      if (customLabel !== null) {
+        // カスタムラベルを使用
+        label = escapeMermaidLabel(customLabel);
+      } else if (isSelfCall) {
         // セルフコール: 呼び出し元メソッド名も含める
         const fromMethodName = extractMethodName(call.from);
         const summary = summaries?.get(call.to);
@@ -382,8 +536,28 @@ function generateMermaidCode(
       const activateStart = useActivation ? '+' : '';
       code += `${callIndent}${sanitizeId(fromStruct as ItemId)}->>${activateStart}${sanitizeId(toStruct as ItemId)}: ${label}\n`;
 
+      // after Noteを挿入
+      const afterNotes = getNotesAtPosition(callEntryId, 'after', editState);
+      for (const note of afterNotes) {
+        const noteIndent = '    '.repeat(contextStack.length + 1);
+        const participantStr = note.participants.map(p => sanitizeId(p as ItemId)).join(',');
+        code += `${noteIndent}Note ${note.placement} ${participantStr}: ${escapeMermaidLabel(note.text)}\n`;
+      }
+
     } else {
       // 終了イベント
+
+      // 省略された呼び出しはスキップ
+      if (isCallOmitted(callEntryId, editState)) {
+        continue;
+      }
+
+      // 折りたたまれたグループ内の呼び出しはスキップ
+      const group = getCallGroup(callEntryId, editState);
+      if (group?.isCollapsed) {
+        continue;
+      }
+
       if (useActivation) {
         // アクティベーション有効時: 戻り矢印を出力
         const callIndent = '    '.repeat(contextStack.length + 1);
@@ -400,7 +574,24 @@ function generateMermaidCode(
           contextStack.pop();
         }
       }
+
+      // グループ終了チェック
+      if (isGroupEnd(callEntryId, editState)) {
+        const endGroup = getCallGroup(callEntryId, editState);
+        if (endGroup && openGroups.has(endGroup.id)) {
+          const callIndent = '    '.repeat(contextStack.length + 1);
+          code += `${callIndent}end\n`;
+          openGroups.delete(endGroup.id);
+        }
+      }
     }
+  }
+
+  // 残りのグループを閉じる
+  for (const groupId of openGroups) {
+    void groupId; // satisfy linter
+    const indent = '    '.repeat(contextStack.length + 1);
+    code += `${indent}end\n`;
   }
 
   // 残りのコンテキストを閉じる

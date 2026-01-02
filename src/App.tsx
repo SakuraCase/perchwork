@@ -7,6 +7,8 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { SourceFile, ItemId, SemanticTest, ItemType } from './types/schema';
+import { createEmptyEditState } from './types/sequence';
+import type { SavedSequenceDiagram } from './types/sequence';
 import type { ViewTab } from './types/view';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
@@ -110,6 +112,35 @@ function App() {
 
   // シーケンス図関連
   const sequenceDiagram = useSequenceDiagram(graphData, summaries);
+
+  // シーケンス編集の未保存状態追跡
+  const [sequenceHasUnsavedChanges, setSequenceHasUnsavedChanges] = useState(false);
+  const [lastSavedEditState, setLastSavedEditState] = useState<string | null>(null);
+
+  // editStateの変更を追跡
+  useEffect(() => {
+    const currentStateJson = JSON.stringify(sequenceDiagram.editState);
+    if (lastSavedEditState !== null && currentStateJson !== lastSavedEditState) {
+      setSequenceHasUnsavedChanges(true);
+    }
+  }, [sequenceDiagram.editState, lastSavedEditState]);
+
+  // root関数変更時にプロファイルから編集状態を読み込み
+  useEffect(() => {
+    const rootId = sequenceDiagram.state.rootFunctionId;
+    if (!rootId) return;
+
+    const savedEditState = settings.sequenceEdits?.[rootId];
+    if (savedEditState) {
+      sequenceDiagram.loadEditState(savedEditState);
+      setLastSavedEditState(JSON.stringify(savedEditState));
+    } else {
+      sequenceDiagram.clearEdits();
+      setLastSavedEditState(JSON.stringify(createEmptyEditState()));
+    }
+    setSequenceHasUnsavedChanges(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally only depend on rootFunctionId
+  }, [sequenceDiagram.state.rootFunctionId]);
 
   // ノード中心表示用の状態（変更されるとGraphViewが該当ノードを中心に表示）
   const [centerNodeId, setCenterNodeId] = useState<string | null>(null);
@@ -340,6 +371,64 @@ function App() {
   );
 
   /**
+   * シーケンスを名前付きで保存
+   */
+  const handleSaveSequenceWithName = useCallback((name: string, existingId?: string) => {
+    const rootId = sequenceDiagram.state.rootFunctionId;
+    if (!rootId) return;
+
+    const currentEditState = sequenceDiagram.getEditState();
+    const now = new Date().toISOString();
+
+    if (existingId) {
+      // 上書き保存
+      const updated = (settings.savedSequences ?? []).map(s =>
+        s.id === existingId
+          ? { ...s, name, editState: currentEditState, updatedAt: now }
+          : s
+      );
+      updateSettings({ ...settings, savedSequences: updated });
+    } else {
+      // 新規保存
+      const newSaved: SavedSequenceDiagram = {
+        id: `seq_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        name,
+        rootFunctionId: rootId,
+        editState: currentEditState,
+        createdAt: now,
+        updatedAt: now,
+      };
+      updateSettings({
+        ...settings,
+        savedSequences: [...(settings.savedSequences ?? []), newSaved],
+      });
+    }
+
+    setLastSavedEditState(JSON.stringify(currentEditState));
+    setSequenceHasUnsavedChanges(false);
+  }, [sequenceDiagram, settings, updateSettings]);
+
+  /**
+   * 保存済みシーケンスを開く
+   */
+  const handleOpenSavedSequence = useCallback((saved: SavedSequenceDiagram) => {
+    // root関数を変更
+    sequenceDiagram.setRootFunction(saved.rootFunctionId);
+    // 編集状態を読み込み
+    sequenceDiagram.loadEditState(saved.editState);
+    setLastSavedEditState(JSON.stringify(saved.editState));
+    setSequenceHasUnsavedChanges(false);
+  }, [sequenceDiagram]);
+
+  /**
+   * 保存済みシーケンスを削除
+   */
+  const handleDeleteSavedSequence = useCallback((id: string) => {
+    const filtered = (settings.savedSequences ?? []).filter(s => s.id !== id);
+    updateSettings({ ...settings, savedSequences: filtered });
+  }, [settings, updateSettings]);
+
+  /**
    * フォーカスノードのラベルを取得（表示用）
    */
   const focusNodeLabel = useMemo(() => {
@@ -545,6 +634,27 @@ function App() {
                 onFunctionDepthChange={sequenceDiagram.setFunctionDepth}
                 useActivation={sequenceDiagram.useActivation}
                 onToggleActivation={sequenceDiagram.toggleActivation}
+                // 編集機能props
+                calls={sequenceDiagram.calls}
+                editState={sequenceDiagram.editState}
+                hasUnsavedChanges={sequenceHasUnsavedChanges}
+                // グループ操作
+                onAddGroup={sequenceDiagram.addGroup}
+                onRemoveGroup={sequenceDiagram.removeGroup}
+                onUpdateGroup={sequenceDiagram.updateGroup}
+                onToggleGroupCollapse={sequenceDiagram.toggleGroupCollapse}
+                // 省略操作
+                onAddOmission={sequenceDiagram.addOmission}
+                // ラベル操作
+                onSetLabelEdit={sequenceDiagram.setLabelEdit}
+                onRemoveLabelEdit={sequenceDiagram.removeLabelEdit}
+                // クリア
+                onClearEdits={sequenceDiagram.clearEdits}
+                // 名前付き保存/開く
+                savedSequences={settings.savedSequences ?? []}
+                onSaveWithName={handleSaveSequenceWithName}
+                onOpenSaved={handleOpenSavedSequence}
+                onDeleteSaved={handleDeleteSavedSequence}
               />
             </div>
           )}

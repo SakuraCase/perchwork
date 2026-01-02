@@ -5,6 +5,8 @@
  */
 
 import type { LayoutOptions, GraphFilter, NodeColorRule } from './graph';
+import type { SequenceEditState, SavedSequenceDiagram } from './sequence';
+import type { ItemId } from './schema';
 
 // ============================================
 // アプリケーション設定
@@ -24,6 +26,12 @@ export interface AppSettings {
 
   /** ノード色ルール */
   colorRules: NodeColorRule[];
+
+  /** シーケンス図編集状態（rootFunctionId -> EditState）- 自動保存用 */
+  sequenceEdits?: Record<ItemId, SequenceEditState>;
+
+  /** 保存済みシーケンス図一覧 - 名前付き保存 */
+  savedSequences?: SavedSequenceDiagram[];
 
   /** バージョン番号（マイグレーション用） */
   version: number;
@@ -87,7 +95,7 @@ export const CURRENT_STORAGE_VERSION = 1;
 /**
  * 現在の設定バージョン
  */
-export const CURRENT_SETTINGS_VERSION = 1;
+export const CURRENT_SETTINGS_VERSION = 3;
 
 /**
  * localStorage のキー

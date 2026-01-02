@@ -3,14 +3,35 @@
  *
  * シーケンス図タブのメインビュー
  * Mermaidを使用してシーケンス図をレンダリングする
+ * 編集機能（グループ化、省略、ラベル編集）を提供
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import mermaid from 'mermaid';
 import type { ItemId } from '@/types/schema';
-import type { FunctionDepthSetting } from '@/types/sequence';
-import { extractDisplayName } from '@/services/mermaidGenerator';
+import type {
+  FunctionDepthSetting,
+  CallInfo,
+  SequenceEditState,
+  SequenceGroup,
+  CallEntryId,
+  SavedSequenceDiagram,
+} from '@/types/sequence';
+import { generateCallEntryId } from '@/types/sequence';
+import { extractDisplayName, extractMethodName } from '@/services/mermaidGenerator';
 import { DepthControl } from './DepthControl';
+import { SequenceToolbar } from './SequenceToolbar';
+import { CallList } from './CallList';
+import { EditActionsPanel } from './EditActionsPanel';
+import { GroupList } from './GroupList';
+import { GroupDialog } from './GroupDialog';
+import { LabelEditDialog } from './LabelEditDialog';
+import { SaveDialog } from './SaveDialog';
+import { OpenDialog } from './OpenDialog';
+
+// ============================================
+// Props定義
+// ============================================
 
 interface SequenceViewProps {
   /** 起点関数ID */
@@ -25,6 +46,37 @@ interface SequenceViewProps {
   useActivation: boolean;
   /** アクティベーション設定の切り替えコールバック */
   onToggleActivation: () => void;
+
+  // === 編集機能用props ===
+
+  /** 呼び出し一覧 */
+  calls: CallInfo[];
+  /** 編集状態 */
+  editState: SequenceEditState;
+  /** 未保存の変更があるか */
+  hasUnsavedChanges: boolean;
+
+  // グループ操作
+  onAddGroup: (name: string, callEntryIds: CallEntryId[]) => void;
+  onRemoveGroup: (groupId: string) => void;
+  onUpdateGroup: (groupId: string, updates: Partial<SequenceGroup>) => void;
+  onToggleGroupCollapse: (groupId: string) => void;
+
+  // 省略操作
+  onAddOmission: (callEntryIds: CallEntryId[], placeholder?: string) => void;
+
+  // ラベル操作
+  onSetLabelEdit: (callEntryId: CallEntryId, customLabel: string) => void;
+  onRemoveLabelEdit: (callEntryId: CallEntryId) => void;
+
+  // クリア
+  onClearEdits: () => void;
+
+  // 名前付き保存/開く
+  savedSequences: SavedSequenceDiagram[];
+  onSaveWithName: (name: string, existingId?: string) => void;
+  onOpenSaved: (saved: SavedSequenceDiagram) => void;
+  onDeleteSaved: (id: string) => void;
 }
 
 // Mermaid初期化
@@ -45,9 +97,28 @@ mermaid.initialize({
   },
 });
 
-/**
- * シーケンス図ビューコンポーネント
- */
+// ============================================
+// ダイアログ状態の型
+// ============================================
+
+interface GroupDialogState {
+  isOpen: boolean;
+  mode: 'create' | 'edit';
+  groupId?: string;
+  currentName?: string;
+}
+
+interface LabelDialogState {
+  isOpen: boolean;
+  callEntryId: CallEntryId;
+  originalLabel: string;
+  currentLabel: string;
+}
+
+// ============================================
+// メインコンポーネント
+// ============================================
+
 export function SequenceView({
   rootFunctionId,
   functionDepths,
@@ -55,11 +126,38 @@ export function SequenceView({
   onFunctionDepthChange,
   useActivation,
   onToggleActivation,
+  calls,
+  editState,
+  hasUnsavedChanges,
+  onAddGroup,
+  onRemoveGroup,
+  onUpdateGroup,
+  onToggleGroupCollapse,
+  onAddOmission,
+  onSetLabelEdit,
+  onRemoveLabelEdit,
+  onClearEdits,
+  savedSequences,
+  onSaveWithName,
+  onOpenSaved,
+  onDeleteSaved,
 }: SequenceViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [isContainerReady, setIsContainerReady] = useState(false);
+
+  // 選択状態
+  const [selectedCallIds, setSelectedCallIds] = useState<Set<CallEntryId>>(new Set());
+
+  // ダイアログ状態
+  const [groupDialog, setGroupDialog] = useState<GroupDialogState>({
+    isOpen: false,
+    mode: 'create',
+  });
+  const [labelDialog, setLabelDialog] = useState<LabelDialogState | null>(null);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
 
   // containerRef が準備できたらフラグを立てる
   useEffect(() => {
@@ -100,6 +198,165 @@ export function SequenceView({
     renderDiagram();
   }, [mermaidCode, isContainerReady]);
 
+  // root関数変更時に選択をクリア
+  useEffect(() => {
+    setSelectedCallIds(new Set());
+  }, [rootFunctionId]);
+
+  // ============================================
+  // 選択ハンドラ
+  // ============================================
+
+  const handleToggleSelection = useCallback(
+    (callEntryId: CallEntryId) => {
+      const newSelected = new Set(selectedCallIds);
+      if (newSelected.has(callEntryId)) {
+        newSelected.delete(callEntryId);
+      } else {
+        newSelected.add(callEntryId);
+      }
+      setSelectedCallIds(newSelected);
+    },
+    [selectedCallIds]
+  );
+
+  const handleSelectRange = useCallback(
+    (startIndex: number, endIndex: number) => {
+      const newSelected = new Set(selectedCallIds);
+      const start = Math.min(startIndex, endIndex);
+      const end = Math.max(startIndex, endIndex);
+      for (let i = start; i <= end; i++) {
+        newSelected.add(generateCallEntryId(calls[i]));
+      }
+      setSelectedCallIds(newSelected);
+    },
+    [calls, selectedCallIds]
+  );
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedCallIds(new Set());
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedCallIds.size === calls.length) {
+      setSelectedCallIds(new Set());
+    } else {
+      const allIds = calls.map((c) => generateCallEntryId(c));
+      setSelectedCallIds(new Set(allIds));
+    }
+  }, [calls, selectedCallIds]);
+
+  // ============================================
+  // グループ操作ハンドラ
+  // ============================================
+
+  const handleOpenGroupCreate = useCallback(() => {
+    setGroupDialog({ isOpen: true, mode: 'create' });
+  }, []);
+
+  const handleOpenGroupEdit = useCallback(
+    (groupId: string) => {
+      const group = editState.groups.find((g) => g.id === groupId);
+      if (group) {
+        setGroupDialog({
+          isOpen: true,
+          mode: 'edit',
+          groupId,
+          currentName: group.name,
+        });
+      }
+    },
+    [editState.groups]
+  );
+
+  const handleGroupConfirm = useCallback(
+    (name: string) => {
+      if (groupDialog.mode === 'create') {
+        onAddGroup(name, Array.from(selectedCallIds));
+        setSelectedCallIds(new Set());
+      } else if (groupDialog.groupId) {
+        onUpdateGroup(groupDialog.groupId, { name });
+      }
+      setGroupDialog({ isOpen: false, mode: 'create' });
+    },
+    [groupDialog, selectedCallIds, onAddGroup, onUpdateGroup]
+  );
+
+  const handleGroupCancel = useCallback(() => {
+    setGroupDialog({ isOpen: false, mode: 'create' });
+  }, []);
+
+  // ============================================
+  // 省略操作ハンドラ
+  // ============================================
+
+  const handleAddOmission = useCallback(() => {
+    // calls の順序でソートされた配列を作成
+    const sortedIds = calls
+      .map((c) => generateCallEntryId(c))
+      .filter((id) => selectedCallIds.has(id));
+
+    // DEBUG: 省略に追加されるID一覧
+    console.log('[handleAddOmission] sortedIds:', sortedIds);
+    console.log('[handleAddOmission] calls:', calls.map(c => ({
+      from: c.from,
+      to: c.to,
+      line: c.line,
+      id: generateCallEntryId(c)
+    })));
+
+    onAddOmission(sortedIds);
+    setSelectedCallIds(new Set());
+  }, [calls, selectedCallIds, onAddOmission]);
+
+  // ============================================
+  // ラベル編集ハンドラ
+  // ============================================
+
+  const handleOpenLabelEdit = useCallback(
+    (callEntryId: CallEntryId) => {
+      const call = calls.find((c) => generateCallEntryId(c) === callEntryId);
+      if (!call) return;
+
+      const labelEdit = editState.labelEdits.find((le) => le.callEntryId === callEntryId);
+      const originalLabel = extractMethodName(call.to);
+      const currentLabel = labelEdit?.customLabel || originalLabel;
+
+      setLabelDialog({
+        isOpen: true,
+        callEntryId,
+        originalLabel,
+        currentLabel,
+      });
+    },
+    [calls, editState.labelEdits]
+  );
+
+  const handleLabelConfirm = useCallback(
+    (label: string) => {
+      if (labelDialog) {
+        onSetLabelEdit(labelDialog.callEntryId, label);
+        setLabelDialog(null);
+      }
+    },
+    [labelDialog, onSetLabelEdit]
+  );
+
+  const handleLabelReset = useCallback(() => {
+    if (labelDialog) {
+      onRemoveLabelEdit(labelDialog.callEntryId);
+      setLabelDialog(null);
+    }
+  }, [labelDialog, onRemoveLabelEdit]);
+
+  const handleLabelCancel = useCallback(() => {
+    setLabelDialog(null);
+  }, []);
+
+  // ============================================
+  // レンダリング
+  // ============================================
+
   // 起点関数が未選択の場合
   if (!rootFunctionId) {
     return (
@@ -119,7 +376,9 @@ export function SequenceView({
             />
           </svg>
           <p className="text-lg mb-2">シーケンス図がありません</p>
-          <p className="text-sm">グラフビューで関数を選択し、「シーケンス図表示」ボタンをクリックしてください</p>
+          <p className="text-sm">
+            グラフビューで関数を選択し、「シーケンス図表示」ボタンをクリックしてください
+          </p>
         </div>
       </div>
     );
@@ -127,9 +386,18 @@ export function SequenceView({
 
   return (
     <div className="flex h-full bg-gray-900">
-      {/* サイドバー: 設定 */}
-      <div className="w-72 flex-shrink-0 border-r border-gray-700 overflow-y-auto">
-        <div className="p-4 space-y-4">
+      {/* サイドバー: 設定と編集 */}
+      <div className="w-80 flex-shrink-0 border-r border-gray-700 overflow-y-auto flex flex-col">
+        <div className="p-4 space-y-4 flex-1">
+          {/* ツールバー */}
+          <SequenceToolbar
+            mermaidCode={mermaidCode}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onSave={() => setIsSaveDialogOpen(true)}
+            onOpen={() => setIsOpenDialogOpen(true)}
+            hasSavedSequences={savedSequences.length > 0}
+          />
+
           {/* 起点関数 */}
           <div className="space-y-2">
             <label className="text-sm text-gray-400">起点:</label>
@@ -161,6 +429,62 @@ export function SequenceView({
               />
             </div>
           )}
+
+          {/* 区切り線 */}
+          <div className="border-t border-gray-700 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-400">呼び出し一覧</span>
+              <button
+                onClick={handleSelectAll}
+                className="text-xs text-gray-500 hover:text-gray-300"
+              >
+                {selectedCallIds.size === calls.length ? '全解除' : '全選択'}
+              </button>
+            </div>
+
+            {/* 呼び出し一覧 */}
+            <CallList
+              calls={calls}
+              editState={editState}
+              selectedCallIds={selectedCallIds}
+              onToggleSelection={handleToggleSelection}
+              onSelectRange={handleSelectRange}
+              onClearSelection={handleClearSelection}
+              onEditLabel={handleOpenLabelEdit}
+            />
+          </div>
+
+          {/* アクションパネル（常に表示） */}
+          <EditActionsPanel
+            selectedCallIds={selectedCallIds}
+            calls={calls}
+            editState={editState}
+            onCreateGroup={handleOpenGroupCreate}
+            onOmit={handleAddOmission}
+            onClearSelection={handleClearSelection}
+          />
+
+          {/* グループ一覧 */}
+          <GroupList
+            groups={editState.groups}
+            onToggleCollapse={onToggleGroupCollapse}
+            onEdit={handleOpenGroupEdit}
+            onDelete={onRemoveGroup}
+          />
+
+          {/* 編集クリアボタン */}
+          {(editState.groups.length > 0 ||
+            editState.omissions.length > 0 ||
+            editState.labelEdits.length > 0) && (
+            <div className="border-t border-gray-700 pt-4">
+              <button
+                onClick={onClearEdits}
+                className="w-full px-3 py-2 text-sm text-red-400 border border-red-800 rounded hover:bg-red-900/30"
+              >
+                編集をすべてクリア
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -188,6 +512,50 @@ export function SequenceView({
           />
         )}
       </div>
+
+      {/* グループダイアログ */}
+      <GroupDialog
+        isOpen={groupDialog.isOpen}
+        mode={groupDialog.mode}
+        currentName={groupDialog.currentName}
+        onConfirm={handleGroupConfirm}
+        onCancel={handleGroupCancel}
+      />
+
+      {/* ラベル編集ダイアログ */}
+      {labelDialog && (
+        <LabelEditDialog
+          isOpen={labelDialog.isOpen}
+          originalLabel={labelDialog.originalLabel}
+          currentLabel={labelDialog.currentLabel}
+          onConfirm={handleLabelConfirm}
+          onCancel={handleLabelCancel}
+          onReset={handleLabelReset}
+        />
+      )}
+
+      {/* 保存ダイアログ */}
+      <SaveDialog
+        isOpen={isSaveDialogOpen}
+        existingSaves={savedSequences.filter(s => s.rootFunctionId === rootFunctionId)}
+        onConfirm={(name, existingId) => {
+          onSaveWithName(name, existingId);
+          setIsSaveDialogOpen(false);
+        }}
+        onCancel={() => setIsSaveDialogOpen(false)}
+      />
+
+      {/* 開くダイアログ */}
+      <OpenDialog
+        isOpen={isOpenDialogOpen}
+        savedSequences={savedSequences}
+        onSelect={(saved) => {
+          onOpenSaved(saved);
+          setIsOpenDialogOpen(false);
+        }}
+        onDelete={onDeleteSaved}
+        onCancel={() => setIsOpenDialogOpen(false)}
+      />
     </div>
   );
 }

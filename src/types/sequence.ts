@@ -86,3 +86,128 @@ export interface SequenceDiagramData {
   /** 呼び出し関係一覧 */
   calls: CallInfo[];
 }
+
+// ============================================
+// シーケンス図編集機能
+// ============================================
+
+/**
+ * 呼び出しエントリの一意識別子
+ * フォーマット: "fromId->toId@line"
+ */
+export type CallEntryId = string;
+
+/**
+ * CallInfoからCallEntryIdを生成
+ */
+export function generateCallEntryId(call: CallInfo): CallEntryId {
+  return `${call.from}->${call.to}@${call.line}`;
+}
+
+/**
+ * グループ設定
+ * 連続した呼び出しをまとめて折りたたみ可能にする
+ */
+export interface SequenceGroup {
+  /** グループID */
+  id: string;
+  /** グループ名（表示用） */
+  name: string;
+  /** グループに含まれる呼び出しID */
+  callEntryIds: CallEntryId[];
+  /** 折りたたみ状態 */
+  isCollapsed: boolean;
+}
+
+/**
+ * 省略設定
+ * 選択した呼び出しを「...」などで置換
+ */
+export interface SequenceOmission {
+  /** 省略ID */
+  id: string;
+  /** 省略する呼び出しID */
+  callEntryIds: CallEntryId[];
+  /** プレースホルダーテキスト */
+  placeholder: string;
+}
+
+/**
+ * ラベル編集
+ * 呼び出し矢印のラベルをカスタマイズ
+ */
+export interface SequenceLabelEdit {
+  /** 対象の呼び出しID */
+  callEntryId: CallEntryId;
+  /** カスタムラベル */
+  customLabel: string;
+}
+
+/**
+ * Note設定
+ * mermaidのNote機能で補足説明を追加
+ */
+export interface SequenceNote {
+  /** NoteID */
+  id: string;
+  /** 挿入位置（指定した呼び出しの前か後） */
+  position: 'before' | 'after';
+  /** 基準となる呼び出しID */
+  callEntryId: CallEntryId;
+  /** Noteの配置 */
+  placement: 'left of' | 'right of' | 'over';
+  /** 対象参加者（overの場合は複数可） */
+  participants: string[];
+  /** Noteのテキスト */
+  text: string;
+}
+
+/**
+ * シーケンス図の編集状態
+ * プロファイルに保存される
+ */
+export interface SequenceEditState {
+  /** グループ設定 */
+  groups: SequenceGroup[];
+  /** 省略設定 */
+  omissions: SequenceOmission[];
+  /** ラベル編集 */
+  labelEdits: SequenceLabelEdit[];
+  /** Note設定 */
+  notes: SequenceNote[];
+}
+
+/**
+ * 空の編集状態を作成
+ */
+export function createEmptyEditState(): SequenceEditState {
+  return {
+    groups: [],
+    omissions: [],
+    labelEdits: [],
+    notes: [],
+  };
+}
+
+// ============================================
+// 保存済みシーケンス図
+// ============================================
+
+/**
+ * 保存済みシーケンス図
+ * 名前付きで複数保存可能
+ */
+export interface SavedSequenceDiagram {
+  /** 一意ID */
+  id: string;
+  /** ユーザー定義の名前 */
+  name: string;
+  /** 起点関数ID */
+  rootFunctionId: ItemId;
+  /** 編集状態 */
+  editState: SequenceEditState;
+  /** 作成日時（ISO 8601形式） */
+  createdAt: string;
+  /** 更新日時（ISO 8601形式） */
+  updatedAt: string;
+}

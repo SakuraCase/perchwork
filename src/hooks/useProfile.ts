@@ -4,20 +4,16 @@
  * 複数の設定プロファイルの管理、切り替え、永続化を行う
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
-import type {
-  AppSettings,
-  Profile,
-  ProfileStorage,
-} from '../types/profile';
+import type { AppSettings, Profile, ProfileStorage } from "../types/profile";
 import {
   CURRENT_STORAGE_VERSION,
   CURRENT_SETTINGS_VERSION,
   STORAGE_KEY_PROFILES,
   LEGACY_STORAGE_KEYS,
-} from '../types/profile';
-import type { LayoutOptions, GraphFilter, NodeColorRule } from '../types/graph';
+} from "../types/profile";
+import type { LayoutOptions, GraphFilter, NodeColorRule } from "../types/graph";
 
 // ============================================
 // 戻り値型
@@ -63,7 +59,7 @@ export interface UseProfileResult {
  * デフォルトのレイアウトオプション
  */
 const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
-  type: 'hierarchical',
+  type: "hierarchical",
   animate: true,
   animationDuration: 500,
   fit: true,
@@ -122,15 +118,15 @@ function loadLegacyLayout(): LayoutOptions {
     if (stored) {
       const parsed = JSON.parse(stored) as LayoutOptions;
       if (
-        typeof parsed.type === 'string' &&
-        ['hierarchical', 'force', 'radial', 'grid'].includes(parsed.type) &&
-        typeof parsed.animate === 'boolean'
+        typeof parsed.type === "string" &&
+        ["hierarchical", "force", "radial", "grid"].includes(parsed.type) &&
+        typeof parsed.animate === "boolean"
       ) {
         return parsed;
       }
     }
   } catch (error) {
-    console.warn('Failed to load legacy layout options:', error);
+    console.warn("Failed to load legacy layout options:", error);
   }
   return DEFAULT_LAYOUT_OPTIONS;
 }
@@ -143,7 +139,10 @@ function loadLegacyFilter(): GraphFilter {
     const stored = localStorage.getItem(LEGACY_STORAGE_KEYS.filter);
     if (stored) {
       const parsed = JSON.parse(stored) as GraphFilter;
-      if (Array.isArray(parsed.directories) && typeof parsed.includeIsolated === 'boolean') {
+      if (
+        Array.isArray(parsed.directories) &&
+        typeof parsed.includeIsolated === "boolean"
+      ) {
         return {
           ...parsed,
           excludeNodeIds: parsed.excludeNodeIds ?? [],
@@ -152,7 +151,7 @@ function loadLegacyFilter(): GraphFilter {
       }
     }
   } catch (error) {
-    console.warn('Failed to load legacy filter:', error);
+    console.warn("Failed to load legacy filter:", error);
   }
   return DEFAULT_FILTER;
 }
@@ -168,19 +167,61 @@ function loadLegacyColorRules(): NodeColorRule[] {
       if (Array.isArray(parsed)) {
         return parsed.filter(
           (rule): rule is NodeColorRule =>
-            typeof rule === 'object' &&
+            typeof rule === "object" &&
             rule !== null &&
-            typeof rule.id === 'string' &&
-            typeof rule.prefix === 'string' &&
-            typeof rule.color === 'string' &&
-            typeof rule.enabled === 'boolean'
+            typeof rule.id === "string" &&
+            typeof rule.prefix === "string" &&
+            typeof rule.color === "string" &&
+            typeof rule.enabled === "boolean"
         );
       }
     }
   } catch (error) {
-    console.warn('Failed to load legacy color rules:', error);
+    console.warn("Failed to load legacy color rules:", error);
   }
   return [];
+}
+
+/**
+ * 設定のバージョンマイグレーション
+ * バージョン1 -> 2: sequenceEditsフィールドを追加
+ * バージョン2 -> 3: savedSequencesフィールドを追加
+ */
+function migrateSettings(settings: AppSettings): AppSettings {
+  let migrated = { ...settings };
+
+  // バージョン1から2へのマイグレーション
+  if (migrated.version < 2) {
+    migrated = {
+      ...migrated,
+      sequenceEdits: undefined,
+      version: 2,
+    };
+  }
+
+  // バージョン2から3へのマイグレーション
+  if (migrated.version < 3) {
+    migrated = {
+      ...migrated,
+      savedSequences: undefined,
+      version: 3,
+    };
+  }
+
+  return migrated;
+}
+
+/**
+ * プロファイルの設定をマイグレーション
+ */
+function migrateProfile(profile: Profile): Profile {
+  if (profile.settings.version < CURRENT_SETTINGS_VERSION) {
+    return {
+      ...profile,
+      settings: migrateSettings(profile.settings),
+    };
+  }
+  return profile;
 }
 
 /**
@@ -193,7 +234,7 @@ function migrateFromLegacy(): ProfileStorage {
 
   const defaultProfile: Profile = {
     id: generateProfileId(),
-    name: 'デフォルト',
+    name: "デフォルト",
     createdAt: nowISOString(),
     updatedAt: nowISOString(),
     settings: {
@@ -224,7 +265,7 @@ function migrateFromLegacy(): ProfileStorage {
 function createInitialStorage(): ProfileStorage {
   const defaultProfile: Profile = {
     id: generateProfileId(),
-    name: 'デフォルト',
+    name: "デフォルト",
     createdAt: nowISOString(),
     updatedAt: nowISOString(),
     settings: DEFAULT_APP_SETTINGS,
@@ -249,12 +290,17 @@ function loadAndMigrateStorage(): ProfileStorage {
       const parsed = JSON.parse(newData) as ProfileStorage;
       // 基本的なバリデーション
       if (
-        typeof parsed.storageVersion === 'number' &&
-        typeof parsed.activeProfileId === 'string' &&
+        typeof parsed.storageVersion === "number" &&
+        typeof parsed.activeProfileId === "string" &&
         Array.isArray(parsed.profiles) &&
         parsed.profiles.length > 0
       ) {
-        return parsed;
+        // 各プロファイルの設定をマイグレーション
+        const migratedProfiles = parsed.profiles.map(migrateProfile);
+        return {
+          ...parsed,
+          profiles: migratedProfiles,
+        };
       }
     }
 
@@ -268,7 +314,7 @@ function loadAndMigrateStorage(): ProfileStorage {
       return migrateFromLegacy();
     }
   } catch (error) {
-    console.warn('Failed to load profile storage:', error);
+    console.warn("Failed to load profile storage:", error);
   }
 
   // 新規作成
@@ -282,7 +328,7 @@ function saveStorage(storage: ProfileStorage): void {
   try {
     localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(storage));
   } catch (error) {
-    console.warn('Failed to save profile storage:', error);
+    console.warn("Failed to save profile storage:", error);
   }
 }
 
@@ -321,7 +367,8 @@ export function useProfile(): UseProfileResult {
   }, [storage]);
 
   // 現在のアクティブプロファイルを取得
-  const activeProfile = storage?.profiles.find((p) => p.id === storage.activeProfileId) ?? null;
+  const activeProfile =
+    storage?.profiles.find((p) => p.id === storage.activeProfileId) ?? null;
 
   // 現在の設定（ショートカット）
   const settings = activeProfile?.settings ?? DEFAULT_APP_SETTINGS;
@@ -350,7 +397,7 @@ export function useProfile(): UseProfileResult {
 
     const newProfile: Profile = {
       id: newId,
-      name: name.trim() || '新しいプロファイル',
+      name: name.trim() || "新しいプロファイル",
       createdAt: now,
       updatedAt: now,
       settings: DEFAULT_APP_SETTINGS,
@@ -378,7 +425,11 @@ export function useProfile(): UseProfileResult {
         ...prev,
         profiles: prev.profiles.map((p) =>
           p.id === profileId
-            ? { ...p, name: newName.trim() || p.name, updatedAt: nowISOString() }
+            ? {
+                ...p,
+                name: newName.trim() || p.name,
+                updatedAt: nowISOString(),
+              }
             : p
         ),
       };
