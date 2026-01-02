@@ -62,6 +62,20 @@ export interface CallInfo {
 }
 
 /**
+ * 呼び出しイベントタイプ
+ */
+export type CallEventType = 'start' | 'end';
+
+/**
+ * 呼び出しイベント（開始/終了）
+ * アクティベーションの入れ子を正しく表現するために使用
+ */
+export interface CallEvent {
+  type: CallEventType;
+  call: CallInfo;
+}
+
+/**
  * シーケンス図データ
  */
 export interface SequenceDiagramData {

@@ -21,6 +21,10 @@ interface SequenceViewProps {
   mermaidCode: string | null;
   /** 関数深さ変更時のコールバック */
   onFunctionDepthChange: (functionId: ItemId, depth: number) => void;
+  /** アクティベーションを使用するか */
+  useActivation: boolean;
+  /** アクティベーション設定の切り替えコールバック */
+  onToggleActivation: () => void;
 }
 
 // Mermaid初期化
@@ -49,6 +53,8 @@ export function SequenceView({
   functionDepths,
   mermaidCode,
   onFunctionDepthChange,
+  useActivation,
+  onToggleActivation,
 }: SequenceViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,6 +136,19 @@ export function SequenceView({
             <div className="px-3 py-2 bg-gray-800 rounded border border-gray-700 text-sm text-blue-400 font-mono truncate">
               {extractDisplayName(rootFunctionId)}
             </div>
+          </div>
+
+          {/* アクティベーション設定 */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useActivation}
+                onChange={onToggleActivation}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
+              />
+              <span className="text-sm text-gray-400">戻り矢印を表示</span>
+            </label>
           </div>
 
           {/* 関数ごとの深さ設定 */}

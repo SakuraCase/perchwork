@@ -481,6 +481,8 @@ function App() {
                 functionDepths={sequenceDiagram.expandedFunctions}
                 mermaidCode={sequenceDiagram.mermaidCode}
                 onFunctionDepthChange={sequenceDiagram.setFunctionDepth}
+                useActivation={sequenceDiagram.useActivation}
+                onToggleActivation={sequenceDiagram.toggleActivation}
               />
             </div>
           )}

@@ -31,6 +31,10 @@ export interface UseSequenceDiagramResult {
   mermaidCode: string | null;
   /** 展開された関数リスト（深さ調整UI用、ルート関数は除外） */
   expandedFunctions: FunctionDepthSetting[];
+  /** アクティベーションを使用するか */
+  useActivation: boolean;
+  /** アクティベーション設定を切り替え */
+  toggleActivation: () => void;
 }
 
 /**
@@ -55,6 +59,7 @@ export function useSequenceDiagram(
   summaries?: SummaryMap
 ): UseSequenceDiagramResult {
   const [state, setState] = useState<SequenceDiagramState>(initialState);
+  const [useActivation, setUseActivation] = useState<boolean>(true);
 
   /**
    * 内部で使用するDepthConfigを構築
@@ -79,7 +84,8 @@ export function useSequenceDiagram(
     (
       rootId: ItemId,
       defaultDepth: number,
-      functionDepths: FunctionDepthSetting[]
+      functionDepths: FunctionDepthSetting[],
+      activation: boolean
     ): string | null => {
       if (!graphData) return null;
 
@@ -95,6 +101,7 @@ export function useSequenceDiagram(
           functionDepths: depthMap,
         },
         summaries,
+        useActivation: activation,
       });
 
       return result.mermaidCode;
@@ -116,7 +123,8 @@ export function useSequenceDiagram(
       const mermaidCode = regenerateInternal(
         functionId,
         state.defaultDepth,
-        functionDepths
+        functionDepths,
+        useActivation
       );
 
       setState({
@@ -126,7 +134,7 @@ export function useSequenceDiagram(
         mermaidCode,
       });
     },
-    [graphData, state.defaultDepth, regenerateInternal]
+    [graphData, state.defaultDepth, useActivation, regenerateInternal]
   );
 
   /**
@@ -145,7 +153,8 @@ export function useSequenceDiagram(
       const mermaidCode = regenerateInternal(
         state.rootFunctionId,
         state.defaultDepth,
-        newDepths
+        newDepths,
+        useActivation
       );
 
       setState((prev) => ({
@@ -154,7 +163,7 @@ export function useSequenceDiagram(
         mermaidCode,
       }));
     },
-    [state.rootFunctionId, state.functionDepths, state.defaultDepth, regenerateInternal]
+    [state.rootFunctionId, state.functionDepths, state.defaultDepth, useActivation, regenerateInternal]
   );
 
   /**
@@ -166,14 +175,38 @@ export function useSequenceDiagram(
     const mermaidCode = regenerateInternal(
       state.rootFunctionId,
       state.defaultDepth,
-      state.functionDepths
+      state.functionDepths,
+      useActivation
     );
 
     setState((prev) => ({
       ...prev,
       mermaidCode,
     }));
-  }, [state.rootFunctionId, state.defaultDepth, state.functionDepths, regenerateInternal]);
+  }, [state.rootFunctionId, state.defaultDepth, state.functionDepths, useActivation, regenerateInternal]);
+
+  /**
+   * アクティベーション設定を切り替え
+   */
+  const toggleActivation = useCallback(() => {
+    const newActivation = !useActivation;
+    setUseActivation(newActivation);
+
+    // 再生成
+    if (state.rootFunctionId) {
+      const mermaidCode = regenerateInternal(
+        state.rootFunctionId,
+        state.defaultDepth,
+        state.functionDepths,
+        newActivation
+      );
+
+      setState((prev) => ({
+        ...prev,
+        mermaidCode,
+      }));
+    }
+  }, [useActivation, state.rootFunctionId, state.defaultDepth, state.functionDepths, regenerateInternal]);
 
   /**
    * リセット
@@ -190,5 +223,7 @@ export function useSequenceDiagram(
     reset,
     mermaidCode: state.mermaidCode,
     expandedFunctions: state.functionDepths,
+    useActivation,
+    toggleActivation,
   };
 }

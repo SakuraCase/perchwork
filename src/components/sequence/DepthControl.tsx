@@ -70,7 +70,7 @@ export function DepthControl({
               onClick={() =>
                 onDepthChange(setting.functionId, setting.depth + 1)
               }
-              disabled={setting.maxExpandableDepth === 0}
+              disabled={setting.depth >= setting.maxExpandableDepth}
               className="w-6 h-6 flex items-center justify-center text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
             >
               +

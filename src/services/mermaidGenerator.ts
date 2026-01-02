@@ -9,6 +9,7 @@ import type { CytoscapeData, CytoscapeEdge } from '../types/graph';
 import type {
   CallContext,
   CallInfo,
+  CallEvent,
   ParticipantInfo,
   SequenceDiagramData,
   FunctionDepthSetting,
@@ -35,6 +36,8 @@ export interface SequenceDiagramOptions {
   depthConfig: DepthConfig;
   /** ItemId → summary のマップ（オプション） */
   summaries?: SummaryMap;
+  /** アクティベーション（+/-）を使用するか（デフォルト: true） */
+  useActivation?: boolean;
 }
 
 /**
@@ -113,17 +116,18 @@ function truncateSummary(summary: string, maxLength = 30): string {
 }
 
 /**
- * 深さ制限付きで呼び出しチェーンを収集する（DFS: 深さ優先探索）
+ * 深さ制限付きで呼び出しイベントを収集する（DFS: 深さ優先探索）
  *
  * DFSを使用することで、ネストした呼び出しが実行順に表示される。
- * 例: run() -> update_game_state() -> (内部の呼び出し) -> result()
- * BFSの場合は: run() -> update_game_state() -> result() -> (内部の呼び出し)
+ * 開始/終了イベントを分離することで、アクティベーションの入れ子を正しく表現する。
+ * 例: start(run) -> start(update) -> end(update) -> end(run)
  */
-function collectCallChain(
+function collectCallEvents(
   graphData: CytoscapeData,
   startId: ItemId,
   depthConfig: DepthConfig
-): { calls: CallInfo[]; participants: Set<ItemId> } {
+): { events: CallEvent[]; participants: Set<ItemId>; calls: CallInfo[] } {
+  const events: CallEvent[] = [];
   const calls: CallInfo[] = [];
   const participants = new Set<ItemId>();
   const visited = new Set<string>(); // エッジ訪問済みチェック用
@@ -164,26 +168,35 @@ function collectCallChain(
       const targetId = edge.data.target as ItemId;
       participants.add(targetId);
 
-      // 呼び出しを記録
-      calls.push({
+      // 呼び出し情報を作成
+      const callInfo: CallInfo = {
         from: edge.data.source as ItemId,
         to: targetId,
         file: edge.data.callSite.file,
         line: edge.data.callSite.line,
         context: edge.data.context,
-      });
+      };
+
+      // 呼び出しを記録（既存の互換性のため）
+      calls.push(callInfo);
+
+      // 開始イベントを記録
+      events.push({ type: 'start', call: callInfo });
 
       // 子ノードを再帰的に探索（深さ優先）
       // その関数の深さ設定を使用
       const targetDepth = depthConfig.functionDepths.get(targetId) ?? 0;
       dfs(targetId, targetDepth);
+
+      // 終了イベントを記録（子ノードの探索が終わった後）
+      events.push({ type: 'end', call: callInfo });
     }
   }
 
   // ルート関数から探索開始（深さ1: 直接の呼び出しは常に表示）
   dfs(startId, 1);
 
-  return { calls, participants };
+  return { events, participants, calls };
 }
 
 /**
@@ -193,10 +206,10 @@ export function generateSequenceDiagram(
   graphData: CytoscapeData,
   options: SequenceDiagramOptions
 ): SequenceDiagramData {
-  const { startFunctionId, depthConfig, summaries } = options;
+  const { startFunctionId, depthConfig, summaries, useActivation = true } = options;
 
-  // 呼び出しチェーンを収集
-  const { calls, participants: participantIds } = collectCallChain(
+  // 呼び出しイベントを収集
+  const { events, participants: participantIds, calls } = collectCallEvents(
     graphData,
     startFunctionId,
     depthConfig
@@ -229,7 +242,7 @@ export function generateSequenceDiagram(
   const participants = Array.from(structParticipants.values());
 
   // Mermaidコードを生成
-  const mermaidCode = generateMermaidCode(participants, calls, summaries);
+  const mermaidCode = generateMermaidCode(participants, events, summaries, useActivation);
 
   return {
     mermaidCode,
@@ -239,12 +252,29 @@ export function generateSequenceDiagram(
 }
 
 /**
+ * コンテキストエントリ（どの呼び出しがコンテキストを開いたかを追跡）
+ */
+interface ContextEntry {
+  context: CallContext;
+  openedByCall: CallInfo;
+}
+
+/**
+ * 2つの CallInfo が同じ呼び出しを表すかを判定
+ */
+function isSameCall(a: CallInfo, b: CallInfo): boolean {
+  return a.from === b.from && a.to === b.to && a.line === b.line;
+}
+
+/**
  * Mermaidコードを生成する
+ * イベントベースで開始/終了を処理し、アクティベーションの入れ子を正しく表現する
  */
 function generateMermaidCode(
   participants: ParticipantInfo[],
-  calls: CallInfo[],
-  summaries?: SummaryMap
+  events: CallEvent[],
+  summaries?: SummaryMap,
+  useActivation: boolean = true
 ): string {
   let code = 'sequenceDiagram\n';
 
@@ -255,92 +285,116 @@ function generateMermaidCode(
 
   code += '\n';
 
-  // コンテキストスタック（ネスト管理用）
-  const contextStack: CallContext[] = [];
+  // コンテキストスタック（ネスト管理用）- どの呼び出しがコンテキストを開いたかを追跡
+  const contextStack: ContextEntry[] = [];
 
-  // 呼び出し関係
-  for (let i = 0; i < calls.length; i++) {
-    const call = calls[i];
-    const nextCall = calls[i + 1];
+  // イベントを順に処理
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    const call = event.call;
 
     // 構造体名を抽出
     const fromStruct = extractStructName(call.from);
     const toStruct = extractStructName(call.to);
-    const methodName = extractMethodName(call.to);
+    const isSelfCall = fromStruct === toStruct;
 
-    // ラベルを構築（メソッド名 + 概要）
-    const summary = summaries?.get(call.to);
-    let label: string;
-    if (summary) {
-      const escapedSummary = escapeMermaidLabel(truncateSummary(summary));
-      label = `${methodName}<br/>${escapedSummary}`;
-    } else {
-      label = methodName;
-    }
+    if (event.type === 'start') {
+      // 開始イベント: 呼び出し矢印を出力
+      const toMethodName = extractMethodName(call.to);
 
-    // コンテキストの開始を検出
-    if (call.context && call.context.type !== 'normal') {
-      const needsNewBlock = !contextStack.length ||
-        contextStack[contextStack.length - 1].type !== call.context.type ||
-        contextStack[contextStack.length - 1].condition !== call.context.condition;
-
-      if (needsNewBlock) {
-        const indent = '    '.repeat(contextStack.length + 1);
-
-        switch (call.context.type) {
-          case 'if':
-            code += `${indent}alt ${call.context.condition || 'condition'}\n`;
-            contextStack.push(call.context);
-            break;
-          case 'else':
-            // else の場合、前の if ブロックを閉じずに else を追加
-            if (contextStack.length > 0 && contextStack[contextStack.length - 1].type === 'if') {
-              code += `${indent}else\n`;
-              contextStack[contextStack.length - 1] = call.context;
-            }
-            break;
-          case 'match_arm':
-            code += `${indent}alt ${call.context.arm_pattern || 'pattern'}\n`;
-            contextStack.push(call.context);
-            break;
-          case 'loop':
-            code += `${indent}loop\n`;
-            contextStack.push(call.context);
-            break;
-          case 'while':
-            code += `${indent}loop ${call.context.condition || 'while'}\n`;
-            contextStack.push(call.context);
-            break;
-          case 'for':
-            code += `${indent}loop ${call.context.condition || 'for'}\n`;
-            contextStack.push(call.context);
-            break;
+      // ラベルを構築
+      let label: string;
+      if (isSelfCall) {
+        // セルフコール: 呼び出し元メソッド名も含める
+        const fromMethodName = extractMethodName(call.from);
+        const summary = summaries?.get(call.to);
+        if (summary) {
+          const escapedSummary = escapeMermaidLabel(truncateSummary(summary));
+          label = `${fromMethodName} → ${toMethodName}<br/>${escapedSummary}`;
+        } else {
+          label = `${fromMethodName} → ${toMethodName}`;
+        }
+      } else {
+        // 通常の呼び出し: 呼び出し先メソッド名のみ
+        const summary = summaries?.get(call.to);
+        if (summary) {
+          const escapedSummary = escapeMermaidLabel(truncateSummary(summary));
+          label = `${toMethodName}<br/>${escapedSummary}`;
+        } else {
+          label = toMethodName;
         }
       }
-    }
 
-    // 呼び出し（構造体単位 + メソッド名・概要ラベル）
-    const callIndent = '    '.repeat(contextStack.length + 1);
-    code += `${callIndent}${sanitizeId(fromStruct as ItemId)}->>+${sanitizeId(toStruct as ItemId)}: ${label}\n`;
-    code += `${callIndent}${sanitizeId(toStruct as ItemId)}-->>-${sanitizeId(fromStruct as ItemId)}: \n`;
+      // コンテキストの開始を検出
+      if (call.context && call.context.type !== 'normal') {
+        const currentContext = contextStack.length > 0
+          ? contextStack[contextStack.length - 1].context
+          : null;
+        const needsNewBlock = !currentContext ||
+          currentContext.type !== call.context.type ||
+          currentContext.condition !== call.context.condition;
 
-    // コンテキストの終了を検出
-    if (contextStack.length > 0) {
-      const currentContext = contextStack[contextStack.length - 1];
+        if (needsNewBlock) {
+          const indent = '    '.repeat(contextStack.length + 1);
 
-      // 次の呼び出しが異なるコンテキストか、呼び出しがなくなった場合は閉じる
-      const shouldClose =
-        !nextCall ||
-        !nextCall.context ||
-        nextCall.context.type === 'normal' ||
-        (nextCall.context.type !== 'else' &&
-          (nextCall.context.type !== currentContext.type ||
-            nextCall.context.condition !== currentContext.condition));
+          switch (call.context.type) {
+            case 'if':
+              code += `${indent}alt ${call.context.condition || 'condition'}\n`;
+              contextStack.push({ context: call.context, openedByCall: call });
+              break;
+            case 'else':
+              // else の場合、前の if ブロックを閉じずに else を追加
+              if (contextStack.length > 0 && contextStack[contextStack.length - 1].context.type === 'if') {
+                code += `${indent}else\n`;
+                // openedByCall は元の if の呼び出しを維持（else の終了時に閉じる）
+                contextStack[contextStack.length - 1] = {
+                  context: call.context,
+                  openedByCall: contextStack[contextStack.length - 1].openedByCall,
+                };
+              }
+              break;
+            case 'match_arm':
+              code += `${indent}alt ${call.context.arm_pattern || 'pattern'}\n`;
+              contextStack.push({ context: call.context, openedByCall: call });
+              break;
+            case 'loop':
+              code += `${indent}loop\n`;
+              contextStack.push({ context: call.context, openedByCall: call });
+              break;
+            case 'while':
+              code += `${indent}loop ${call.context.condition || 'while'}\n`;
+              contextStack.push({ context: call.context, openedByCall: call });
+              break;
+            case 'for':
+              code += `${indent}loop ${call.context.condition || 'for'}\n`;
+              contextStack.push({ context: call.context, openedByCall: call });
+              break;
+          }
+        }
+      }
 
-      if (shouldClose) {
-        const endIndent = '    '.repeat(contextStack.length);
-        code += `${endIndent}end\n`;
-        contextStack.pop();
+      // 呼び出し矢印
+      const callIndent = '    '.repeat(contextStack.length + 1);
+      const activateStart = useActivation ? '+' : '';
+      code += `${callIndent}${sanitizeId(fromStruct as ItemId)}->>${activateStart}${sanitizeId(toStruct as ItemId)}: ${label}\n`;
+
+    } else {
+      // 終了イベント
+      if (useActivation) {
+        // アクティベーション有効時: 戻り矢印を出力
+        const callIndent = '    '.repeat(contextStack.length + 1);
+        code += `${callIndent}${sanitizeId(toStruct as ItemId)}-->>-${sanitizeId(fromStruct as ItemId)}: \n`;
+      }
+
+      // コンテキストの終了を検出
+      // この呼び出しがコンテキストを開いた呼び出しと一致する場合、コンテキストを閉じる
+      if (contextStack.length > 0) {
+        const currentEntry = contextStack[contextStack.length - 1];
+        if (isSameCall(call, currentEntry.openedByCall)) {
+          const endIndent = '    '.repeat(contextStack.length);
+          code += `${endIndent}end\n`;
+          contextStack.pop();
+        }
       }
     }
   }
@@ -353,6 +407,55 @@ function generateMermaidCode(
   }
 
   return code;
+}
+
+/**
+ * ノードから到達可能な最大深さを計算する（DFS + メモ化）
+ * 循環参照を検出した場合は現在のパスを無視して0を返す
+ */
+function calculateMaxDepth(
+  nodeId: ItemId,
+  outgoingEdges: Map<string, CytoscapeEdge[]>,
+  memo: Map<ItemId, number>,
+  visiting: Set<ItemId>
+): number {
+  // メモ化: 既に計算済みならその値を返す
+  if (memo.has(nodeId)) {
+    return memo.get(nodeId)!;
+  }
+
+  // 循環参照検出
+  if (visiting.has(nodeId)) {
+    return 0;
+  }
+
+  const edges = outgoingEdges.get(nodeId) || [];
+  if (edges.length === 0) {
+    memo.set(nodeId, 0);
+    return 0;
+  }
+
+  // 訪問中としてマーク
+  visiting.add(nodeId);
+
+  // 各子ノードの最大深さを計算し、最大値 + 1 を返す
+  let maxChildDepth = 0;
+  for (const edge of edges) {
+    const childDepth = calculateMaxDepth(
+      edge.data.target as ItemId,
+      outgoingEdges,
+      memo,
+      visiting
+    );
+    maxChildDepth = Math.max(maxChildDepth, childDepth);
+  }
+
+  // 訪問中から除去
+  visiting.delete(nodeId);
+
+  const depth = maxChildDepth + 1;
+  memo.set(nodeId, depth);
+  return depth;
 }
 
 /**
@@ -376,6 +479,9 @@ export function buildFunctionDepthSettings(
     outgoingEdges.get(edge.data.source)!.push(edge);
   }
 
+  // 深さ計算用のメモ
+  const depthMemo = new Map<ItemId, number>();
+
   // BFSで関数を収集
   const queue: ItemId[] = [startId];
   visited.add(startId);
@@ -383,10 +489,13 @@ export function buildFunctionDepthSettings(
   while (queue.length > 0) {
     const nodeId = queue.shift()!;
 
-    // 子ノードの数を計算
-    const edges = outgoingEdges.get(nodeId) || [];
-    const uniqueTargets = new Set(edges.map((e) => e.data.target));
-    const maxExpandableDepth = uniqueTargets.size > 0 ? 1 : 0;
+    // DFSで最大深さを計算
+    const maxExpandableDepth = calculateMaxDepth(
+      nodeId,
+      outgoingEdges,
+      depthMemo,
+      new Set()
+    );
 
     // ルート関数は除外（起点なので深さ設定は不要）
     if (nodeId !== startId) {
@@ -399,6 +508,7 @@ export function buildFunctionDepthSettings(
     }
 
     // 子ノードをキューに追加
+    const edges = outgoingEdges.get(nodeId) || [];
     for (const edge of edges) {
       const targetId = edge.data.target as ItemId;
       if (!visited.has(targetId)) {
