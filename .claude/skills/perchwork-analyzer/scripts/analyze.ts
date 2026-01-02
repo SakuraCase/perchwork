@@ -365,7 +365,7 @@ class PerchworkAnalyzer {
     if (!nameNode) return;
 
     const name = nameNode.text;
-    const fileName = path.basename(filePath);
+    const fileName = path.basename(filePath).replace(/\.rs$/, '');
 
     // テスト関数かチェック
     const isTest = this.hasTestAttribute(node);
@@ -420,7 +420,7 @@ class PerchworkAnalyzer {
     if (!nameNode) return;
 
     const name = nameNode.text;
-    const fileName = path.basename(filePath);
+    const fileName = path.basename(filePath).replace(/\.rs$/, '');
 
     const item: ExtractedItem = {
       id: `${fileName}::${name}::struct`,
@@ -448,7 +448,7 @@ class PerchworkAnalyzer {
     if (!nameNode) return;
 
     const name = nameNode.text;
-    const fileName = path.basename(filePath);
+    const fileName = path.basename(filePath).replace(/\.rs$/, '');
 
     const item: ExtractedItem = {
       id: `${fileName}::${name}::enum`,
@@ -476,7 +476,7 @@ class PerchworkAnalyzer {
     if (!nameNode) return;
 
     const name = nameNode.text;
-    const fileName = path.basename(filePath);
+    const fileName = path.basename(filePath).replace(/\.rs$/, '');
 
     const item: ExtractedItem = {
       id: `${fileName}::${name}::trait`,
@@ -507,7 +507,7 @@ class PerchworkAnalyzer {
     if (!typeNode) return;
 
     const implFor = typeNode.text;
-    const fileName = path.basename(filePath);
+    const fileName = path.basename(filePath).replace(/\.rs$/, '');
 
     // traitの実装かチェック
     const traitNode = node.childForFieldName('trait');

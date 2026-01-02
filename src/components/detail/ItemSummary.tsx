@@ -8,7 +8,7 @@
 
 import type { ReactNode } from 'react';
 import type { CodeItem, SemanticTest } from '@/types/schema';
-import { normalizeId, type TestInfo } from '@/utils/itemGrouper';
+import type { TestInfo } from '@/utils/itemGrouper';
 import { Badge } from '@/components/common/Badge';
 import { CollapsibleSection } from '@/components/common/CollapsibleSection';
 import { TestItem } from '@/components/common/TestItem';
@@ -42,11 +42,8 @@ export function ItemSummary({
   onToggleTests,
 }: ItemSummaryProps) {
   // semanticTestsからこのアイテムに紐づくテストを検索
-  const normalizedItemId = normalizeId(item.id);
   const itemTests: TestInfo[] = semanticTests
-    .filter(
-      (test) => test.tested_item && normalizeId(test.tested_item) === normalizedItemId
-    )
+    .filter((test) => test.tested_item === item.id)
     .map((test) => ({ id: test.id, summary: test.summary }));
 
   return (

@@ -39,18 +39,6 @@ export interface GroupedItems {
 }
 
 /**
- * IDフォーマットを正規化（.rs を除去）
- *
- * 構造JSON: "unit_collection.rs::UnitCollection::struct"
- * セマンティックJSON: "unit_collection::UnitCollection::struct"
- *
- * マッチングのために .rs を除去して統一する
- */
-export function normalizeId(id: string): string {
-  return id.replace(/\.rs::/, '::');
-}
-
-/**
  * アイテムとテストをグループ化
  *
  * @param items - ファイル内のすべてのCodeItem
@@ -61,14 +49,13 @@ export function groupItems(
   items: CodeItem[],
   semanticTests: SemanticTest[]
 ): GroupedItems {
-  // 1. テスト情報のマップを構築（正規化されたtested_item -> TestInfo[]）
+  // 1. テスト情報のマップを構築（tested_item -> TestInfo[]）
   const testsByItem = new Map<string, TestInfo[]>();
   for (const test of semanticTests) {
     if (test.tested_item) {
-      const normalizedTarget = normalizeId(test.tested_item);
-      const existing = testsByItem.get(normalizedTarget) || [];
+      const existing = testsByItem.get(test.tested_item) || [];
       existing.push({ id: test.id, summary: test.summary });
-      testsByItem.set(normalizedTarget, existing);
+      testsByItem.set(test.tested_item, existing);
     }
   }
 
@@ -109,14 +96,12 @@ export function groupItems(
       const structMethods = methods
         .filter(m => m.impl_for === structItem.name)
         .map(method => {
-          const normalizedId = normalizeId(method.id);
-          const tests = testsByItem.get(normalizedId) || [];
+          const tests = testsByItem.get(method.id) || [];
           return { item: method, tests };
         });
 
       // struct/enumを直接テストするテスト
-      const normalizedStructId = normalizeId(structItem.id);
-      const directTests = testsByItem.get(normalizedStructId) || [];
+      const directTests = testsByItem.get(structItem.id) || [];
 
       return {
         item: structItem,
