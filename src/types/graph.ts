@@ -127,20 +127,17 @@ export interface GraphFilter {
   /** 対象ディレクトリ（空配列ですべて表示） */
   directories: string[];
 
-  /** 対象アイテムタイプ（空配列ですべて表示） */
-  types: ItemType[];
-
   /** 孤立ノード（エッジなし）を含めるか */
   includeIsolated: boolean;
-
-  /** 最大深度（0で制限なし） */
-  maxDepth: number;
 
   /** フォーカスノードID（設定時はこのノードに関連するノードのみ表示） */
   focusNodeId?: string;
 
   /** 除外ノードID配列 */
   excludeNodeIds: string[];
+
+  /** 同一ノード間の複数エッジを1本に省略するか */
+  consolidateEdges: boolean;
 }
 
 // ============================================

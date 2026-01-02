@@ -3,14 +3,13 @@
  *
  * 役割:
  *   - レイアウト選択（hierarchical, force, radial, grid）
- *   - フィルタパネル（タイプ、孤立ノード、深度制限）
+ *   - フィルタパネル（孤立ノード表示）
  *   - エクスポートボタン（PNG, SVG）
  *   - ズームコントロール（+, -, フィット）
  */
 
 import { useState } from 'react';
 import type { LayoutType, GraphFilter } from '../../types/graph';
-import type { ItemType } from '../../types/schema';
 
 // ============================================
 // Props定義
@@ -66,9 +65,6 @@ const LAYOUT_OPTIONS: { value: LayoutType; label: string }[] = [
   { value: 'grid', label: 'グリッド' },
 ];
 
-/** フィルタ対象となるアイテムタイプ */
-const FILTER_TYPES: ItemType[] = ['struct', 'fn', 'trait', 'enum', 'type'];
-
 // ============================================
 // メインコンポーネント
 // ============================================
@@ -102,17 +98,6 @@ export function GraphToolbar({
   };
 
   /**
-   * タイプフィルタトグルハンドラ
-   */
-  const handleTypeToggle = (type: ItemType) => {
-    const newTypes = filter.types.includes(type)
-      ? filter.types.filter((t) => t !== type)
-      : [...filter.types, type];
-
-    onFilterChange({ ...filter, types: newTypes });
-  };
-
-  /**
    * 孤立ノード表示トグルハンドラ
    */
   const handleIsolatedToggle = () => {
@@ -120,11 +105,10 @@ export function GraphToolbar({
   };
 
   /**
-   * 深度制限変更ハンドラ
+   * エッジ省略トグルハンドラ
    */
-  const handleMaxDepthChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(event.target.value, 10);
-    onFilterChange({ ...filter, maxDepth: value });
+  const handleConsolidateToggle = () => {
+    onFilterChange({ ...filter, consolidateEdges: !filter.consolidateEdges });
   };
 
   // ============================================
@@ -264,35 +248,12 @@ export function GraphToolbar({
       {/* フィルタパネル（折りたたみ可能） */}
       {isFilterOpen && (
         <div className="mt-3 pt-3 border-t border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* タイプフィルタ */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-300 mb-2">
-                アイテムタイプ
-              </h3>
-              <div className="space-y-1">
-                {FILTER_TYPES.map((type) => (
-                  <label
-                    key={type}
-                    className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-gray-100"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filter.types.includes(type)}
-                      onChange={() => handleTypeToggle(type)}
-                      className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span>{type}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* 孤立ノード表示 */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-300 mb-2">
-                表示オプション
-              </h3>
+          {/* 表示オプション */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-300 mb-2">
+              表示オプション
+            </h3>
+            <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-gray-100">
                 <input
                   type="checkbox"
@@ -302,30 +263,15 @@ export function GraphToolbar({
                 />
                 <span>孤立ノードを表示</span>
               </label>
-            </div>
-
-            {/* 深度制限 */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-300 mb-2">
-                深度制限
-              </h3>
-              <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-gray-100">
                 <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  value={filter.maxDepth}
-                  onChange={handleMaxDepthChange}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                  aria-label="最大深度の設定"
+                  type="checkbox"
+                  checked={filter.consolidateEdges}
+                  onChange={handleConsolidateToggle}
+                  className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-2 focus:ring-blue-500"
                 />
-                <span className="text-sm text-gray-300 min-w-[3rem]">
-                  {filter.maxDepth === 0 ? '無制限' : filter.maxDepth}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                0 = 制限なし、1-10 = 指定深度まで
-              </p>
+                <span>重複エッジを省略</span>
+              </label>
             </div>
           </div>
         </div>

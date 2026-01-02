@@ -29,7 +29,7 @@ export function applyGraphFilter(
 
   // フォーカスノードフィルタ（最初に適用）
   if (filter.focusNodeId) {
-    nodes = filterByFocusNode(data, filter.focusNodeId, excludeSet, filter.maxDepth);
+    nodes = filterByFocusNode(data, filter.focusNodeId, excludeSet);
   } else {
     // focusNodeIdがない場合は単純に除外ノードを非表示
     nodes = nodes.filter((node) => !excludeSet.has(node.data.id));
@@ -40,16 +40,16 @@ export function applyGraphFilter(
     nodes = filterByDirectories(nodes, filter.directories);
   }
 
-  // タイプフィルタ
-  if (filter.types.length > 0) {
-    nodes = filterByTypes(nodes, filter.types);
-  }
-
   // フィルタリングされたノードのIDセット
   const nodeIds = new Set(nodes.map((node) => node.data.id));
 
   // エッジをフィルタリング（両端が存在するもののみ）
   edges = filterEdgesByNodes(edges, nodeIds);
+
+  // 同一ノード間の複数エッジを省略
+  if (filter.consolidateEdges) {
+    edges = consolidateEdges(edges);
+  }
 
   // 孤立ノード除外
   if (!filter.includeIsolated) {
@@ -65,54 +65,45 @@ export function applyGraphFilter(
 function filterByFocusNode(
   data: CytoscapeData,
   focusNodeId: string,
-  excludeSet: Set<string>,
-  maxDepthOption: number
+  excludeSet: Set<string>
 ): CytoscapeNode[] {
   const relatedNodeIds = new Set<string>([focusNodeId]);
-  const visited = new Map<string, number>();
-  visited.set(focusNodeId, 0);
-
-  // 探索深度：maxDepthが0の場合は無制限（全探索）
-  const maxDepth = maxDepthOption > 0 ? maxDepthOption : Infinity;
-  const queue: Array<{ id: string; depth: number }> = [{ id: focusNodeId, depth: 0 }];
+  const visited = new Set<string>([focusNodeId]);
+  const queue: string[] = [focusNodeId];
 
   // BFSで関連ノードを収集（両方向、除外ノードを通過しない）
   while (queue.length > 0) {
-    const current = queue.shift()!;
+    const currentId = queue.shift()!;
 
     // 除外ノードの場合はスキップ（このノード経由の探索を停止）
     // ただしフォーカスノード自体は除外対象外
-    if (excludeSet.has(current.id) && current.id !== focusNodeId) {
+    if (excludeSet.has(currentId) && currentId !== focusNodeId) {
       continue;
     }
-
-    if (current.depth >= maxDepth) continue;
-
-    const nextDepth = current.depth + 1;
 
     // downstream（呼び出し先）
     for (const edge of data.edges) {
       if (
-        edge.data.source === current.id &&
+        edge.data.source === currentId &&
         !visited.has(edge.data.target) &&
         !excludeSet.has(edge.data.target)
       ) {
-        visited.set(edge.data.target, nextDepth);
+        visited.add(edge.data.target);
         relatedNodeIds.add(edge.data.target);
-        queue.push({ id: edge.data.target, depth: nextDepth });
+        queue.push(edge.data.target);
       }
     }
 
     // upstream（呼び出し元）
     for (const edge of data.edges) {
       if (
-        edge.data.target === current.id &&
+        edge.data.target === currentId &&
         !visited.has(edge.data.source) &&
         !excludeSet.has(edge.data.source)
       ) {
-        visited.set(edge.data.source, nextDepth);
+        visited.add(edge.data.source);
         relatedNodeIds.add(edge.data.source);
-        queue.push({ id: edge.data.source, depth: nextDepth });
+        queue.push(edge.data.source);
       }
     }
   }
@@ -127,13 +118,6 @@ function filterByDirectories(nodes: CytoscapeNode[], directories: string[]): Cyt
   return nodes.filter((node) =>
     directories.some((dir) => node.data.file.startsWith(dir))
   );
-}
-
-/**
- * タイプでフィルタリング
- */
-function filterByTypes(nodes: CytoscapeNode[], types: string[]): CytoscapeNode[] {
-  return nodes.filter((node) => types.includes(node.data.type));
 }
 
 /**
@@ -155,4 +139,21 @@ function removeIsolatedNodes(nodes: CytoscapeNode[], edges: CytoscapeEdge[]): Cy
     connectedNodeIds.add(edge.data.target);
   });
   return nodes.filter((node) => connectedNodeIds.has(node.data.id));
+}
+
+/**
+ * 同一ノード間の複数エッジを1本に省略
+ *
+ * source→target のペアごとに最初のエッジのみを保持する
+ */
+function consolidateEdges(edges: CytoscapeEdge[]): CytoscapeEdge[] {
+  const seenPairs = new Set<string>();
+  return edges.filter((edge) => {
+    const pairKey = `${edge.data.source}->${edge.data.target}`;
+    if (seenPairs.has(pairKey)) {
+      return false;
+    }
+    seenPairs.add(pairKey);
+    return true;
+  });
 }

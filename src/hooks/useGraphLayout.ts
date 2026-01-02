@@ -47,11 +47,10 @@ const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
  */
 const DEFAULT_FILTER: GraphFilter = {
   directories: [],
-  types: ['struct', 'fn', 'trait', 'enum', 'type', 'method', 'impl'],
   includeIsolated: true,
-  maxDepth: 0, // 0 = 無制限
   focusNodeId: undefined,
   excludeNodeIds: [],
+  consolidateEdges: false,
 };
 
 /**
@@ -208,15 +207,11 @@ function loadFilter(): GraphFilter {
       const parsed = JSON.parse(stored) as GraphFilter;
       // バリデーション: 必須フィールドが存在するか確認
       if (validateFilter(parsed)) {
-        // 互換性チェック: 新しいタイプ（method, impl）が含まれていない場合はデフォルトにリセット
-        if (!parsed.types.includes('method') || !parsed.types.includes('impl')) {
-          console.log('[useGraphLayout] Resetting filter to include new types (method, impl)');
-          return DEFAULT_FILTER;
-        }
-        // 互換性: excludeNodeIds が存在しない場合はデフォルト値を補完
+        // 互換性: 新フィールドが存在しない場合はデフォルト値を補完
         return {
           ...parsed,
           excludeNodeIds: parsed.excludeNodeIds ?? [],
+          consolidateEdges: parsed.consolidateEdges ?? false,
         };
       }
     }
@@ -278,9 +273,6 @@ function validateFilter(filterData: unknown): filterData is GraphFilter {
   return (
     Array.isArray(obj.directories) &&
     obj.directories.every((d) => typeof d === 'string') &&
-    Array.isArray(obj.types) &&
-    obj.types.every((t) => typeof t === 'string') &&
-    typeof obj.includeIsolated === 'boolean' &&
-    typeof obj.maxDepth === 'number'
+    typeof obj.includeIsolated === 'boolean'
   );
 }
