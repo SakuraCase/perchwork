@@ -46,9 +46,6 @@ export interface NodeContextMenuProps {
   /** 関連ノードのみ表示 */
   onShowRelated?: (nodeId: string) => void;
 
-  /** ファイルを開く */
-  onOpenFile?: (filePath: string) => void;
-
   /** シーケンス図を表示（method/fn の場合のみ） */
   onOpenSequenceDiagram?: (nodeId: string) => void;
 
@@ -71,7 +68,6 @@ export function NodeContextMenu({
   onExclude,
   onFocus,
   onShowRelated,
-  onOpenFile,
   onOpenSequenceDiagram,
   onAddColorRule,
 }: NodeContextMenuProps) {
@@ -130,13 +126,6 @@ export function NodeContextMenu({
   const handleShowRelated = () => {
     if (nodeId && onShowRelated) {
       onShowRelated(nodeId);
-      onClose();
-    }
-  };
-
-  const handleOpenFile = () => {
-    if (nodeFile && onOpenFile) {
-      onOpenFile(nodeFile);
       onClose();
     }
   };
@@ -213,16 +202,6 @@ export function NodeContextMenu({
 
       {/* アクション */}
       <div className="py-1">
-        {/* ファイルを開く */}
-        {onOpenFile && nodeFile && (
-          <button
-            onClick={handleOpenFile}
-            className="w-full px-3 py-2 text-sm text-blue-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
-          >
-            ファイルを開く
-          </button>
-        )}
-
         {/* このノードを中心に表示 */}
         {onFocus && (
           <button
@@ -237,7 +216,7 @@ export function NodeContextMenu({
         {onShowRelated && (
           <button
             onClick={handleShowRelated}
-            className="w-full px-3 py-2 text-sm text-green-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+            className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
           >
             関連ノードのみ表示
           </button>
@@ -247,7 +226,7 @@ export function NodeContextMenu({
         {canShowSequenceDiagram && (
           <button
             onClick={handleOpenSequenceDiagram}
-            className="w-full px-3 py-2 text-sm text-purple-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+            className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
           >
             シーケンス図表示
           </button>
@@ -257,7 +236,7 @@ export function NodeContextMenu({
         {onAddColorRule && (
           <button
             onClick={handleAddColorRule}
-            className="w-full px-3 py-2 text-sm text-amber-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+            className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
           >
             ノード色設定
           </button>
@@ -266,7 +245,7 @@ export function NodeContextMenu({
         {/* このノードを除外 */}
         <button
           onClick={handleExclude}
-          className="w-full px-3 py-2 text-sm text-red-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+          className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
         >
           このノードを除外
         </button>

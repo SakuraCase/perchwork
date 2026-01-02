@@ -340,17 +340,6 @@ function App() {
   );
 
   /**
-   * コンテキストメニューからファイルを開くハンドラ
-   */
-  const handleOpenFileFromContext = useCallback(async (filePath: string) => {
-    const nodeId = contextMenu?.nodeId;
-    if (nodeId) {
-      await handleGraphNodeClick(nodeId, filePath);
-    }
-    setContextMenu(null);
-  }, [contextMenu, handleGraphNodeClick]);
-
-  /**
    * フォーカスノードのラベルを取得（表示用）
    */
   const focusNodeLabel = useMemo(() => {
@@ -515,7 +504,6 @@ function App() {
                           onExclude={handleExcludeNode}
                           onFocus={handleCenterOnNode}
                           onShowRelated={handleShowRelatedNodes}
-                          onOpenFile={handleOpenFileFromContext}
                           onOpenSequenceDiagram={(nodeId) => handleOpenSequenceDiagram(nodeId as ItemId)}
                           onAddColorRule={(nodeId, filePath) => setColorRuleDialogState({ isOpen: true, initialPrefix: nodeId, initialFilePath: filePath })}
                         />

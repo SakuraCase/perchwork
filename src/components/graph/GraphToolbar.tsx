@@ -127,7 +127,7 @@ export function GraphToolbar({
   // ============================================
 
   return (
-    <div className={`bg-gray-800 border-b border-gray-700 p-3 ${className}`}>
+    <div className={`relative bg-gray-800 border-b border-gray-700 p-3 ${className}`}>
       <div className="flex items-center justify-between gap-4">
         {/* 左側: レイアウト選択とフィルタ */}
         <div className="flex items-center gap-4">
@@ -272,9 +272,9 @@ export function GraphToolbar({
         </div>
       </div>
 
-      {/* フィルタパネル（折りたたみ可能） */}
+      {/* フィルタパネル（absolute 配置でツールバー高さに影響しない） */}
       {isFilterOpen && (
-        <div className="mt-3 pt-3 border-t border-gray-700">
+        <div className="absolute left-0 right-0 top-full z-40 bg-gray-800 border-b border-gray-700 p-3">
           {/* 表示オプション */}
           <div>
             <h3 className="text-sm font-semibold text-gray-300 mb-2">
@@ -304,9 +304,9 @@ export function GraphToolbar({
         </div>
       )}
 
-      {/* カラーパネル（折りたたみ可能） */}
+      {/* カラーパネル（absolute 配置でツールバー高さに影響しない） */}
       {isColorOpen && (
-        <div className="mt-3 pt-3 border-t border-gray-700">
+        <div className="absolute left-0 right-0 top-full z-40 bg-gray-800 border-b border-gray-700 p-3 max-h-[80vh] overflow-y-auto">
           <div>
             <h3 className="text-sm font-semibold text-gray-300 mb-2">
               ノード色設定
