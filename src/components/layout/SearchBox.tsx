@@ -31,6 +31,8 @@ interface SearchBoxProps {
   onSelectGraphNode: (nodeId: string, filePath: string) => void;
   /** ツリーモード: アイテム選択時のコールバック */
   onSelectTreeItem: (filePath: string, itemId: ItemId) => void;
+  /** シーケンスモード: メソッド/関数選択時のコールバック */
+  onSelectSequenceMethod?: (methodId: ItemId) => void;
 }
 
 /**
@@ -64,6 +66,7 @@ export function SearchBox({
   activeTab,
   onSelectGraphNode,
   onSelectTreeItem,
+  onSelectSequenceMethod,
 }: SearchBoxProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -86,6 +89,11 @@ export function SearchBox({
     for (const item of items) {
       if (!item.id.toLowerCase().includes(lowerQuery)) continue;
 
+      // シーケンスタブではメソッド/関数のみ表示
+      if (activeTab === 'sequence') {
+        if (item.type !== 'method' && item.type !== 'fn') continue;
+      }
+
       // 同一structの制限チェック
       if (item.structName) {
         const count = structCount.get(item.structName) ?? 0;
@@ -98,7 +106,7 @@ export function SearchBox({
     }
 
     return result;
-  }, [debouncedQuery, items]);
+  }, [debouncedQuery, items, activeTab]);
 
   // 選択インデックスを候補数内に収める
   const safeSelectedIndex = Math.min(selectedIndex, Math.max(0, candidates.length - 1));
@@ -123,6 +131,8 @@ export function SearchBox({
     (item: SearchIndexItem) => {
       if (activeTab === 'graph') {
         onSelectGraphNode(item.id, item.filePath);
+      } else if (activeTab === 'sequence') {
+        onSelectSequenceMethod?.(item.id);
       } else {
         onSelectTreeItem(item.filePath, item.id);
       }
@@ -131,7 +141,7 @@ export function SearchBox({
       setQuery('');
       setIsOpen(false);
     },
-    [activeTab, onSelectGraphNode, onSelectTreeItem]
+    [activeTab, onSelectGraphNode, onSelectTreeItem, onSelectSequenceMethod]
   );
 
   // キーボードナビゲーション

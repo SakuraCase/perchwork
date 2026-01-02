@@ -24,6 +24,8 @@ interface HeaderProps {
   onSearchSelectGraph: (nodeId: string, filePath: string) => void;
   /** ツリーモード: アイテム選択時のコールバック */
   onSearchSelectTree: (filePath: string, itemId: ItemId) => void;
+  /** シーケンスモード: メソッド/関数選択時のコールバック */
+  onSearchSelectSequence?: (methodId: ItemId) => void;
 }
 
 /**
@@ -38,6 +40,7 @@ export function Header({
   searchLoading,
   onSearchSelectGraph,
   onSearchSelectTree,
+  onSearchSelectSequence,
 }: HeaderProps) {
   return (
     <header className="h-14 border-b border-gray-700 bg-gray-900 flex items-center px-6">
@@ -85,6 +88,7 @@ export function Header({
           activeTab={activeTab}
           onSelectGraphNode={onSearchSelectGraph}
           onSelectTreeItem={onSearchSelectTree}
+          onSelectSequenceMethod={onSearchSelectSequence}
         />
       </div>
     </header>

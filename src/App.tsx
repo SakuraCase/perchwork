@@ -226,6 +226,17 @@ function App() {
   );
 
   /**
+   * 検索からシーケンス図のルート関数を選択するハンドラ
+   * シーケンス図のルート関数を設定
+   */
+  const handleSearchSelectSequence = useCallback(
+    (methodId: ItemId) => {
+      sequenceDiagram.setRootFunction(methodId);
+    },
+    [sequenceDiagram]
+  );
+
+  /**
    * サイドパネル開閉トグル
    */
   const handleToggleSidePanel = useCallback(() => {
@@ -368,6 +379,7 @@ function App() {
           searchLoading={searchLoading}
           onSearchSelectGraph={handleSearchSelectGraph}
           onSearchSelectTree={handleSearchSelectTree}
+          onSearchSelectSequence={handleSearchSelectSequence}
         />
 
         {/* メインコンテンツエリア */}
