@@ -9,7 +9,8 @@
  */
 
 import { useState } from 'react';
-import type { LayoutType, GraphFilter } from '../../types/graph';
+import type { LayoutType, GraphFilter, NodeColorRule } from '../../types/graph';
+import { ColorRulesPanel } from './ColorRulesPanel';
 
 // ============================================
 // Props定義
@@ -49,6 +50,12 @@ export interface GraphToolbarProps {
   /** 画面にフィット時のコールバック（オプション） */
   onFitToScreen?: () => void;
 
+  /** 現在の色ルール */
+  colorRules: NodeColorRule[];
+
+  /** 色ルール変更時のコールバック */
+  onColorRulesChange: (rules: NodeColorRule[]) => void;
+
   /** カスタムクラス名 */
   className?: string;
 }
@@ -81,10 +88,14 @@ export function GraphToolbar({
   onZoomIn,
   onZoomOut,
   onFitToScreen,
+  colorRules,
+  onColorRulesChange,
   className = '',
 }: GraphToolbarProps) {
   // フィルタパネルの表示/非表示状態
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // カラーパネルの表示/非表示状態
+  const [isColorOpen, setIsColorOpen] = useState(false);
 
   // ============================================
   // イベントハンドラ
@@ -142,12 +153,28 @@ export function GraphToolbar({
 
           {/* フィルタトグルボタン */}
           <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            onClick={() => {
+              setIsFilterOpen(!isFilterOpen);
+              if (!isFilterOpen) setIsColorOpen(false);
+            }}
             className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="フィルタパネルの表示切り替え"
             aria-expanded={isFilterOpen}
           >
             フィルタ {isFilterOpen ? '▲' : '▼'}
+          </button>
+
+          {/* カラートグルボタン */}
+          <button
+            onClick={() => {
+              setIsColorOpen(!isColorOpen);
+              if (!isColorOpen) setIsFilterOpen(false);
+            }}
+            className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="カラーパネルの表示切り替え"
+            aria-expanded={isColorOpen}
+          >
+            カラー {isColorOpen ? '▲' : '▼'}
           </button>
 
           {/* フォーカスインジケータ */}
@@ -273,6 +300,21 @@ export function GraphToolbar({
                 <span>重複エッジを省略</span>
               </label>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* カラーパネル（折りたたみ可能） */}
+      {isColorOpen && (
+        <div className="mt-3 pt-3 border-t border-gray-700">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-300 mb-2">
+              ノード色設定
+            </h3>
+            <ColorRulesPanel
+              rules={colorRules}
+              onRulesChange={onColorRulesChange}
+            />
           </div>
         </div>
       )}

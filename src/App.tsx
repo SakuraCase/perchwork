@@ -23,6 +23,7 @@ import { TreeView } from './components/tree/TreeView';
 import { GraphView } from './components/graph/GraphView';
 import { GraphToolbar } from './components/graph/GraphToolbar';
 import { NodeContextMenu } from './components/graph/NodeContextMenu';
+import { ColorRuleDialog } from './components/graph/ColorRuleDialog';
 import { SequenceView } from './components/sequence';
 import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
@@ -80,7 +81,18 @@ function App() {
 
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
-  const { layoutOptions, filter, setLayoutType, updateFilter, clearFocusNode, excludeNode, clearExcludedNodes } = useGraphLayout();
+  const {
+    layoutOptions,
+    filter,
+    setLayoutType,
+    updateFilter,
+    clearFocusNode,
+    excludeNode,
+    clearExcludedNodes,
+    colorRules,
+    addColorRule,
+    setColorRules,
+  } = useGraphLayout();
 
   // シーケンス図関連
   const sequenceDiagram = useSequenceDiagram(graphData, summaries);
@@ -97,6 +109,13 @@ function App() {
     nodeFile: string;
     nodeLine: number;
   } | null>(null);
+
+  // 色ルール追加ダイアログ状態
+  const [colorRuleDialogState, setColorRuleDialogState] = useState<{
+    isOpen: boolean;
+    initialPrefix: string;
+    initialFilePath: string;
+  }>({ isOpen: false, initialPrefix: '', initialFilePath: '' });
 
   // CallersIndex の構築
   const callersIndex = useMemo<CallersIndex | null>(() => {
@@ -422,6 +441,8 @@ function App() {
                       focusNodeLabel={focusNodeLabel}
                       onClearFocus={clearFocusNode}
                       onClearExcluded={clearExcludedNodes}
+                      colorRules={colorRules}
+                      onColorRulesChange={setColorRules}
                     />
 
                     {/* グラフビュー */}
@@ -449,6 +470,7 @@ function App() {
                           onContextMenuNode={handleContextMenuNode}
                           onNodeClick={handleGraphNodeClick}
                           centerOnNodeId={centerNodeId}
+                          colorRules={colorRules}
                         />
 
                         {/* ノードコンテキストメニュー */}
@@ -465,6 +487,16 @@ function App() {
                           onShowRelated={handleShowRelatedNodes}
                           onOpenFile={handleOpenFileFromContext}
                           onOpenSequenceDiagram={(nodeId) => handleOpenSequenceDiagram(nodeId as ItemId)}
+                          onAddColorRule={(nodeId, filePath) => setColorRuleDialogState({ isOpen: true, initialPrefix: nodeId, initialFilePath: filePath })}
+                        />
+
+                        {/* ノード色設定ダイアログ */}
+                        <ColorRuleDialog
+                          isOpen={colorRuleDialogState.isOpen}
+                          initialPrefix={colorRuleDialogState.initialPrefix}
+                          initialFilePath={colorRuleDialogState.initialFilePath}
+                          onClose={() => setColorRuleDialogState({ isOpen: false, initialPrefix: '', initialFilePath: '' })}
+                          onAdd={addColorRule}
                         />
                       </div>
                     )}

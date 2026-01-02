@@ -119,6 +119,36 @@ export interface LayoutOptions {
 // ============================================
 
 /**
+ * ノード色ルールのマッチ対象
+ *
+ * - 'id': ノードIDの前方一致
+ * - 'file': ファイルパスの前方一致
+ */
+export type ColorRuleMatchType = 'id' | 'file';
+
+/**
+ * ノード色ルール
+ *
+ * ID またはファイルパスの前方一致で色を適用するルール
+ */
+export interface NodeColorRule {
+  /** ルールID（一意な識別子） */
+  id: string;
+
+  /** 前方一致するプレフィックス */
+  prefix: string;
+
+  /** 適用する色（HEX形式、例: "#ff0000"） */
+  color: string;
+
+  /** ルールの有効/無効 */
+  enabled: boolean;
+
+  /** マッチ対象: 'id' = ノードID, 'file' = ファイルパス */
+  matchType: ColorRuleMatchType;
+}
+
+/**
  * グラフフィルタ設定
  *
  * 特定の条件に基づいてノード/エッジを絞り込む

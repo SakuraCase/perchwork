@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { LayoutOptions, LayoutType, GraphFilter } from '../types/graph';
+import type { LayoutOptions, LayoutType, GraphFilter, NodeColorRule } from '../types/graph';
 
 /**
  * useGraphLayout フックの戻り値型
@@ -29,6 +29,24 @@ export interface UseGraphLayoutResult {
 
   /** 除外リストをクリア */
   clearExcludedNodes: () => void;
+
+  /** 現在の色ルール */
+  colorRules: NodeColorRule[];
+
+  /** 色ルールを追加 */
+  addColorRule: (rule: NodeColorRule) => void;
+
+  /** 色ルールを更新 */
+  updateColorRule: (id: string, updates: Partial<NodeColorRule>) => void;
+
+  /** 色ルールを削除 */
+  deleteColorRule: (id: string) => void;
+
+  /** 全色ルールをクリア */
+  clearColorRules: () => void;
+
+  /** 色ルール全体を更新 */
+  setColorRules: (rules: NodeColorRule[]) => void;
 }
 
 /**
@@ -58,6 +76,7 @@ const DEFAULT_FILTER: GraphFilter = {
  */
 const STORAGE_KEY_LAYOUT = 'perchwork-graph-layout';
 const STORAGE_KEY_FILTER = 'perchwork-graph-filter';
+const STORAGE_KEY_COLOR_RULES = 'perchwork-graph-color-rules';
 
 /**
  * グラフのレイアウト状態管理とフィルタ状態管理を行うカスタムフック
@@ -80,6 +99,11 @@ export function useGraphLayout(): UseGraphLayoutResult {
     return loadFilter();
   });
 
+  // 色ルールの状態
+  const [colorRules, setColorRulesState] = useState<NodeColorRule[]>(() => {
+    return loadColorRules();
+  });
+
   /**
    * レイアウトオプションが変更されたら localStorage に保存
    */
@@ -93,6 +117,13 @@ export function useGraphLayout(): UseGraphLayoutResult {
   useEffect(() => {
     saveFilter(filter);
   }, [filter]);
+
+  /**
+   * 色ルールが変更されたら localStorage に保存
+   */
+  useEffect(() => {
+    saveColorRules(colorRules);
+  }, [colorRules]);
 
   /**
    * レイアウトタイプを変更
@@ -150,6 +181,46 @@ export function useGraphLayout(): UseGraphLayoutResult {
     }));
   }, []);
 
+  /**
+   * 色ルールを追加
+   */
+  const addColorRule = useCallback((rule: NodeColorRule) => {
+    setColorRulesState((prev) => [...prev, rule]);
+  }, []);
+
+  /**
+   * 色ルールを更新
+   */
+  const updateColorRule = useCallback(
+    (id: string, updates: Partial<NodeColorRule>) => {
+      setColorRulesState((prev) =>
+        prev.map((rule) => (rule.id === id ? { ...rule, ...updates } : rule))
+      );
+    },
+    []
+  );
+
+  /**
+   * 色ルールを削除
+   */
+  const deleteColorRule = useCallback((id: string) => {
+    setColorRulesState((prev) => prev.filter((rule) => rule.id !== id));
+  }, []);
+
+  /**
+   * 全色ルールをクリア
+   */
+  const clearColorRules = useCallback(() => {
+    setColorRulesState([]);
+  }, []);
+
+  /**
+   * 色ルール全体を更新
+   */
+  const setColorRules = useCallback((rules: NodeColorRule[]) => {
+    setColorRulesState(rules);
+  }, []);
+
   return {
     layoutOptions,
     setLayoutType,
@@ -158,6 +229,12 @@ export function useGraphLayout(): UseGraphLayoutResult {
     clearFocusNode,
     excludeNode,
     clearExcludedNodes,
+    colorRules,
+    addColorRule,
+    updateColorRule,
+    deleteColorRule,
+    clearColorRules,
+    setColorRules,
   };
 }
 
@@ -274,5 +351,56 @@ function validateFilter(filterData: unknown): filterData is GraphFilter {
     Array.isArray(obj.directories) &&
     obj.directories.every((d) => typeof d === 'string') &&
     typeof obj.includeIsolated === 'boolean'
+  );
+}
+
+/**
+ * localStorage から色ルールを読み込む
+ *
+ * @returns 読み込まれた色ルール、または読み込み失敗時は空配列
+ */
+function loadColorRules(): NodeColorRule[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_COLOR_RULES);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && validateColorRules(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load color rules from localStorage:', error);
+  }
+  return [];
+}
+
+/**
+ * localStorage に色ルールを保存
+ *
+ * @param rules - 保存する色ルール
+ */
+function saveColorRules(rules: NodeColorRule[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_COLOR_RULES, JSON.stringify(rules));
+  } catch (error) {
+    console.warn('Failed to save color rules to localStorage:', error);
+  }
+}
+
+/**
+ * 色ルール配列のバリデーション
+ *
+ * @param rules - バリデーション対象の配列
+ * @returns バリデーション成功時は true
+ */
+function validateColorRules(rules: unknown[]): rules is NodeColorRule[] {
+  return rules.every(
+    (rule) =>
+      typeof rule === 'object' &&
+      rule !== null &&
+      typeof (rule as NodeColorRule).id === 'string' &&
+      typeof (rule as NodeColorRule).prefix === 'string' &&
+      typeof (rule as NodeColorRule).color === 'string' &&
+      typeof (rule as NodeColorRule).enabled === 'boolean'
   );
 }

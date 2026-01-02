@@ -17,6 +17,7 @@ import type {
   CytoscapeData,
   LayoutOptions,
   GraphFilter,
+  NodeColorRule,
 } from '../../types/graph';
 import { applyGraphFilter } from '@/utils/graphFilter';
 
@@ -50,6 +51,9 @@ export interface GraphViewProps {
   /** 中心に表示するノードのID（変更されると該当ノードを中心に表示） */
   centerOnNodeId?: string | null;
 
+  /** ノード色ルール */
+  colorRules?: NodeColorRule[];
+
   /** カスタムクラス名 */
   className?: string;
 }
@@ -77,6 +81,7 @@ export function GraphView({
   onContextMenuNode,
   onNodeClick,
   centerOnNodeId,
+  colorRules,
   className = '',
 }: GraphViewProps) {
   // Cytoscape インスタンスと描画コンテナへの参照
@@ -99,8 +104,9 @@ export function GraphView({
   // Cytoscape スタイル定義
   // ============================================
 
-  const cytoscapeStyle = useMemo(
-    () => [
+  const cytoscapeStyle = useMemo(() => {
+    // 基本スタイル
+    const baseStyles = [
       // ノード基本スタイル
       {
         selector: 'node',
@@ -166,9 +172,26 @@ export function GraphView({
           'curve-style': 'bezier',
         },
       },
-    ],
-    []
-  );
+    ];
+
+    // 色ルールをスタイルに変換（有効かつプレフィックスが設定されているもののみ）
+    // 上にあるルールほど優先（後に適用される）ように反転
+    const colorRuleStyles = [...(colorRules || [])]
+      .filter((rule) => rule.enabled && rule.prefix)
+      .reverse()
+      .map((rule) => ({
+        // ^= は前方一致セレクタ、matchTypeに応じてid or fileで判定
+        selector:
+          rule.matchType === 'file'
+            ? `node[file ^= "${rule.prefix}"]`
+            : `node[id ^= "${rule.prefix}"]`,
+        style: {
+          'background-color': rule.color,
+        },
+      }));
+
+    return [...baseStyles, ...colorRuleStyles];
+  }, [colorRules]);
 
   // ============================================
   // レイアウト設定変換

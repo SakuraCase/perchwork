@@ -51,6 +51,9 @@ export interface NodeContextMenuProps {
 
   /** シーケンス図を表示（method/fn の場合のみ） */
   onOpenSequenceDiagram?: (nodeId: string) => void;
+
+  /** ノード色設定 */
+  onAddColorRule?: (nodeId: string, filePath: string) => void;
 }
 
 // ============================================
@@ -70,6 +73,7 @@ export function NodeContextMenu({
   onShowRelated,
   onOpenFile,
   onOpenSequenceDiagram,
+  onAddColorRule,
 }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -140,6 +144,13 @@ export function NodeContextMenu({
   const handleOpenSequenceDiagram = () => {
     if (nodeId && onOpenSequenceDiagram) {
       onOpenSequenceDiagram(nodeId);
+      onClose();
+    }
+  };
+
+  const handleAddColorRule = () => {
+    if (nodeId && onAddColorRule) {
+      onAddColorRule(nodeId, nodeFile || '');
       onClose();
     }
   };
@@ -239,6 +250,16 @@ export function NodeContextMenu({
             className="w-full px-3 py-2 text-sm text-purple-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
           >
             シーケンス図表示
+          </button>
+        )}
+
+        {/* ノード色設定 */}
+        {onAddColorRule && (
+          <button
+            onClick={handleAddColorRule}
+            className="w-full px-3 py-2 text-sm text-amber-400 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+          >
+            ノード色設定
           </button>
         )}
 
