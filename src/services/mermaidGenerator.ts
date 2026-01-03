@@ -111,6 +111,20 @@ function escapeMermaidLabel(text: string): string {
 }
 
 /**
+ * alt/loopラベル用に文字列をサニタイズする
+ * Rustのenum variant構造体パターンの中括弧部分を削除
+ */
+function sanitizeContextLabel(text: string): string {
+  return text
+    // 中括弧の内容を削除（enum variant構造体パターン）
+    .replace(/\s*\{[^}]*\}/g, '')
+    // 残った特殊文字をエスケープ
+    .replace(/[<>]/g, '')
+    .replace(/"/g, "'")
+    .trim();
+}
+
+/**
  * 概要を省略する（30文字以上の場合）
  */
 function truncateSummary(summary: string, maxLength = 30): string {
@@ -496,7 +510,7 @@ function generateMermaidCode(
 
           switch (call.context.type) {
             case 'if':
-              code += `${indent}alt ${call.context.condition || 'condition'}\n`;
+              code += `${indent}alt ${sanitizeContextLabel(call.context.condition || 'condition')}\n`;
               contextStack.push({ context: call.context, openedByCall: call });
               break;
             case 'else':
@@ -511,7 +525,7 @@ function generateMermaidCode(
               }
               break;
             case 'match_arm':
-              code += `${indent}alt ${call.context.arm_pattern || 'pattern'}\n`;
+              code += `${indent}alt ${sanitizeContextLabel(call.context.arm_pattern || 'pattern')}\n`;
               contextStack.push({ context: call.context, openedByCall: call });
               break;
             case 'loop':
@@ -519,11 +533,11 @@ function generateMermaidCode(
               contextStack.push({ context: call.context, openedByCall: call });
               break;
             case 'while':
-              code += `${indent}loop ${call.context.condition || 'while'}\n`;
+              code += `${indent}loop ${sanitizeContextLabel(call.context.condition || 'while')}\n`;
               contextStack.push({ context: call.context, openedByCall: call });
               break;
             case 'for':
-              code += `${indent}loop ${call.context.condition || 'for'}\n`;
+              code += `${indent}loop ${sanitizeContextLabel(call.context.condition || 'for')}\n`;
               contextStack.push({ context: call.context, openedByCall: call });
               break;
           }

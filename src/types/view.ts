@@ -18,3 +18,22 @@ export interface DirectoryGroup {
     tests: number;
   }>;
 }
+
+/** ファイルエントリ */
+export interface FileEntry {
+  path: string;
+  items: number;
+  tests: number;
+}
+
+/** 再帰的なツリーノード */
+export interface TreeNode {
+  /** ディレクトリ名 */
+  name: string;
+  /** フルパス */
+  path: string;
+  /** サブディレクトリ */
+  children: TreeNode[];
+  /** このディレクトリ直下のファイル */
+  files: FileEntry[];
+}

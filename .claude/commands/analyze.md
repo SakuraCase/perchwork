@@ -81,6 +81,9 @@ cd .claude/skills/perchwork-structure/scripts && npm run build && node dist/anal
 1. 対象ファイルを収集（差分実行時は変更ファイルのみ）
 2. ファイルを均等に分割（最大 5 グループ）
 3. Task ツールで `general-purpose` サブエージェントを並列起動
+   - **重要**: サブエージェントへのプロンプトに以下を必ず含める:
+     - 出力パス変換ルール（`.rs` → `.json`、`.rs.json` は禁止）
+     - 具体例: `battle_state.rs` → `battle_state.json`
 4. TaskOutput で完了を待機
 
 出力: `public/data/semantic/`

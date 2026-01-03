@@ -6,7 +6,7 @@
  */
 import { useState, useMemo } from "react";
 import type { IndexFile, IndexFileEntry } from "../../types/schema";
-import type { DirectoryGroup } from "../../types/view";
+import type { TreeNode } from "../../types/view";
 
 interface TreeViewProps {
   /** インデックスデータ */
@@ -18,60 +18,71 @@ interface TreeViewProps {
 }
 
 /**
- * ファイル一覧をディレクトリごとにグループ化
+ * フラットなファイルリストから再帰的なツリー構造を構築
  */
-function groupByDirectory(files: IndexFileEntry[]): DirectoryGroup[] {
-  const groups: Record<string, IndexFileEntry[]> = {};
-  const rootFiles: IndexFileEntry[] = [];
+function buildTree(files: IndexFileEntry[]): TreeNode {
+  const root: TreeNode = {
+    name: "",
+    path: "",
+    children: [],
+    files: [],
+  };
 
   for (const file of files) {
     // mod.json は除外
-    if (file.path === "mod.json") continue;
+    if (file.path === "mod.json" || file.path.endsWith("/mod.json")) continue;
 
     const parts = file.path.split("/");
-    if (parts.length === 1) {
-      // ルート直下のファイル
-      rootFiles.push(file);
-    } else {
-      // ディレクトリ内のファイル
-      const dir = parts[0];
-      if (!groups[dir]) {
-        groups[dir] = [];
+    let current = root;
+
+    // ディレクトリ部分を辿る
+    for (let i = 0; i < parts.length - 1; i++) {
+      const dirName = parts[i];
+      const dirPath = parts.slice(0, i + 1).join("/");
+
+      let child = current.children.find((c) => c.name === dirName);
+      if (!child) {
+        child = {
+          name: dirName,
+          path: dirPath,
+          children: [],
+          files: [],
+        };
+        current.children.push(child);
       }
-      groups[dir].push(file);
+      current = child;
+    }
+
+    // ファイルを追加
+    current.files.push({
+      path: file.path,
+      items: file.items,
+      tests: file.tests,
+    });
+  }
+
+  // 子ディレクトリをソート
+  function sortChildren(node: TreeNode) {
+    node.children.sort((a, b) => a.name.localeCompare(b.name));
+    node.files.sort((a, b) => a.path.localeCompare(b.path));
+    for (const child of node.children) {
+      sortChildren(child);
     }
   }
+  sortChildren(root);
 
-  const result: DirectoryGroup[] = [];
+  return root;
+}
 
-  // ディレクトリグループを追加（ソート済み）
-  const sortedDirs = Object.keys(groups).sort();
-  for (const dir of sortedDirs) {
-    result.push({
-      name: dir,
-      files: groups[dir]
-        .filter((f) => !f.path.endsWith("/mod.json")) // mod.json は除外
-        .map((f) => ({
-          path: f.path,
-          items: f.items,
-          tests: f.tests,
-        })),
-    });
+/**
+ * 1階層目のディレクトリパスを取得（デフォルト展開用）
+ */
+function getFirstLevelDirs(node: TreeNode): Set<string> {
+  const dirs = new Set<string>();
+  for (const child of node.children) {
+    dirs.add(child.path);
   }
-
-  // ルートファイルがあれば追加
-  if (rootFiles.length > 0) {
-    result.push({
-      name: "(root)",
-      files: rootFiles.map((f) => ({
-        path: f.path,
-        items: f.items,
-        tests: f.tests,
-      })),
-    });
-  }
-
-  return result;
+  return dirs;
 }
 
 /**
@@ -82,18 +93,136 @@ function getFileName(path: string): string {
   return parts[parts.length - 1].replace(".json", "");
 }
 
+interface TreeNodeComponentProps {
+  node: TreeNode;
+  level: number;
+  expandedDirs: Set<string>;
+  toggleDir: (path: string) => void;
+  selectedFilePath: string | null;
+  onSelectFile: (filePath: string) => void;
+}
+
 /**
- * ディレクトリ名の表示用ラベル
+ * ツリーノードコンポーネント（再帰的）
  */
-function getDirectoryLabel(name: string): string {
-  const labels: Record<string, string> = {
-    entity: "Entity",
-    service: "Service",
-    value_object: "Value Object",
-    master: "Master",
-    "(root)": "Root",
-  };
-  return labels[name] || name;
+function TreeNodeComponent({
+  node,
+  level,
+  expandedDirs,
+  toggleDir,
+  selectedFilePath,
+  onSelectFile,
+}: TreeNodeComponentProps) {
+  const isExpanded = expandedDirs.has(node.path);
+  const hasChildren = node.children.length > 0 || node.files.length > 0;
+
+  return (
+    <div>
+      {/* ディレクトリヘッダー（ルート以外） */}
+      {node.name && (
+        <button
+          onClick={() => toggleDir(node.path)}
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-gray-300 hover:bg-gray-700 rounded transition-colors"
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+        >
+          {/* 展開アイコン */}
+          {hasChildren && (
+            <svg
+              className={`w-4 h-4 transition-transform flex-shrink-0 ${
+                isExpanded ? "rotate-90" : ""
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          )}
+
+          {/* フォルダアイコン */}
+          <svg
+            className="w-4 h-4 text-yellow-500 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+          </svg>
+
+          <span className="font-medium">{node.name}</span>
+          <span className="text-gray-500 text-xs">
+            ({node.children.length + node.files.length})
+          </span>
+        </button>
+      )}
+
+      {/* 子要素（展開時またはルート） */}
+      {(isExpanded || !node.name) && (
+        <div>
+          {/* 子ディレクトリ */}
+          {node.children.map((child) => (
+            <TreeNodeComponent
+              key={child.path}
+              node={child}
+              level={node.name ? level + 1 : level}
+              expandedDirs={expandedDirs}
+              toggleDir={toggleDir}
+              selectedFilePath={selectedFilePath}
+              onSelectFile={onSelectFile}
+            />
+          ))}
+
+          {/* ファイル一覧 */}
+          {node.files.map((file) => (
+            <button
+              key={file.path}
+              onClick={() => onSelectFile(file.path)}
+              className={`w-full flex items-center gap-2 py-1 text-left text-sm rounded transition-colors ${
+                selectedFilePath === file.path
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+              }`}
+              style={{ paddingLeft: `${(node.name ? level + 1 : level) * 12 + 8}px`, paddingRight: "8px" }}
+            >
+              {/* ファイルアイコン */}
+              <svg
+                className="w-4 h-4 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+
+              <span className="flex-1 truncate">{getFileName(file.path)}</span>
+
+              {/* アイテム数 */}
+              {file.items > 0 && (
+                <span
+                  className={`text-xs ${
+                    selectedFilePath === file.path
+                      ? "text-blue-200"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {file.items}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -104,25 +233,23 @@ export function TreeView({
   selectedFilePath,
   onSelectFile,
 }: TreeViewProps) {
-  // 展開されているディレクトリの状態
-  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
-    new Set(["entity", "service", "value_object", "master"])
-  );
+  // ツリー構造を構築
+  const tree = useMemo(() => buildTree(index.files), [index.files]);
 
-  // ディレクトリグループを生成
-  const groups = useMemo(
-    () => groupByDirectory(index.files),
-    [index.files]
-  );
+  // 1階層目をデフォルトで展開
+  const defaultExpanded = useMemo(() => getFirstLevelDirs(tree), [tree]);
+
+  // 展開されているディレクトリの状態
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(defaultExpanded);
 
   // ディレクトリの展開/折りたたみ切り替え
-  const toggleDir = (dir: string) => {
+  const toggleDir = (path: string) => {
     setExpandedDirs((prev) => {
       const next = new Set(prev);
-      if (next.has(dir)) {
-        next.delete(dir);
+      if (next.has(path)) {
+        next.delete(path);
       } else {
-        next.add(dir);
+        next.add(path);
       }
       return next;
     });
@@ -140,96 +267,15 @@ export function TreeView({
       </div>
 
       {/* ディレクトリツリー */}
-      <div className="space-y-1">
-        {groups.map((group) => (
-          <div key={group.name}>
-            {/* ディレクトリヘッダー */}
-            <button
-              onClick={() => toggleDir(group.name)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-gray-300 hover:bg-gray-700 rounded transition-colors"
-            >
-              {/* 展開アイコン */}
-              <svg
-                className={`w-4 h-4 transition-transform ${
-                  expandedDirs.has(group.name) ? "rotate-90" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-
-              {/* フォルダアイコン */}
-              <svg
-                className="w-4 h-4 text-yellow-500"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-              </svg>
-
-              <span className="font-medium">{getDirectoryLabel(group.name)}</span>
-              <span className="text-gray-500 text-xs">
-                ({group.files.length})
-              </span>
-            </button>
-
-            {/* ファイル一覧 */}
-            {expandedDirs.has(group.name) && (
-              <div className="ml-6 space-y-0.5">
-                {group.files.map((file) => (
-                  <button
-                    key={file.path}
-                    onClick={() => onSelectFile(file.path)}
-                    className={`w-full flex items-center gap-2 px-2 py-1 text-left text-sm rounded transition-colors ${
-                      selectedFilePath === file.path
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-400 hover:bg-gray-700 hover:text-gray-200"
-                    }`}
-                  >
-                    {/* ファイルアイコン */}
-                    <svg
-                      className="w-4 h-4 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-
-                    <span className="flex-1 truncate">
-                      {getFileName(file.path)}
-                    </span>
-
-                    {/* アイテム数 */}
-                    {file.items > 0 && (
-                      <span
-                        className={`text-xs ${
-                          selectedFilePath === file.path
-                            ? "text-blue-200"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {file.items}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="space-y-0.5">
+        <TreeNodeComponent
+          node={tree}
+          level={0}
+          expandedDirs={expandedDirs}
+          toggleDir={toggleDir}
+          selectedFilePath={selectedFilePath}
+          onSelectFile={onSelectFile}
+        />
       </div>
     </div>
   );

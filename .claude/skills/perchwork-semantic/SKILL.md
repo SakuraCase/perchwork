@@ -109,7 +109,23 @@ Phase 2 でサブエージェントに渡すプロンプト：
 2. ソースコードを解析し、以下の意味情報を生成:
    - items: 各関数/メソッド/struct/enum の説明
    - tests: 各テストの目的とテスト対象
-3. Write ツールで {output_base}/semantic/{relative_path}.json に出力
+3. Write ツールで出力（**パス変換必須**）
+
+## 出力パス変換（重要）
+
+**`.rs` を `.json` に置換する。`.rs.json` は禁止。**
+
+```
+入力: entity/battle_state.rs
+出力: {output_base}/semantic/entity/battle_state.json
+      ↑ .rs を削除して .json に置換
+```
+
+| ソースファイル              | 出力先                                         |
+| --------------------------- | ---------------------------------------------- |
+| entity/battle_state.rs      | {output_base}/semantic/entity/battle_state.json |
+| service/battle_loop.rs      | {output_base}/semantic/service/battle_loop.json |
+| mod.rs                      | {output_base}/semantic/mod.json                |
 
 ## 出力フォーマット
 
