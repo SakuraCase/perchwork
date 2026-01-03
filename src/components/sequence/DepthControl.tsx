@@ -4,7 +4,7 @@
  * 関数ごとの深さ設定を調整するUI
  */
 
-import type { FunctionDepthSetting } from '@/types/sequence';
+import type { FunctionDepthSetting, HoverTarget } from '@/types/sequence';
 import type { ItemId } from '@/types/schema';
 
 interface DepthControlProps {
@@ -12,6 +12,8 @@ interface DepthControlProps {
   functionDepths: FunctionDepthSetting[];
   /** 深さ変更時のコールバック */
   onDepthChange: (functionId: ItemId, depth: number) => void;
+  /** ホバー変更時のコールバック（シーケンス図ハイライト用） */
+  onHoverChange?: (target: HoverTarget) => void;
 }
 
 /**
@@ -20,6 +22,7 @@ interface DepthControlProps {
 export function DepthControl({
   functionDepths,
   onDepthChange,
+  onHoverChange,
 }: DepthControlProps) {
   if (functionDepths.length === 0) {
     return (
@@ -34,7 +37,11 @@ export function DepthControl({
       {functionDepths.map((setting, index) => (
         <div
           key={setting.functionId}
-          className="px-3 py-2 bg-gray-800 rounded border border-gray-700"
+          className="px-3 py-2 bg-gray-800 rounded border border-gray-700 transition-colors hover:border-gray-600"
+          onMouseEnter={() =>
+            onHoverChange?.({ type: 'function', functionId: setting.functionId })
+          }
+          onMouseLeave={() => onHoverChange?.(null)}
         >
           {/* 1行目: 関数名 */}
           <div className="flex items-center gap-2 mb-2">

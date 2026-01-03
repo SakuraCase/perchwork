@@ -24,3 +24,13 @@
   scrollbar-width: thin;
   scrollbar-color: #4b5563 transparent;
 }
+
+/* シーケンス図ホバーハイライト */
+.sequence-highlight-arrow {
+  stroke: #f97316 !important;
+  stroke-width: 2.5px !important;
+}
+
+.sequence-highlight-text {
+  fill: #f97316 !important;
+}

@@ -16,9 +16,11 @@ import type {
   SequenceGroup,
   CallEntryId,
   SavedSequenceDiagram,
+  HoverTarget,
 } from '@/types/sequence';
 import { generateCallEntryId } from '@/types/sequence';
 import { extractDisplayName, extractMethodName } from '@/services/mermaidGenerator';
+import { attachCallEntryIds, applyHighlight } from '@/services/sequenceHighlightService';
 import { DepthControl } from './DepthControl';
 import { SequenceToolbar } from './SequenceToolbar';
 import { CallList } from './CallList';
@@ -150,6 +152,9 @@ export function SequenceView({
   // 選択状態
   const [selectedCallIds, setSelectedCallIds] = useState<Set<CallEntryId>>(new Set());
 
+  // ホバー状態（シーケンス図ハイライト用）
+  const [hoverTarget, setHoverTarget] = useState<HoverTarget>(null);
+
   // ダイアログ状態
   const [groupDialog, setGroupDialog] = useState<GroupDialogState>({
     isOpen: false,
@@ -186,6 +191,8 @@ export function SequenceView({
 
         if (containerRef.current) {
           containerRef.current.innerHTML = svg;
+          // レンダリング完了後、SVG要素にdata属性を付与
+          attachCallEntryIds(containerRef.current, calls);
         }
       } catch (err) {
         console.error('Mermaid render error:', err);
@@ -196,12 +203,25 @@ export function SequenceView({
     };
 
     renderDiagram();
-  }, [mermaidCode, isContainerReady]);
+  }, [mermaidCode, isContainerReady, calls]);
 
   // root関数変更時に選択をクリア
   useEffect(() => {
     setSelectedCallIds(new Set());
   }, [rootFunctionId]);
+
+  // ホバー時のハイライト適用
+  // NOTE: isRenderingを依存配列に含めることで、レンダリング完了後にハイライトが再適用される
+  // （mermaid.renderは非同期のため、attachCallEntryIds完了前にこのuseEffectが実行されることを防ぐ）
+  useEffect(() => {
+    if (!containerRef.current || isRendering) return;
+    applyHighlight(containerRef.current, hoverTarget, calls);
+  }, [hoverTarget, calls, isRendering]);
+
+  // ホバー変更ハンドラ
+  const handleHoverChange = useCallback((target: HoverTarget) => {
+    setHoverTarget(target);
+  }, []);
 
   // ============================================
   // 選択ハンドラ
@@ -295,15 +315,6 @@ export function SequenceView({
     const sortedIds = calls
       .map((c) => generateCallEntryId(c))
       .filter((id) => selectedCallIds.has(id));
-
-    // DEBUG: 省略に追加されるID一覧
-    console.log('[handleAddOmission] sortedIds:', sortedIds);
-    console.log('[handleAddOmission] calls:', calls.map(c => ({
-      from: c.from,
-      to: c.to,
-      line: c.line,
-      id: generateCallEntryId(c)
-    })));
 
     onAddOmission(sortedIds);
     setSelectedCallIds(new Set());
@@ -426,6 +437,7 @@ export function SequenceView({
               <DepthControl
                 functionDepths={functionDepths}
                 onDepthChange={onFunctionDepthChange}
+                onHoverChange={handleHoverChange}
               />
             </div>
           )}
@@ -451,6 +463,7 @@ export function SequenceView({
               onSelectRange={handleSelectRange}
               onClearSelection={handleClearSelection}
               onEditLabel={handleOpenLabelEdit}
+              onHoverChange={handleHoverChange}
             />
           </div>
 

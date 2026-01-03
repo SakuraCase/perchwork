@@ -44,12 +44,15 @@ export function SequenceToolbar({
 
   /**
    * Mermaidコードをクリップボードにコピー
+   * インデックスマーカー[[idx:N]]は削除してからコピー
    */
   const handleCopyMermaid = useCallback(async () => {
     if (!mermaidCode) return;
 
     try {
-      await navigator.clipboard.writeText(mermaidCode);
+      // マーカーを削除してからコピー
+      const cleanCode = mermaidCode.replace(/\[\[idx:\d+\]\]/g, '');
+      await navigator.clipboard.writeText(cleanCode);
       setCopyStatus('copied');
       setTimeout(() => setCopyStatus('idle'), 2000);
     } catch (err) {

@@ -211,3 +211,16 @@ export interface SavedSequenceDiagram {
   /** 更新日時（ISO 8601形式） */
   updatedAt: string;
 }
+
+// ============================================
+// ホバーハイライト機能
+// ============================================
+
+/**
+ * ホバー対象
+ * シーケンス図上でハイライトする要素を指定
+ */
+export type HoverTarget =
+  | { type: 'function'; functionId: ItemId }
+  | { type: 'call'; callEntryId: CallEntryId }
+  | null;

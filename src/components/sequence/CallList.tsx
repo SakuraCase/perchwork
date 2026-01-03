@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useRef } from 'react';
-import type { CallInfo, CallEntryId, SequenceEditState } from '../../types/sequence';
+import type { CallInfo, CallEntryId, SequenceEditState, HoverTarget } from '../../types/sequence';
 import { generateCallEntryId } from '../../types/sequence';
 import { extractDisplayName } from '../../services/mermaidGenerator';
 
@@ -31,6 +31,8 @@ export interface CallListProps {
   onClearSelection: () => void;
   /** ラベル編集（ダブルクリック） */
   onEditLabel?: (callEntryId: CallEntryId) => void;
+  /** ホバー変更時のコールバック（シーケンス図ハイライト用） */
+  onHoverChange?: (target: HoverTarget) => void;
 }
 
 // ============================================
@@ -60,6 +62,7 @@ export function CallList({
   onSelectRange,
   onClearSelection,
   onEditLabel,
+  onHoverChange,
 }: CallListProps) {
   const lastSelectedIndexRef = useRef<number | null>(null);
 
@@ -124,9 +127,13 @@ export function CallList({
 
           return (
             <div
-              key={callEntryId}
+              key={`${index}-${callEntryId}`}
               onClick={(e) => handleClick(index, callEntryId, e)}
               onDoubleClick={() => handleDoubleClick(callEntryId)}
+              onMouseEnter={() =>
+                onHoverChange?.({ type: 'call', callEntryId })
+              }
+              onMouseLeave={() => onHoverChange?.(null)}
               className={`
                 flex items-center gap-2 px-2 py-1 cursor-pointer text-sm
                 border-b border-gray-800 last:border-b-0

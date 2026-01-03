@@ -218,7 +218,7 @@ export function generateSequenceDiagram(
   const { startFunctionId, depthConfig, summaries, useActivation = true, editState } = options;
 
   // 呼び出しイベントを収集
-  const { events, participants: participantIds, calls } = collectCallEvents(
+  const { events, participants: participantIds } = collectCallEvents(
     graphData,
     startFunctionId,
     depthConfig
@@ -251,12 +251,12 @@ export function generateSequenceDiagram(
   const participants = Array.from(structParticipants.values());
 
   // Mermaidコードを生成
-  const mermaidCode = generateMermaidCode(participants, events, summaries, useActivation, editState);
+  const { code: mermaidCode, renderedCalls } = generateMermaidCode(participants, events, summaries, useActivation, editState);
 
   return {
     mermaidCode,
     participants,
-    calls,
+    calls: renderedCalls, // 実際に描画された呼び出しのみを返す
   };
 }
 
@@ -353,6 +353,16 @@ function getNotesAtPosition(
 }
 
 /**
+ * generateMermaidCodeの戻り値
+ */
+interface GenerateMermaidCodeResult {
+  /** 生成されたMermaidコード */
+  code: string;
+  /** 実際に矢印として描画された呼び出し（SVGの順序と一致） */
+  renderedCalls: CallInfo[];
+}
+
+/**
  * Mermaidコードを生成する
  * イベントベースで開始/終了を処理し、アクティベーションの入れ子を正しく表現する
  */
@@ -362,8 +372,9 @@ function generateMermaidCode(
   summaries?: SummaryMap,
   useActivation: boolean = true,
   editState?: SequenceEditState
-): string {
+): GenerateMermaidCodeResult {
   let code = 'sequenceDiagram\n';
+  const renderedCalls: CallInfo[] = [];
 
   // 参加者宣言（構造体単位）
   for (const p of participants) {
@@ -379,11 +390,6 @@ function generateMermaidCode(
   // 前回省略された呼び出しID（非連続の省略検出用）
   let lastOmittedCallId: CallEntryId | null = null;
 
-  // DEBUG: 省略設定をログ出力
-  if (editState?.omissions && editState.omissions.length > 0) {
-    console.log('[generateMermaidCode] omissions:', editState.omissions);
-  }
-
   // イベントを順に処理
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
@@ -396,13 +402,6 @@ function generateMermaidCode(
     const isSelfCall = fromStruct === toStruct;
 
     if (event.type === 'start') {
-      // DEBUG: 省略チェックのログ
-      if (editState?.omissions && editState.omissions.length > 0) {
-        const isOmitted = isCallOmitted(callEntryId, editState);
-        const placeholder = getOmissionPlaceholder(callEntryId, editState, lastOmittedCallId);
-        console.log(`[generateMermaidCode] callEntryId: ${callEntryId}, isOmitted: ${isOmitted}, placeholder: ${placeholder}, lastOmittedCallId: ${lastOmittedCallId}`);
-      }
-
       // 省略チェック
       const omissionPlaceholder = getOmissionPlaceholder(callEntryId, editState, lastOmittedCallId);
       if (omissionPlaceholder !== null) {
@@ -532,9 +531,14 @@ function generateMermaidCode(
       }
 
       // 呼び出し矢印
+      // インデックスマーカーを埋め込み（SVGマッピング用）
       const callIndent = '    '.repeat(contextStack.length + 1);
       const activateStart = useActivation ? '+' : '';
-      code += `${callIndent}${sanitizeId(fromStruct as ItemId)}->>${activateStart}${sanitizeId(toStruct as ItemId)}: ${label}\n`;
+      const callIndexMarker = `[[idx:${renderedCalls.length}]]`;
+      code += `${callIndent}${sanitizeId(fromStruct as ItemId)}->>${activateStart}${sanitizeId(toStruct as ItemId)}: ${label}${callIndexMarker}\n`;
+
+      // 実際に描画された呼び出しを記録
+      renderedCalls.push(call);
 
       // after Noteを挿入
       const afterNotes = getNotesAtPosition(callEntryId, 'after', editState);
@@ -601,7 +605,7 @@ function generateMermaidCode(
     contextStack.pop();
   }
 
-  return code;
+  return { code, renderedCalls };
 }
 
 /**
