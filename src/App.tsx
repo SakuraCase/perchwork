@@ -23,7 +23,7 @@ import { MainContent } from './components/layout/MainContent';
 import { SidePanel } from './components/layout/SidePanel';
 import { DetailPanel } from './components/detail/DetailPanel';
 import { TreeView } from './components/tree/TreeView';
-import { GraphView } from './components/graph/GraphView';
+import { DeferredGraphView } from './components/graph/DeferredGraphView';
 import { GraphToolbar } from './components/graph/GraphToolbar';
 import { NodeContextMenu } from './components/graph/NodeContextMenu';
 import { ColorRuleDialog } from './components/graph/ColorRuleDialog';
@@ -571,7 +571,8 @@ function App() {
 
                     {!graphLoading && !graphError && graphData && (
                       <div className="flex-1 relative">
-                        <GraphView
+                        <DeferredGraphView
+                          isActive={activeTab === 'graph'}
                           data={graphData}
                           layout={layoutOptions}
                           filter={filter}

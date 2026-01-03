@@ -8,3 +8,4 @@ export type { UseGraphTraversalResult, TraversalDirection } from './useGraphTrav
 export { useGraphLayout } from './useGraphLayout';
 export type { UseGraphLayoutResult } from './useGraphLayout';
 export { useCallers } from './useCallers';
+export { useDeferredGraphRender } from './useDeferredGraphRender';
