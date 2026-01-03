@@ -32,9 +32,6 @@ export interface AppSettings {
 
   /** 保存済みシーケンス図一覧 - 名前付き保存 */
   savedSequences?: SavedSequenceDiagram[];
-
-  /** バージョン番号（マイグレーション用） */
-  version: number;
 }
 
 // ============================================
@@ -93,20 +90,6 @@ export interface ProfileStorage {
 export const CURRENT_STORAGE_VERSION = 1;
 
 /**
- * 現在の設定バージョン
- */
-export const CURRENT_SETTINGS_VERSION = 3;
-
-/**
  * localStorage のキー
  */
 export const STORAGE_KEY_PROFILES = 'perchwork-profiles';
-
-/**
- * 旧 localStorage のキー（マイグレーション用）
- */
-export const LEGACY_STORAGE_KEYS = {
-  layout: 'perchwork-graph-layout',
-  filter: 'perchwork-graph-filter',
-  colorRules: 'perchwork-graph-color-rules',
-} as const;

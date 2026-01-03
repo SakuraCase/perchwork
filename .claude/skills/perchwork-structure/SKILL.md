@@ -7,7 +7,7 @@ allowed-tools:
 
 # Perchwork Structure
 
-tree-sitter を使って Rust コードを静的解析し、構造化されたJSONデータを生成するスキル。
+tree-sitter を使って Rust コードを静的解析し、構造化された JSON データを生成するスキル。
 
 ## タスク
 
@@ -17,7 +17,7 @@ tree-sitter を使って Rust コードを静的解析し、構造化されたJS
 cd .claude/skills/perchwork-structure/scripts && npm run build && node dist/analyze.js --config ../../../../config.json
 ```
 
-**注意**: このスキルは `tools/perchwork` ディレクトリから実行されることを前提としています。
+**注意**: このスキルは `perchwork` ディレクトリ(root)から実行されることを前提としています。
 
 ## 出力
 
