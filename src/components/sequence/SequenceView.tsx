@@ -164,6 +164,29 @@ export function SequenceView({
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
 
+  // ズーム状態
+  const [scale, setScale] = useState(1);
+
+  // ズーム操作ハンドラ
+  const handleZoomIn = useCallback(() => {
+    setScale((prev) => Math.min(prev + 0.1, 3));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setScale((prev) => Math.max(prev - 0.1, 0.1));
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    setScale(1);
+  }, []);
+
+  const handleZoomChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    if (!isNaN(value)) {
+      setScale(Math.min(Math.max(value / 100, 0.1), 3));
+    }
+  }, []);
+
   // containerRef が準備できたらフラグを立てる
   useEffect(() => {
     if (containerRef.current) {
@@ -409,6 +432,47 @@ export function SequenceView({
             hasSavedSequences={savedSequences.length > 0}
           />
 
+          {/* ズームコントロール */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleZoomOut}
+              className="w-8 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="ズームアウト"
+              title="ズームアウト"
+            >
+              -
+            </button>
+            <div className="flex items-center">
+              <input
+                type="number"
+                value={Math.round(scale * 100)}
+                onChange={handleZoomChange}
+                min={10}
+                max={300}
+                step={10}
+                className="w-12 h-8 text-xs text-gray-100 text-center bg-gray-800 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                aria-label="ズーム倍率"
+              />
+              <span className="text-xs text-gray-400 ml-0.5">%</span>
+            </div>
+            <button
+              onClick={handleZoomIn}
+              className="w-8 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="ズームイン"
+              title="ズームイン"
+            >
+              +
+            </button>
+            <button
+              onClick={handleZoomReset}
+              className="px-2 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+              aria-label="リセット"
+              title="リセット"
+            >
+              リセット
+            </button>
+          </div>
+
           {/* 起点関数 */}
           <div className="space-y-2">
             <label className="text-sm text-gray-400">起点:</label>
@@ -522,6 +586,7 @@ export function SequenceView({
           <div
             ref={containerRef}
             className="flex justify-center items-start min-h-full"
+            style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
           />
         )}
       </div>
