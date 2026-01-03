@@ -271,12 +271,8 @@ export function GraphView({
 
   useEffect(() => {
     if (!containerRef.current) {
-      console.log('[GraphView] Container ref is null');
       return;
     }
-
-    console.log('[GraphView] Initializing with', filteredData.nodes.length, 'nodes,', filteredData.edges.length, 'edges');
-    console.log('[GraphView] Container size:', containerRef.current.clientWidth, 'x', containerRef.current.clientHeight);
 
     // Cytoscape インスタンスを初期化
     const cy = cytoscape({

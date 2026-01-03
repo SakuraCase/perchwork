@@ -13,6 +13,7 @@ import type { ViewTab } from './types/view';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
 import { useGraphLayout } from './hooks/useGraphLayout';
+import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useProfile } from './hooks/useProfile';
 import { useSearchIndex } from './hooks/useSearchIndex';
 import { useSequenceDiagram } from './hooks/useSequenceDiagram';
@@ -113,6 +114,9 @@ function App() {
   // シーケンス図関連
   const sequenceDiagram = useSequenceDiagram(graphData, summaries);
 
+  // ナビゲーション履歴（グラフ/ツリー共通）
+  const navigationHistory = useNavigationHistory();
+
   // シーケンス編集の未保存状態追跡
   const [sequenceHasUnsavedChanges, setSequenceHasUnsavedChanges] = useState(false);
   const [lastSavedEditState, setLastSavedEditState] = useState<string | null>(null);
@@ -208,6 +212,21 @@ function App() {
         setGraphCurrentFile(sourceFile);
         setGraphSemanticTests(tests);
         setGraphSelectedItemId(nodeId as ItemId);
+
+        // 履歴に追加
+        const item = sourceFile.items.find((i) => i.id === nodeId);
+        if (item) {
+          // displayName: methodはStruct::method形式
+          const displayName = item.type === 'method' && item.impl_for
+            ? `${item.impl_for}::${item.name}`
+            : item.name;
+          navigationHistory.push({
+            itemId: nodeId as ItemId,
+            filePath,
+            itemName: displayName,
+            tab: 'graph',
+          });
+        }
       } catch (err) {
         console.error('Failed to load file:', err);
         setGraphCurrentFile(null);
@@ -215,15 +234,59 @@ function App() {
         setGraphSelectedItemId(null);
       }
     },
-    [loadFileWithSemantic]
+    [loadFileWithSemantic, navigationHistory]
   );
 
   /**
    * グラフビューでのアイテム選択時のハンドラ
    */
-  const handleGraphSelectItem = useCallback((id: ItemId) => {
-    setGraphSelectedItemId(id);
-  }, []);
+  const handleGraphSelectItem = useCallback(
+    (id: ItemId | null) => {
+      // 履歴に追加（移動時に最初に追加）
+      if (graphCurrentFile && graphData) {
+        // ファイルパスをgraphDataから取得（graphCurrentFile.pathはソースパスなので）
+        const firstItemId = graphCurrentFile.items[0]?.id;
+        const nodeForPath = firstItemId
+          ? graphData.nodes.find((n) => n.data.id === firstItemId)
+          : null;
+        const filePath = nodeForPath?.data.file ?? graphCurrentFile.path;
+
+        if (id) {
+          // アイテム選択
+          const item = graphCurrentFile.items.find((i) => i.id === id);
+          if (item) {
+            const displayName = item.type === 'method' && item.impl_for
+              ? `${item.impl_for}::${item.name}`
+              : item.name;
+            navigationHistory.push({
+              itemId: id,
+              filePath,
+              itemName: displayName,
+              tab: 'graph',
+            });
+          }
+        } else {
+          // 定義一覧への移動（itemId: null）
+          const mainItem = graphCurrentFile.items.find(
+            item => item.type === 'struct' || item.type === 'enum'
+          );
+          const displayName = mainItem?.name ??
+            filePath.split('/').pop()?.replace('.json', '') ??
+            filePath;
+          navigationHistory.push({
+            itemId: null,
+            filePath,
+            itemName: displayName,
+            tab: 'graph',
+          });
+        }
+      }
+
+      // 状態を更新
+      setGraphSelectedItemId(id);
+    },
+    [graphCurrentFile, graphData, navigationHistory]
+  );
 
   /**
    * ツリービューでのファイル選択時のハンドラ
@@ -245,21 +308,71 @@ function App() {
         };
         setTreeCurrentFile(sourceFile);
         setTreeSemanticTests(tests);
+
+        // 履歴に追加（構造体名を取得）
+        // 主要なstruct/enumの名前を使用。なければファイル名
+        const mainItem = sourceFile.items.find(
+          item => item.type === 'struct' || item.type === 'enum'
+        );
+        const displayName = mainItem?.name ?? filePath.split('/').pop()?.replace('.json', '') ?? filePath;
+        navigationHistory.push({
+          itemId: null,
+          filePath,
+          itemName: displayName,
+          tab: 'tree',
+        });
       } catch (err) {
         console.error('Failed to load file:', err);
         setTreeCurrentFile(null);
         setTreeSemanticTests([]);
       }
     },
-    [loadFileWithSemantic]
+    [loadFileWithSemantic, navigationHistory]
   );
 
   /**
    * ツリービューでのアイテム選択時のハンドラ
    */
-  const handleTreeSelectItem = useCallback((id: ItemId) => {
-    setTreeSelectedItemId(id);
-  }, []);
+  const handleTreeSelectItem = useCallback(
+    (id: ItemId | null) => {
+      // 履歴に追加（移動時に最初に追加）
+      if (treeCurrentFile && treeSelectedFilePath) {
+        if (id) {
+          // アイテム選択
+          const item = treeCurrentFile.items.find((i) => i.id === id);
+          if (item) {
+            const displayName = item.type === 'method' && item.impl_for
+              ? `${item.impl_for}::${item.name}`
+              : item.name;
+            navigationHistory.push({
+              itemId: id,
+              filePath: treeSelectedFilePath,
+              itemName: displayName,
+              tab: 'tree',
+            });
+          }
+        } else {
+          // 定義一覧への移動（itemId: null）
+          const mainItem = treeCurrentFile.items.find(
+            item => item.type === 'struct' || item.type === 'enum'
+          );
+          const displayName = mainItem?.name ??
+            treeSelectedFilePath.split('/').pop()?.replace('.json', '') ??
+            treeSelectedFilePath;
+          navigationHistory.push({
+            itemId: null,
+            filePath: treeSelectedFilePath,
+            itemName: displayName,
+            tab: 'tree',
+          });
+        }
+      }
+
+      // 状態を更新
+      setTreeSelectedItemId(id);
+    },
+    [treeCurrentFile, treeSelectedFilePath, navigationHistory]
+  );
 
   /**
    * 検索からグラフノードを選択するハンドラ
@@ -305,19 +418,6 @@ function App() {
    */
   const handleToggleSidePanel = useCallback(() => {
     setIsSidePanelOpen(prev => !prev);
-  }, []);
-
-  /**
-   * ノードを中心に表示するハンドラ
-   * コンテキストメニューの「このノードを中心に表示」から呼ばれる
-   */
-  const handleCenterOnNode = useCallback((nodeId: string) => {
-    // 一旦nullにしてから設定することで、同じノードでもuseEffectがトリガーされる
-    setCenterNodeId(null);
-    setTimeout(() => {
-      setCenterNodeId(nodeId);
-      setContextMenu(null); // メニューを閉じる
-    }, 0);
   }, []);
 
   /**
@@ -368,6 +468,82 @@ function App() {
       setActiveTab('sequence');
     },
     [setSequenceRootFunction]
+  );
+
+  /**
+   * 履歴から指定位置のエントリに移動するハンドラ
+   * 履歴には追加せず、UIのみ更新する
+   */
+  const handleNavigateTo = useCallback(async (index: number) => {
+    const targetEntry = navigationHistory.getEntry(index);
+    if (!targetEntry) return;
+
+    try {
+      const { splitFile, semanticTests: tests } = await loadFileWithSemantic(targetEntry.filePath);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawData = splitFile as any;
+      const sourceFile: SourceFile = {
+        path: rawData.path || targetEntry.filePath,
+        hash: '',
+        last_modified: '',
+        items: rawData.items || [],
+      };
+
+      if (activeTab === 'graph') {
+        setGraphCurrentFile(sourceFile);
+        setGraphSemanticTests(tests);
+        setGraphSelectedItemId(targetEntry.itemId);
+
+        // アイテムが選択されている場合、ノードを中心表示
+        if (targetEntry.itemId) {
+          setCenterNodeId(null);
+          setTimeout(() => setCenterNodeId(targetEntry.itemId), 0);
+        }
+      } else if (activeTab === 'tree') {
+        setTreeSelectedFilePath(targetEntry.filePath);
+        setTreeCurrentFile(sourceFile);
+        setTreeSemanticTests(tests);
+        setTreeSelectedItemId(targetEntry.itemId);
+      }
+    } catch (err) {
+      console.error('Failed to load file:', err);
+    }
+  }, [navigationHistory, activeTab, loadFileWithSemantic]);
+
+  /**
+   * グラフタブでノードを中心表示するハンドラ（グラフビューから呼ばれる）
+   */
+  const handleCenterOnGraphNode = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (itemId: ItemId, _filePath: string) => {
+      // ノードを中心表示
+      setCenterNodeId(null);
+      setTimeout(() => setCenterNodeId(itemId), 0);
+    },
+    []
+  );
+
+  /**
+   * ツリービューからグラフ表示に遷移するハンドラ
+   */
+  const handleShowInGraph = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async (itemId: ItemId, _filePath: string) => {
+      // グラフタブに切り替え
+      setActiveTab('graph');
+
+      // ノードを中心表示
+      setCenterNodeId(null);
+      setTimeout(() => setCenterNodeId(itemId), 0);
+
+      // グラフデータからノード情報を取得してファイルパスを取得
+      const node = graphData?.nodes.find((n) => n.data.id === itemId);
+      if (node) {
+        // ファイル情報を読み込んで詳細パネルに表示
+        await handleGraphNodeClick(itemId, node.data.file);
+      }
+    },
+    [graphData, handleGraphNodeClick]
   );
 
   /**
@@ -524,6 +700,11 @@ function App() {
                     onSelectItem={handleGraphSelectItem}
                     callersIndex={callersIndex}
                     semanticTests={graphSemanticTests}
+                    navigationHistory={navigationHistory.history}
+                    onNavigateTo={handleNavigateTo}
+                    onShowInGraph={handleCenterOnGraphNode}
+                    showInGraphLabel="中心に表示"
+                    onShowInSequence={handleOpenSequenceDiagram}
                   />
                 ) : (
                   // ツリー表示: サイドパネルに TreeView
@@ -592,9 +773,7 @@ function App() {
                           nodeLine={contextMenu?.nodeLine ?? null}
                           onClose={() => setContextMenu(null)}
                           onExclude={handleExcludeNode}
-                          onFocus={handleCenterOnNode}
                           onShowRelated={handleShowRelatedNodes}
-                          onOpenSequenceDiagram={(nodeId) => handleOpenSequenceDiagram(nodeId as ItemId)}
                           onAddColorRule={(nodeId, filePath) => setColorRuleDialogState({ isOpen: true, initialPrefix: nodeId, initialFilePath: filePath })}
                         />
 
@@ -618,6 +797,10 @@ function App() {
                       onSelectItem={handleTreeSelectItem}
                       callersIndex={null}
                       semanticTests={treeSemanticTests}
+                      navigationHistory={navigationHistory.history}
+                      onNavigateTo={handleNavigateTo}
+                      onShowInGraph={handleShowInGraph}
+                      onShowInSequence={handleOpenSequenceDiagram}
                     />
                   </div>
                 )}

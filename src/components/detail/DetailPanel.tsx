@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import type { SourceFile, ItemId, SemanticTest } from '@/types/schema';
 import type { CallersIndex } from '@/types/callers';
+import type { NavigationHistoryEntry } from '@/types/navigation';
 import { ItemSummary } from './ItemSummary';
 import { GroupedItemList } from './GroupedItemList';
 import { useCallers } from '@/hooks/useCallers';
@@ -26,6 +27,16 @@ interface DetailPanelProps {
   callersIndex: CallersIndex | null;
   /** セマンティックテスト情報 */
   semanticTests: SemanticTest[];
+  /** ナビゲーション履歴 */
+  navigationHistory?: NavigationHistoryEntry[];
+  /** 指定インデックスのエントリに移動 */
+  onNavigateTo?: (index: number) => void;
+  /** グラフ表示ハンドラ（グラフタブへ遷移し、ノードを中心表示） */
+  onShowInGraph?: (itemId: ItemId, filePath: string) => void;
+  /** グラフ表示ボタンのラベル */
+  showInGraphLabel?: string;
+  /** シーケンス図生成ハンドラ（シーケンスタブへ遷移し、rootを設定） */
+  onShowInSequence?: (itemId: ItemId) => void;
 }
 
 /**
@@ -42,6 +53,11 @@ export function DetailPanel({
   onSelectItem,
   callersIndex,
   semanticTests,
+  navigationHistory = [],
+  onNavigateTo,
+  onShowInGraph,
+  showInGraphLabel = 'グラフで表示',
+  onShowInSequence,
 }: DetailPanelProps) {
   // 折りたたみ状態の管理
   const [callersExpanded, setCallersExpanded] = useState(false);
@@ -71,18 +87,73 @@ export function DetailPanel({
 
   // アイテム選択済み: ItemSummary + Callers + 影響分析
   if (selectedItem) {
+    const isFunctionType =
+      selectedItem.type === 'fn' || selectedItem.type === 'method';
+
     return (
       <div className="h-full overflow-y-auto">
         <div className="p-6">
-          {/* 戻るボタン */}
-          <button
-            type="button"
-            onClick={() => onSelectItem(null as unknown as ItemId)}
-            className="mb-4 px-3 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded transition-colors flex items-center gap-2"
-          >
-            <span>←</span>
-            <span>定義一覧に戻る</span>
-          </button>
+          {/* 履歴プルダウン（一番上） */}
+          {navigationHistory.length >= 1 && onNavigateTo && (
+            <div className="mb-4">
+              <select
+                onChange={(e) => {
+                  const index = parseInt(e.target.value, 10);
+                  if (!isNaN(index) && index >= 0) {
+                    onNavigateTo(index);
+                    e.target.value = ''; // 選択をリセット
+                  }
+                }}
+                defaultValue=""
+                className="w-full px-3 py-2 text-sm bg-gray-800 text-gray-300 border border-gray-600 rounded hover:border-gray-500 focus:border-blue-500 focus:outline-none cursor-pointer"
+              >
+                <option value="" disabled>
+                  ← 履歴から移動 ({navigationHistory.length})
+                </option>
+                {navigationHistory.map((entry, idx) => (
+                  <option key={entry.id} value={idx}>
+                    {entry.itemId ? entry.itemName : `${entry.itemName} (定義一覧)`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* アクションボタン（fn/method型のみ） */}
+          {isFunctionType && (onShowInGraph || onShowInSequence) && (
+            <div className="mb-4 flex gap-2">
+              {onShowInGraph && (
+                <button
+                  type="button"
+                  onClick={() => onShowInGraph(selectedItem.id, file.path)}
+                  className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                >
+                  {showInGraphLabel}
+                </button>
+              )}
+              {onShowInSequence && (
+                <button
+                  type="button"
+                  onClick={() => onShowInSequence(selectedItem.id)}
+                  className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                >
+                  シーケンスで表示
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 定義一覧に戻るボタン */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => onSelectItem(null as unknown as ItemId)}
+              className="px-3 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded transition-colors flex items-center gap-2"
+            >
+              <span>←</span>
+              <span>定義一覧</span>
+            </button>
+          </div>
 
           {/* アイテム詳細（Callersは概要→責務→シグネチャ→テストの後に挿入） */}
           <ItemSummary
@@ -108,9 +179,9 @@ export function DetailPanel({
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {callers.map((caller) => (
+                  {callers.map((caller, index) => (
                     <button
-                      key={caller.id}
+                      key={`${caller.id}-${index}`}
                       type="button"
                       onClick={() => onSelectItem(caller.id)}
                       className="w-full text-left px-3 py-2 bg-gray-800 border border-gray-700 rounded hover:bg-gray-750 hover:border-blue-600/50 transition-colors"
@@ -136,6 +207,32 @@ export function DetailPanel({
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6">
+        {/* 履歴プルダウン */}
+        {navigationHistory.length >= 1 && onNavigateTo && (
+          <div className="mb-4">
+            <select
+              onChange={(e) => {
+                const index = parseInt(e.target.value, 10);
+                if (!isNaN(index) && index >= 0) {
+                  onNavigateTo(index);
+                  e.target.value = ''; // 選択をリセット
+                }
+              }}
+              defaultValue=""
+              className="w-full px-3 py-2 text-sm bg-gray-800 text-gray-300 border border-gray-600 rounded hover:border-gray-500 focus:border-blue-500 focus:outline-none cursor-pointer"
+            >
+              <option value="" disabled>
+                ← 履歴から移動 ({navigationHistory.length})
+              </option>
+              {navigationHistory.map((entry, idx) => (
+                <option key={entry.id} value={idx}>
+                  {entry.itemId ? entry.itemName : `${entry.itemName} (定義一覧)`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* ファイル情報ヘッダー */}
         <div className="mb-6 pb-4 border-b border-gray-700">
           <h2 className="text-xl font-bold text-gray-100 mb-2">{file.path}</h2>

@@ -9,3 +9,5 @@ export { useGraphLayout } from './useGraphLayout';
 export type { UseGraphLayoutResult } from './useGraphLayout';
 export { useCallers } from './useCallers';
 export { useDeferredGraphRender } from './useDeferredGraphRender';
+export { useNavigationHistory } from './useNavigationHistory';
+export type { UseNavigationHistoryResult } from './useNavigationHistory';

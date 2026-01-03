@@ -86,7 +86,6 @@ interface CodeItemWithFile extends CodeItem {
 async function buildItemMap(): Promise<Map<string, CodeItemWithFile>> {
   const index = await loadMainIndex();
   const itemMap = new Map<string, CodeItemWithFile>();
-  console.log('[buildItemMap] Loading', index.files.length, 'files');
 
   // 全分割ファイルを読み込んでアイテムマップを構築
   for (const fileEntry of index.files) {
@@ -111,7 +110,6 @@ async function buildItemMap(): Promise<Map<string, CodeItemWithFile>> {
     }
   }
 
-  console.log('[buildItemMap] Total items loaded:', itemMap.size);
   return itemMap;
 }
 
@@ -126,15 +124,12 @@ async function buildItemMap(): Promise<Map<string, CodeItemWithFile>> {
 export async function loadFullGraph(): Promise<CytoscapeData> {
   // エッジデータを読み込む
   const edgesData = await loadCallGraphEdges();
-  console.log('[graphLoader] Loaded edges:', edgesData.edges.length);
 
   // アイテムマップを構築（ノード詳細情報取得用）
   const itemMap = await buildItemMap();
-  console.log('[graphLoader] Built itemMap:', itemMap.size);
 
   // テストを除外したエッジをフィルタ
   const filteredEdges = edgesData.edges.filter(edge => !isTestId(edge.from));
-  console.log('[graphLoader] Filtered edges (non-test):', filteredEdges.length);
 
   // エッジからノードIDを収集
   const nodeIds = new Set<string>();
@@ -222,7 +217,6 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
     });
   }
 
-  console.log('[graphLoader] Final result - nodes:', nodes.length, 'edges:', edges.length, '(filtered from', filteredEdges.length, 'edges)');
   return { nodes, edges };
 }
 
