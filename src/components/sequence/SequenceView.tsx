@@ -51,8 +51,10 @@ interface SequenceViewProps {
 
   // === 編集機能用props ===
 
-  /** 呼び出し一覧 */
+  /** 呼び出し一覧（省略含む全ての呼び出し） */
   calls: CallInfo[];
+  /** 描画された呼び出し（ハイライト用、SVGと一致） */
+  renderedCalls: CallInfo[];
   /** 編集状態 */
   editState: SequenceEditState;
   /** 未保存の変更があるか */
@@ -129,6 +131,7 @@ export function SequenceView({
   useActivation,
   onToggleActivation,
   calls,
+  renderedCalls,
   editState,
   hasUnsavedChanges,
   onAddGroup,
@@ -214,8 +217,8 @@ export function SequenceView({
 
         if (containerRef.current) {
           containerRef.current.innerHTML = svg;
-          // レンダリング完了後、SVG要素にdata属性を付与
-          attachCallEntryIds(containerRef.current, calls);
+          // レンダリング完了後、SVG要素にdata属性を付与（renderedCallsを使用）
+          attachCallEntryIds(containerRef.current, renderedCalls);
         }
       } catch (err) {
         console.error('Mermaid render error:', err);
@@ -226,7 +229,7 @@ export function SequenceView({
     };
 
     renderDiagram();
-  }, [mermaidCode, isContainerReady, calls]);
+  }, [mermaidCode, isContainerReady, renderedCalls]);
 
   // root関数変更時に選択をクリア
   useEffect(() => {
@@ -238,8 +241,8 @@ export function SequenceView({
   // （mermaid.renderは非同期のため、attachCallEntryIds完了前にこのuseEffectが実行されることを防ぐ）
   useEffect(() => {
     if (!containerRef.current || isRendering) return;
-    applyHighlight(containerRef.current, hoverTarget, calls);
-  }, [hoverTarget, calls, isRendering]);
+    applyHighlight(containerRef.current, hoverTarget, renderedCalls);
+  }, [hoverTarget, renderedCalls, isRendering]);
 
   // ホバー変更ハンドラ
   const handleHoverChange = useCallback((target: HoverTarget) => {

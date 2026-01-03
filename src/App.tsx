@@ -636,6 +636,7 @@ function App() {
                 onToggleActivation={sequenceDiagram.toggleActivation}
                 // 編集機能props
                 calls={sequenceDiagram.calls}
+                renderedCalls={sequenceDiagram.renderedCalls}
                 editState={sequenceDiagram.editState}
                 hasUnsavedChanges={sequenceHasUnsavedChanges}
                 // グループ操作

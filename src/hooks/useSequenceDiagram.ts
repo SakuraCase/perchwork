@@ -51,8 +51,10 @@ export interface UseSequenceDiagramResult {
 
   /** 現在の編集状態 */
   editState: SequenceEditState;
-  /** 現在の呼び出しリスト */
+  /** 現在の呼び出しリスト（一覧表示用、省略含む全ての呼び出し） */
   calls: CallInfo[];
+  /** 描画された呼び出しリスト（ハイライト用、SVGと一致） */
+  renderedCalls: CallInfo[];
 
   // グループ操作
   /** グループを追加 */
@@ -289,13 +291,17 @@ export function useSequenceDiagram(
   }, []);
 
   /**
-   * editStateを反映したMermaidコードとcallsを生成
+   * editStateを反映したMermaidコードとrenderedCallsを生成
    * stateのmermaidCodeはeditState未適用のベースコード。
-   * 編集状態がある場合は再生成し、callsも同期する。
+   * 編集状態がある場合は再生成する。
+   *
+   * - mermaidCode: 編集状態を適用したMermaidコード
+   * - renderedCalls: 実際に描画された呼び出し（ハイライトマッピング用）
+   * - calls（state）: 全ての呼び出し（呼び出し一覧表示用、省略含む）
    */
-  const mermaidDataWithEdits = useMemo(() => {
+  const { mermaidCode: mermaidCodeWithEdits, renderedCalls } = useMemo(() => {
     if (!state.rootFunctionId || !state.mermaidCode) {
-      return { mermaidCode: state.mermaidCode, calls };
+      return { mermaidCode: state.mermaidCode, renderedCalls: calls };
     }
 
     // 編集状態がない場合はベースのコードとcallsをそのまま返す
@@ -305,7 +311,7 @@ export function useSequenceDiagram(
       editState.labelEdits.length === 0 &&
       editState.notes.length === 0
     ) {
-      return { mermaidCode: state.mermaidCode, calls };
+      return { mermaidCode: state.mermaidCode, renderedCalls: calls };
     }
 
     // 編集状態を適用して再生成
@@ -317,12 +323,8 @@ export function useSequenceDiagram(
       editState
     );
 
-    return { mermaidCode: result.mermaidCode, calls: result.calls };
+    return { mermaidCode: result.mermaidCode, renderedCalls: result.calls };
   }, [editState, state.rootFunctionId, state.defaultDepth, state.functionDepths, state.mermaidCode, useActivation, regenerateInternal, calls]);
-
-  // 編集状態適用後のMermaidコードとcalls
-  const mermaidCodeWithEdits = mermaidDataWithEdits.mermaidCode;
-  const callsWithEdits = mermaidDataWithEdits.calls;
 
   // ============================================
   // 編集操作
@@ -542,7 +544,8 @@ export function useSequenceDiagram(
 
     // 編集機能
     editState,
-    calls: callsWithEdits,
+    calls,
+    renderedCalls,
     addGroup,
     removeGroup,
     updateGroup,
