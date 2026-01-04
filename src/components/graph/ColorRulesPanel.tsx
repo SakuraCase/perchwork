@@ -7,8 +7,47 @@
  *   - プレフィックス入力とカラーピッカー
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import type { NodeColorRule, ColorRuleMatchType } from '../../types/graph';
+
+// ============================================
+// カラーピッカーセル（遅延反映）
+// ============================================
+
+interface ColorPickerCellProps {
+  color: string;
+  onChange: (color: string) => void;
+}
+
+/**
+ * カラーピッカーセル
+ * ローカルステートで色を管理し、フォーカスが外れたときに親へ通知
+ */
+function ColorPickerCell({ color, onChange }: ColorPickerCellProps) {
+  const [localColor, setLocalColor] = useState(color);
+
+  // 親から色が変更された場合にローカルステートを同期
+  useEffect(() => {
+    setLocalColor(color);
+  }, [color]);
+
+  const handleBlur = () => {
+    if (localColor !== color) {
+      onChange(localColor);
+    }
+  };
+
+  return (
+    <input
+      type="color"
+      value={localColor}
+      onChange={(e) => setLocalColor(e.target.value)}
+      onBlur={handleBlur}
+      className="w-8 h-8 rounded border border-gray-600 cursor-pointer bg-transparent"
+      aria-label="ノード色"
+    />
+  );
+}
 
 // ============================================
 // Props定義
@@ -42,7 +81,7 @@ function createDefaultRule(): NodeColorRule {
     prefix: '',
     color: '#ff6b6b',
     enabled: true,
-    matchType: 'id',
+    matchType: 'file',
   };
 }
 
@@ -196,14 +235,11 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
           />
 
           {/* カラーピッカー */}
-          <input
-            type="color"
-            value={rule.color}
-            onChange={(e) =>
-              handleUpdateRule(rule.id, { color: e.target.value })
+          <ColorPickerCell
+            color={rule.color}
+            onChange={(newColor) =>
+              handleUpdateRule(rule.id, { color: newColor })
             }
-            className="w-8 h-8 rounded border border-gray-600 cursor-pointer bg-transparent"
-            aria-label="ノード色"
           />
 
           {/* 削除ボタン */}

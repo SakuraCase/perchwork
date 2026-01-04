@@ -66,8 +66,8 @@ export function ColorRuleDialog({
   onClose,
   onAdd,
 }: ColorRuleDialogProps) {
-  const [matchType, setMatchType] = useState<ColorRuleMatchType>('id');
-  const [prefix, setPrefix] = useState(initialPrefix);
+  const [matchType, setMatchType] = useState<ColorRuleMatchType>('file');
+  const [prefix, setPrefix] = useState(initialFilePath || initialPrefix);
   const [color, setColor] = useState('#ff6b6b');
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -77,8 +77,8 @@ export function ColorRuleDialog({
     if (isOpen) {
       // ダイアログ開閉時の状態リセットは意図的
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMatchType('id');
-      setPrefix(initialPrefix);
+      setMatchType('file');
+      setPrefix(initialFilePath || initialPrefix);
       setColor('#ff6b6b');
       // 少し遅延させてフォーカス
       setTimeout(() => {
@@ -86,7 +86,7 @@ export function ColorRuleDialog({
         inputRef.current?.select();
       }, 0);
     }
-  }, [isOpen, initialPrefix]);
+  }, [isOpen, initialPrefix, initialFilePath]);
 
   /**
    * マッチタイプ変更時にプレフィックスを切り替え
