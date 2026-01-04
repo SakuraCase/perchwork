@@ -148,6 +148,7 @@ export function SequenceView({
   onDeleteSaved,
 }: SequenceViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [isContainerReady, setIsContainerReady] = useState(false);
@@ -170,6 +171,10 @@ export function SequenceView({
   // ズーム状態
   const [scale, setScale] = useState(1);
 
+  // パン（ドラッグスクロール）状態
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   // ズーム操作ハンドラ
   const handleZoomIn = useCallback(() => {
     setScale((prev) => Math.min(prev + 0.1, 3));
@@ -190,12 +195,93 @@ export function SequenceView({
     }
   }, []);
 
+  // ホイールズームハンドラ（Ctrl+ホイール、マウス位置中心）
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      // Ctrlが押されていない場合は通常スクロール
+      if (!e.ctrlKey) return;
+
+      e.preventDefault();
+
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      // ズーム係数計算
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const newScale = Math.min(Math.max(scale + delta, 0.1), 3);
+
+      if (newScale === scale) return;
+
+      // マウス位置を中心にズームするためのスクロール位置調整
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const scrollX = container.scrollLeft;
+      const scrollY = container.scrollTop;
+
+      // マウス位置の割合を維持してスクロール位置を計算
+      const ratio = newScale / scale;
+      const newScrollX = (scrollX + mouseX) * ratio - mouseX;
+      const newScrollY = (scrollY + mouseY) * ratio - mouseY;
+
+      setScale(newScale);
+
+      // 次フレームでスクロール位置を更新
+      requestAnimationFrame(() => {
+        container.scrollLeft = newScrollX;
+        container.scrollTop = newScrollY;
+      });
+    },
+    [scale]
+  );
+
+  // ドラッグパンハンドラ
+  const handlePanMouseDown = useCallback((e: React.MouseEvent) => {
+    // 左クリックのみ
+    if (e.button !== 0) return;
+
+    setIsPanning(true);
+    setPanStart({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handlePanMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isPanning) return;
+
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const dx = panStart.x - e.clientX;
+      const dy = panStart.y - e.clientY;
+
+      container.scrollLeft += dx;
+      container.scrollTop += dy;
+
+      setPanStart({ x: e.clientX, y: e.clientY });
+    },
+    [isPanning, panStart]
+  );
+
+  const handlePanMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
   // containerRef が準備できたらフラグを立てる
   useEffect(() => {
     if (containerRef.current) {
       setIsContainerReady(true);
     }
   }, []);
+
+  // wheelイベント登録（passive: false でpreventDefaultを有効化）
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
 
   // Mermaid図をレンダリング
   useEffect(() => {
@@ -569,7 +655,14 @@ export function SequenceView({
       </div>
 
       {/* メインエリア: 図の表示 */}
-      <div className="flex-1 overflow-auto p-4 relative">
+      <div
+        ref={scrollContainerRef}
+        className={`flex-1 overflow-auto p-4 relative ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+        onMouseDown={handlePanMouseDown}
+        onMouseMove={handlePanMouseMove}
+        onMouseUp={handlePanMouseUp}
+        onMouseLeave={handlePanMouseUp}
+      >
         {isRendering && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
             <div className="text-gray-500">レンダリング中...</div>
@@ -589,7 +682,7 @@ export function SequenceView({
           <div
             ref={containerRef}
             className="flex justify-center items-start min-h-full"
-            style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+            style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
           />
         )}
       </div>
