@@ -1,6 +1,11 @@
 # perchwork
 
-コードベースを解析し、理解を助けるビジュアルツール
+コードベースを解析し、理解を助けるローカル用ビジュアルツール
+
+## 前提条件
+
+- [Claude Code](https://github.com/anthropics/claude-code)
+- Node.js (v18 以上推奨)
 
 ## セットアップ
 
@@ -9,9 +14,27 @@ cp config.example.json config.json
 # config.json を編集して target_dir を設定
 ```
 
-## 使い方
+### 画像生成機能（オプション）
 
-詳細は [.claude/commands/analyze.md](.claude/commands/analyze.md) を参照。
+generate-image スキルを使用する場合、Google GenAI API キーの設定が必要:
+
+```bash
+export PERCHWORK_GOOGLE_GENAI_API_KEY="your-api-key"
+```
+
+## カスタムスラッシュコマンド
+
+Claude Code で利用可能なコマンド:
+
+| コマンド   | 説明                                                       |
+| ---------- | ---------------------------------------------------------- |
+| `/analyze` | コードベースを解析し構造化 JSON を生成                     |
+| `/i`       | コードベースへの質疑応答・調査                             |
+| `/w`       | /i での会話内容から セッションとドキュメントファイルを生成 |
+
+詳細は `.claude/commands/` 内の各ファイルを参照。
+
+## 使い方
 
 ```bash
 npm run dev    # 開発サーバー起動

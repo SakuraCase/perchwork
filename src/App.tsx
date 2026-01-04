@@ -17,6 +17,14 @@ import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useProfile } from './hooks/useProfile';
 import { useSearchIndex } from './hooks/useSearchIndex';
 import { useSequenceDiagram } from './hooks/useSequenceDiagram';
+import { useNoteDataLoader } from './hooks/useNoteDataLoader';
+import type {
+  NoteSidePanelTab,
+  NoteSessionEntry,
+  NoteDocumentEntry,
+  NoteSelection,
+} from './types/note';
+import { NoteSidePanel, NoteContentViewer, NoteEmptyState } from './components/note';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loading } from './components/common/Loading';
 import { Header } from './components/layout/Header';
@@ -57,7 +65,7 @@ function App() {
   const { items: searchItems, isLoading: searchLoading } = useSearchIndex(index);
 
   // タブ状態
-  const [activeTab, setActiveTab] = useState<ViewTab>('graph');
+  const [activeTab, setActiveTab] = useState<ViewTab>('ai');
 
   // サイドパネル開閉状態
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
@@ -75,6 +83,15 @@ function App() {
 
   // semantic情報（シーケンス図用）
   const [summaries, setSummaries] = useState<SummaryMap | undefined>(undefined);
+
+  // ノート機能用状態
+  const {
+    sessions: noteSessions,
+    categories: noteCategories,
+    isLoading: noteLoading,
+  } = useNoteDataLoader();
+  const [noteSidePanelTab, setNoteSidePanelTab] = useState<NoteSidePanelTab>("sessions");
+  const [noteSelection, setNoteSelection] = useState<NoteSelection | null>(null);
 
   // semantic情報の読み込み
   useEffect(() => {
@@ -414,6 +431,20 @@ function App() {
   );
 
   /**
+   * ノートセッション選択時のハンドラ
+   */
+  const handleSelectNoteSession = useCallback((session: NoteSessionEntry) => {
+    setNoteSelection({ type: "session", id: session.id, path: session.path });
+  }, []);
+
+  /**
+   * ノートドキュメント選択時のハンドラ
+   */
+  const handleSelectNoteDocument = useCallback((entry: NoteDocumentEntry) => {
+    setNoteSelection({ type: "document", id: entry.id, path: entry.path });
+  }, []);
+
+  /**
    * サイドパネル開閉トグル
    */
   const handleToggleSidePanel = useCallback(() => {
@@ -687,8 +718,8 @@ function App() {
 
         {/* メインコンテンツエリア */}
         <div className="flex flex-1 overflow-hidden">
-          {/* シーケンス図タブの場合はサイドパネルを表示しない */}
-          {activeTab !== 'sequence' && (
+          {/* グラフ・ツリータブのレイアウト */}
+          {(activeTab === 'graph' || activeTab === 'tree') && (
             <>
               {/* サイドパネル（左側） */}
               <SidePanel isOpen={isSidePanelOpen} onToggle={handleToggleSidePanel}>
@@ -842,6 +873,34 @@ function App() {
                 onDeleteSaved={handleDeleteSavedSequence}
               />
             </div>
+          )}
+
+          {/* ノートタブ */}
+          {activeTab === 'ai' && (
+            <>
+              <SidePanel isOpen={isSidePanelOpen} onToggle={handleToggleSidePanel}>
+                {noteLoading ? (
+                  <Loading message="ノートデータを読み込んでいます..." />
+                ) : !noteSessions.length && !noteCategories.length ? (
+                  <NoteEmptyState type="no-data" />
+                ) : (
+                  <NoteSidePanel
+                    sessions={noteSessions}
+                    categories={noteCategories}
+                    activeTab={noteSidePanelTab}
+                    onTabChange={setNoteSidePanelTab}
+                    selectedId={noteSelection?.id ?? null}
+                    onSelectSession={handleSelectNoteSession}
+                    onSelectDocument={handleSelectNoteDocument}
+                  />
+                )}
+              </SidePanel>
+              <MainContent>
+                <div className="flex-1 overflow-auto">
+                  <NoteContentViewer contentPath={noteSelection?.path ?? null} />
+                </div>
+              </MainContent>
+            </>
           )}
         </div>
       </div>

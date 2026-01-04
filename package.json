@@ -16,6 +16,7 @@
     "cytoscape-dagre": "^2.5.0",
     "d3": "^7.9.0",
     "echarts": "^6.0.0",
+    "framer-motion": "^12.23.26",
     "mermaid": "^11.12.2",
     "prismjs": "^1.30.0",
     "react": "^19.2.0",

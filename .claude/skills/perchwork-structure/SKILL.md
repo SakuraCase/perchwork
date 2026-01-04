@@ -1,8 +1,6 @@
 ---
 name: perchwork-structure
 description: tree-sitter を使った Rust コード解析ツール。コードベースの構造を解析し、public/data/structure/ に構造化JSONを生成する。
-allowed-tools:
-  - Bash
 ---
 
 # Perchwork Structure

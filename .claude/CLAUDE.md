@@ -1,7 +1,55 @@
 # Perchwork
 
-コードベース解析ツール。詳細は `README.md` を参照。
+コードベース解析のための ClaudeCode 設定とビジュアルツール（React + Vite + TailwindCSS）
 
-## スキル
+## ディレクトリ構成
 
-`/analyze` - コードベースを解析し `public/data/` に構造化JSONを生成
+```
+.
+├── .claude/
+│   ├── commands/          # スラッシュコマンド
+│   └── skills/            # Claude スキル定義
+│       ├── generate-image/
+│       ├── perchwork-semantic/
+│       └── perchwork-structure/
+├── public/
+│   ├── data/
+│   │   ├── semantic/      # LLM生成の意味解析データ
+│   │   └── structure/     # tree-sitter解析の構造データ
+│   └── img/
+├── src/
+│   ├── assets/            # 静的アセット
+│   ├── components/        # Reactコンポーネント
+│   │   ├── common/       # 共通コンポーネント
+│   │   ├── detail/       # 詳細表示
+│   │   ├── graph/        # グラフビジュアライゼーション
+│   │   ├── layout/       # レイアウト
+│   │   ├── note/         # ノート機能
+│   │   ├── profile/      # プロファイル表示
+│   │   ├── sequence/     # シーケンス図
+│   │   └── tree/         # ツリービュー
+│   ├── generated/         # 生成ファイル
+│   ├── hooks/             # カスタムフック
+│   ├── services/          # サービス層
+│   ├── types/             # TypeScript型定義
+│   └── utils/             # ユーティリティ
+└── dist/                   # ビルド出力
+```
+
+## クイックコマンド
+
+```bash
+npm run dev        # 開発サーバー (http://localhost:5173)
+npm run lint       # ESLint実行
+npm run typecheck  # TypeScript型チェック
+```
+
+## 主要ファイル
+
+| 用途             | パス                     |
+| ---------------- | ------------------------ |
+| 設定ファイル     | `config.json`            |
+| エントリポイント | `src/App.tsx`            |
+| 型定義           | `src/types/`             |
+| 解析結果         | `public/data/structure/` |
+| 意味データ       | `public/data/semantic/`  |

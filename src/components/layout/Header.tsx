@@ -72,6 +72,16 @@ export function Header({
       {/* タブ切り替え */}
       <div className="ml-8 flex gap-1">
         <button
+          onClick={() => onTabChange("ai")}
+          className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
+            activeTab === "ai"
+              ? "bg-gray-800 text-white border-b-2 border-blue-500"
+              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+          }`}
+        >
+          ノート
+        </button>
+        <button
           onClick={() => onTabChange("graph")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
             activeTab === "graph"

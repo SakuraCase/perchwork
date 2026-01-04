@@ -4,3 +4,8 @@ config.json
 
 node_modules
 dist
+
+# ノート生成ファイル（.gitkeep 除く）
+src/generated/sessions/*
+src/generated/document/*
+!src/generated/**/.gitkeep

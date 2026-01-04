@@ -1,0 +1,10 @@
+{
+  "name": "generate-image-scripts",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Nano Banana Pro API を使用した画像生成スクリプト",
+  "dependencies": {
+    "@google/genai": "^1.34.0"
+  }
+}
