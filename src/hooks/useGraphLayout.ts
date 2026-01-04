@@ -1,13 +1,12 @@
 /**
  * グラフレイアウトとフィルタの状態管理を行うカスタムフック
  *
- * useProfileと連携して設定を永続化する
+ * useGraphSettingsと連携して設定を管理する
  */
 
 import { useCallback } from 'react';
 
-import type { LayoutOptions, LayoutType, GraphFilter, NodeColorRule } from '../types/graph';
-import type { AppSettings } from '../types/profile';
+import type { LayoutOptions, LayoutType, GraphFilter, NodeColorRule, GraphSettings } from '../types/graph';
 
 /**
  * useGraphLayout フックの戻り値型
@@ -57,10 +56,10 @@ export interface UseGraphLayoutResult {
  * useGraphLayoutフックのパラメータ
  */
 export interface UseGraphLayoutParams {
-  /** 現在のアプリ設定 */
-  settings: AppSettings;
+  /** 現在のグラフ設定 */
+  settings: GraphSettings;
   /** 設定更新関数 */
-  updateSettings: (updates: Partial<AppSettings>) => void;
+  updateSettings: (updates: Partial<GraphSettings>) => void;
 }
 
 /**
@@ -68,9 +67,9 @@ export interface UseGraphLayoutParams {
  *
  * - レイアウト設定の管理
  * - フィルタ設定の管理
- * - useProfileと連携して永続化
+ * - useGraphSettingsと連携して永続化
  *
- * @param params - useProfileから渡される設定とアップデート関数
+ * @param params - useGraphSettingsから渡される設定とアップデート関数
  * @returns レイアウトとフィルタの管理インターフェース
  */
 export function useGraphLayout({

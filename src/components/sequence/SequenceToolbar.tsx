@@ -95,7 +95,7 @@ export function SequenceToolbar({
           ${
             saveDisabled
               ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
-              : 'bg-blue-700 text-blue-100 border-blue-600 hover:bg-blue-600'
+              : 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
           }
         `}
         aria-label="保存"

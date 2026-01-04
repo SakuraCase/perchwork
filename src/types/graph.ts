@@ -270,3 +270,41 @@ export interface GraphMetrics {
   /** 循環参照の数 */
   cycleCount: number;
 }
+
+// ============================================
+// グラフ設定の保存
+// ============================================
+
+/**
+ * グラフ設定（保存対象）
+ */
+export interface GraphSettings {
+  /** レイアウト設定 */
+  layout: LayoutOptions;
+
+  /** フィルタ設定 */
+  filter: GraphFilter;
+
+  /** ノード色ルール */
+  colorRules: NodeColorRule[];
+}
+
+/**
+ * 保存済みグラフ設定
+ */
+export interface SavedGraphSettings {
+  /** 一意なID */
+  id: string;
+
+  /** 保存名 */
+  name: string;
+
+  /** 設定内容 */
+  settings: GraphSettings;
+
+  /** 作成日時（ISO 8601形式） */
+  createdAt: string;
+
+  /** 更新日時（ISO 8601形式） */
+  updatedAt: string;
+}

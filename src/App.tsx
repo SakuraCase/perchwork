@@ -13,8 +13,9 @@ import type { ViewTab } from './types/view';
 import { useDataLoader } from './hooks/useDataLoader';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
 import { useGraphLayout } from './hooks/useGraphLayout';
+import { useGraphSettings } from './hooks/useGraphSettings';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
-import { useProfile } from './hooks/useProfile';
+import { useSavedSequences } from './hooks/useSavedSequences';
 import { useSearchIndex } from './hooks/useSearchIndex';
 import { useSequenceDiagram } from './hooks/useSequenceDiagram';
 import { useNoteDataLoader } from './hooks/useNoteDataLoader';
@@ -100,18 +101,22 @@ function App() {
       .catch((err) => console.error('Failed to load summaries:', err));
   }, []);
 
-  // プロファイル管理
+  // グラフ設定の永続化
   const {
-    activeProfile,
-    profiles,
-    isLoading: profileLoading,
-    switchProfile,
-    createProfile,
-    renameProfile,
-    deleteProfile,
     settings,
     updateSettings,
-  } = useProfile();
+    savedSettings,
+    saveSettings: saveGraphSettings,
+    openSettings: openGraphSettings,
+    deleteSettings: deleteGraphSettings,
+  } = useGraphSettings();
+
+  // シーケンス保存の管理
+  const {
+    savedSequences,
+    saveSequence,
+    deleteSequence,
+  } = useSavedSequences();
 
   // グラフ関連のフック
   const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
@@ -146,19 +151,13 @@ function App() {
     }
   }, [sequenceDiagram.editState, lastSavedEditState]);
 
-  // root関数変更時にプロファイルから編集状態を読み込み
+  // root関数変更時に編集状態をクリア
   useEffect(() => {
     const rootId = sequenceDiagram.state.rootFunctionId;
     if (!rootId) return;
 
-    const savedEditState = settings.sequenceEdits?.[rootId];
-    if (savedEditState) {
-      sequenceDiagram.loadEditState(savedEditState);
-      setLastSavedEditState(JSON.stringify(savedEditState));
-    } else {
-      sequenceDiagram.clearEdits();
-      setLastSavedEditState(JSON.stringify(createEmptyEditState()));
-    }
+    sequenceDiagram.clearEdits();
+    setLastSavedEditState(JSON.stringify(createEmptyEditState()));
     setSequenceHasUnsavedChanges(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally only depend on rootFunctionId
   }, [sequenceDiagram.state.rootFunctionId]);
@@ -585,35 +584,11 @@ function App() {
     if (!rootId) return;
 
     const currentEditState = sequenceDiagram.getEditState();
-    const now = new Date().toISOString();
-
-    if (existingId) {
-      // 上書き保存
-      const updated = (settings.savedSequences ?? []).map(s =>
-        s.id === existingId
-          ? { ...s, name, editState: currentEditState, updatedAt: now }
-          : s
-      );
-      updateSettings({ ...settings, savedSequences: updated });
-    } else {
-      // 新規保存
-      const newSaved: SavedSequenceDiagram = {
-        id: `seq_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        name,
-        rootFunctionId: rootId,
-        editState: currentEditState,
-        createdAt: now,
-        updatedAt: now,
-      };
-      updateSettings({
-        ...settings,
-        savedSequences: [...(settings.savedSequences ?? []), newSaved],
-      });
-    }
+    saveSequence(name, rootId, currentEditState, existingId);
 
     setLastSavedEditState(JSON.stringify(currentEditState));
     setSequenceHasUnsavedChanges(false);
-  }, [sequenceDiagram, settings, updateSettings]);
+  }, [sequenceDiagram, saveSequence]);
 
   /**
    * 保存済みシーケンスを開く
@@ -631,9 +606,8 @@ function App() {
    * 保存済みシーケンスを削除
    */
   const handleDeleteSavedSequence = useCallback((id: string) => {
-    const filtered = (settings.savedSequences ?? []).filter(s => s.id !== id);
-    updateSettings({ ...settings, savedSequences: filtered });
-  }, [settings, updateSettings]);
+    deleteSequence(id);
+  }, [deleteSequence]);
 
   /**
    * フォーカスノードのラベルを取得（表示用）
@@ -643,15 +617,6 @@ function App() {
     const node = graphData.nodes.find((n) => n.data.id === filter.focusNodeId);
     return node?.data.label;
   }, [filter.focusNodeId, graphData]);
-
-  // プロファイル初期化中の表示
-  if (profileLoading) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
-        <Loading message="設定を読み込んでいます..." />
-      </div>
-    );
-  }
 
   // 初期ロード中の表示
   if (isLoading && !index) {
@@ -707,13 +672,6 @@ function App() {
           onSearchSelectGraph={handleSearchSelectGraph}
           onSearchSelectTree={handleSearchSelectTree}
           onSearchSelectSequence={handleSearchSelectSequence}
-          profiles={profiles}
-          activeProfileId={activeProfile?.id ?? ''}
-          activeProfileName={activeProfile?.name ?? 'デフォルト'}
-          onProfileSelect={switchProfile}
-          onProfileCreate={createProfile}
-          onProfileRename={renameProfile}
-          onProfileDelete={deleteProfile}
         />
 
         {/* メインコンテンツエリア */}
@@ -763,6 +721,10 @@ function App() {
                       onClearExcluded={clearExcludedNodes}
                       colorRules={colorRules}
                       onColorRulesChange={setColorRules}
+                      savedSettings={savedSettings}
+                      onSave={saveGraphSettings}
+                      onOpen={openGraphSettings}
+                      onDeleteSaved={deleteGraphSettings}
                     />
 
                     {/* グラフビュー */}
@@ -867,7 +829,7 @@ function App() {
                 // クリア
                 onClearEdits={sequenceDiagram.clearEdits}
                 // 名前付き保存/開く
-                savedSequences={settings.savedSequences ?? []}
+                savedSequences={savedSequences}
                 onSaveWithName={handleSaveSequenceWithName}
                 onOpenSaved={handleOpenSavedSequence}
                 onDeleteSaved={handleDeleteSavedSequence}

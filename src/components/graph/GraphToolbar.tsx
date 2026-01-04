@@ -9,8 +9,10 @@
  */
 
 import { useState } from 'react';
-import type { LayoutType, GraphFilter, NodeColorRule } from '../../types/graph';
+import type { LayoutType, GraphFilter, NodeColorRule, SavedGraphSettings } from '../../types/graph';
 import { ColorRulesPanel } from './ColorRulesPanel';
+import { GraphSaveDialog } from './GraphSaveDialog';
+import { GraphOpenDialog } from './GraphOpenDialog';
 
 // ============================================
 // Props定義
@@ -56,6 +58,18 @@ export interface GraphToolbarProps {
   /** 色ルール変更時のコールバック */
   onColorRulesChange: (rules: NodeColorRule[]) => void;
 
+  /** 保存済みグラフ設定一覧 */
+  savedSettings: SavedGraphSettings[];
+
+  /** 保存時のコールバック */
+  onSave: (name: string, existingId?: string) => void;
+
+  /** 設定を開く時のコールバック */
+  onOpen: (saved: SavedGraphSettings) => void;
+
+  /** 保存済み設定を削除する時のコールバック */
+  onDeleteSaved: (id: string) => void;
+
   /** カスタムクラス名 */
   className?: string;
 }
@@ -90,12 +104,20 @@ export function GraphToolbar({
   onFitToScreen,
   colorRules,
   onColorRulesChange,
+  savedSettings,
+  onSave,
+  onOpen,
+  onDeleteSaved,
   className = '',
 }: GraphToolbarProps) {
   // フィルタパネルの表示/非表示状態
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   // カラーパネルの表示/非表示状態
   const [isColorOpen, setIsColorOpen] = useState(false);
+  // 保存ダイアログの表示/非表示状態
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  // 開くダイアログの表示/非表示状態
+  const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
 
   // ============================================
   // イベントハンドラ
@@ -212,8 +234,36 @@ export function GraphToolbar({
           )}
         </div>
 
-        {/* 右側: ズームコントロールとエクスポート */}
+        {/* 右側: 保存・開く、ズームコントロール、エクスポート */}
         <div className="flex items-center gap-2">
+          {/* 保存・開くボタン */}
+          <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
+            <button
+              onClick={() => setIsSaveDialogOpen(true)}
+              className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="グラフ設定を保存"
+              title="名前を付けて保存"
+            >
+              💾
+            </button>
+            <button
+              onClick={() => setIsOpenDialogOpen(true)}
+              disabled={savedSettings.length === 0}
+              className={`
+                px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500
+                ${
+                  savedSettings.length === 0
+                    ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
+                    : 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
+                }
+              `}
+              aria-label="保存済みグラフ設定を開く"
+              title="保存済みグラフ設定を開く"
+            >
+              📂
+            </button>
+          </div>
+
           {/* ズームコントロール */}
           {(onZoomIn || onZoomOut || onFitToScreen) && (
             <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
@@ -318,6 +368,29 @@ export function GraphToolbar({
           </div>
         </div>
       )}
+
+      {/* 保存ダイアログ */}
+      <GraphSaveDialog
+        isOpen={isSaveDialogOpen}
+        existingSaves={savedSettings}
+        onConfirm={(name, existingId) => {
+          onSave(name, existingId);
+          setIsSaveDialogOpen(false);
+        }}
+        onCancel={() => setIsSaveDialogOpen(false)}
+      />
+
+      {/* 開くダイアログ */}
+      <GraphOpenDialog
+        isOpen={isOpenDialogOpen}
+        savedSettings={savedSettings}
+        onSelect={(saved) => {
+          onOpen(saved);
+          setIsOpenDialogOpen(false);
+        }}
+        onDelete={onDeleteSaved}
+        onCancel={() => setIsOpenDialogOpen(false)}
+      />
     </div>
   );
 }
