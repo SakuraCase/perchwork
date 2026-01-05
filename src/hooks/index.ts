@@ -11,3 +11,5 @@ export { useCallers } from './useCallers';
 export { useDeferredGraphRender } from './useDeferredGraphRender';
 export { useNavigationHistory } from './useNavigationHistory';
 export type { UseNavigationHistoryResult } from './useNavigationHistory';
+export { useComplexityLoader } from './useComplexityLoader';
+export type { RankedFunction } from './useComplexityLoader';

@@ -38,6 +38,7 @@ import { GraphToolbar } from './components/graph/GraphToolbar';
 import { NodeContextMenu } from './components/graph/NodeContextMenu';
 import { ColorRuleDialog } from './components/graph/ColorRuleDialog';
 import { SequenceView } from './components/sequence';
+import { MetricsView } from './components/metrics';
 import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
 import { loadAllSummaries, type SummaryMap } from './services/semanticLoader';
@@ -81,6 +82,12 @@ function App() {
   const [treeCurrentFile, setTreeCurrentFile] = useState<SourceFile | null>(null);
   const [treeSelectedItemId, setTreeSelectedItemId] = useState<ItemId | null>(null);
   const [treeSemanticTests, setTreeSemanticTests] = useState<SemanticTest[]>([]);
+
+  // メトリクスモーダル用状態
+  const [metricsModalOpen, setMetricsModalOpen] = useState(false);
+  const [metricsModalFile, setMetricsModalFile] = useState<SourceFile | null>(null);
+  const [metricsModalSelectedItemId, setMetricsModalSelectedItemId] = useState<ItemId | null>(null);
+  const [metricsModalSemanticTests, setMetricsModalSemanticTests] = useState<SemanticTest[]>([]);
 
   // semantic情報（シーケンス図用）
   const [summaries, setSummaries] = useState<SummaryMap | undefined>(undefined);
@@ -441,6 +448,65 @@ function App() {
    */
   const handleSelectNoteDocument = useCallback((entry: NoteDocumentEntry) => {
     setNoteSelection({ type: "document", id: entry.id, path: entry.path });
+  }, []);
+
+  /**
+   * メトリクスモーダルを開くハンドラ
+   */
+  const handleOpenMetricsModal = useCallback(
+    async (relativePath: string, lineNumber?: number) => {
+      // 相対パスからstructure JSONパスに変換
+      const jsonPath = relativePath.replace(/\.rs$/, '.json');
+
+      try {
+        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(jsonPath);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawData = splitFile as any;
+        const sourceFile: SourceFile = {
+          path: rawData.path || jsonPath,
+          hash: '',
+          last_modified: '',
+          items: rawData.items || [],
+        };
+
+        setMetricsModalFile(sourceFile);
+        setMetricsModalSemanticTests(tests);
+
+        // 行番号が指定されている場合、該当する関数を選択
+        if (lineNumber) {
+          const targetItem = sourceFile.items.find(
+            item => item.line_start === lineNumber ||
+                   (item.line_start <= lineNumber && item.line_end !== undefined && item.line_end >= lineNumber)
+          );
+          if (targetItem) {
+            setMetricsModalSelectedItemId(targetItem.id as ItemId);
+          } else {
+            setMetricsModalSelectedItemId(null);
+          }
+        } else {
+          setMetricsModalSelectedItemId(null);
+        }
+
+        setMetricsModalOpen(true);
+      } catch (err) {
+        console.error('Failed to load file for modal:', err);
+      }
+    },
+    [loadFileWithSemantic]
+  );
+
+  /**
+   * メトリクスモーダルを閉じるハンドラ
+   */
+  const handleCloseMetricsModal = useCallback(() => {
+    setMetricsModalOpen(false);
+  }, []);
+
+  /**
+   * メトリクスモーダルでアイテム選択時のハンドラ
+   */
+  const handleMetricsModalSelectItem = useCallback((id: ItemId | null) => {
+    setMetricsModalSelectedItemId(id);
   }, []);
 
   /**
@@ -864,7 +930,65 @@ function App() {
               </MainContent>
             </>
           )}
+
+          {/* メトリクスタブ */}
+          {activeTab === 'metrics' && (
+            <div className="flex-1">
+              <MetricsView onSelectFile={handleOpenMetricsModal} />
+            </div>
+          )}
         </div>
+
+        {/* メトリクスモーダル */}
+        {metricsModalOpen && (
+          <div
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleCloseMetricsModal();
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                handleCloseMetricsModal();
+              }
+            }}
+          >
+            <div className="bg-gray-800 rounded-lg border border-gray-700 w-full max-w-4xl max-h-[85vh] flex flex-col">
+              {/* ヘッダー */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-700 shrink-0">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-medium text-white truncate">
+                    {metricsModalFile?.path ?? ''}
+                  </h2>
+                </div>
+                <button
+                  onClick={handleCloseMetricsModal}
+                  className="ml-4 p-1 text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* コンテンツ - ツリービューと同じDetailPanel */}
+              <div className="flex-1 overflow-auto">
+                <DetailPanel
+                  file={metricsModalFile}
+                  selectedItemId={metricsModalSelectedItemId}
+                  onSelectItem={handleMetricsModalSelectItem}
+                  callersIndex={null}
+                  semanticTests={metricsModalSemanticTests}
+                  navigationHistory={navigationHistory.history}
+                  onNavigateTo={handleNavigateTo}
+                  onShowInGraph={handleShowInGraph}
+                  onShowInSequence={handleOpenSequenceDiagram}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );
