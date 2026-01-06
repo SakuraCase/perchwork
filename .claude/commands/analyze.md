@@ -9,23 +9,13 @@ allowed-tools:
   - Task
   - TaskOutput
   - Skill
+  - Edit
 description: コードベースを解析し構造化JSONを生成
 ---
 
 # タスク
 
 コードベースを解析し、構造化された JSON ドキュメントを生成します。
-
-## 引数
-
-- `$ARGUMENTS` に以下のオプションを指定可能:
-  - `(デフォルト)`: 差分実行（last_commit 以降の変更ファイルのみ解析）
-  - `--full`: 全ファイル再実行（Phase 1 + Phase 2 + Phase 3）
-  - `--structure`: Phase 1 のみ実行（tree-sitter 構造抽出）
-  - `--semantic`: Phase 2 のみ実行（LLM 意味解析）
-  - `--complexity`: Phase 3 のみ実行（rust-code-analysis 複雑度解析）
-  - `--target <dir>`: 対象ディレクトリ（config.json の target_dir を上書き）
-  - `--lang <ja|en>`: 出力言語（config.json の language を上書き）
 
 ## 初期設定（config.json）
 
@@ -37,103 +27,85 @@ description: コードベースを解析し構造化JSONを生成
 | `extensions`     | 対象ファイル拡張子の配列                                  |
 | `exclude`        | 除外パターン（glob 形式）                                 |
 | `language`       | 出力言語（`ja` または `en`など）                          |
-| `run.structure`  | Phase 1 実行有無（デフォルト: `true`）                    |
-| `run.semantic`   | Phase 2 実行有無（デフォルト: `true`）                    |
-| `run.complexity` | Phase 3 実行有無（デフォルト: `true`）                    |
+| `run.structure`  | 構造解析の実行有無（デフォルト: `true`）                  |
+| `run.semantic`   | 意味解析の実行有無（デフォルト: `true`）                  |
+| `run.complexity` | 複雑度解析の実行有無（デフォルト: `true`）                |
+| `run.review`     | コードレビューの実行有無（デフォルト: `false`）           |
 | `last_commit`    | 前回実行時のコミットハッシュ（差分検出用、初期は `null`） |
 | `last_run`       | 前回実行日時（ISO 8601 形式、初期は `null`）              |
 
 ## 実行フロー
 
-### 差分判定（デフォルト動作）
+### Phase 1: 準備
 
-`--full` が指定されていない場合、差分実行を行う。
+1. `config.json` を読み込み、`run` フラグを確認
+2. `.claude/TODO.md` を読み込み、タイプ別の未チェックファイル数を取得
+3. 有効な解析タイプの SKILL.md をすべて読み込み
 
-1. config.json の `last_commit` から HEAD までの変更・削除ファイルを検出
-2. 差分がない場合は「変更なし」と表示して終了
-3. 差分がある場合、変更ファイルのみを処理（削除ファイルの結果も削除）
-4. 処理完了後、`last_commit` を現在のコミットに更新
+### Phase 2: プロンプト生成
 
-### 並列実行（デフォルト動作）
+各 SKILL.md を読み込み、一時ファイルにプロンプトを生成する。
 
-config.json の `run` フラグで有効なフェーズを**並列実行**する。
+**解析タイプと SKILL.md**:
 
-1. 以下を**同時に**起動（単一メッセージで複数ツール呼び出し）:
-   - Phase 1: Bash ツール（`run_in_background: true`）で tree-sitter 構造抽出（`run.structure == true` の場合）
-   - Phase 2: Task ツールでサブエージェント群を起動（`run.semantic == true` の場合）
-   - Phase 3: Bash ツール（`run_in_background: true`）で複雑度解析（`run.complexity == true` の場合）
-2. TaskOutput で全タスクの完了を待機
-3. `last_commit` を更新
+| タイプ     | SKILL.md                                       | 実行方法                    |
+| ---------- | ---------------------------------------------- | --------------------------- |
+| structure  | `.claude/skills/perchwork-structure/SKILL.md`  | Bash (tree-sitter)          |
+| complexity | `.claude/skills/perchwork-complexity/SKILL.md` | Bash (rust-code-analysis)   |
+| semantic   | `.claude/skills/perchwork-semantic/SKILL.md`   | Task (general-purpose)      |
+| review     | `.claude/skills/perchwork-review/SKILL.md`     | Task (pr-review-toolkit x6) |
 
-### Phase 1: tree-sitter 構造抽出
+**プロンプト生成手順**:
 
-`--semantic` や `--complexity` が指定されていない場合、かつ `run.structure == true` の場合に実行。
+1. TODO.md から有効なタイプセクションを抽出
+2. 各タイプの SKILL.md を Read ツールで読み込む
+3. `.claude/ralph-loop-prompt.md` に以下の構造で出力(これ以外の構造は絶対に追加せず、TODO.md の内容は記載しないこと):
 
-**Bash ツールで以下を実行（並列実行時は `run_in_background: true` を指定）:**
+```markdown
+# Perchwork Analysis Task
 
-```bash
-cd .claude/skills/perchwork-structure/scripts && npm run build && node dist/analyze.js --config ../../../../config.json
+## パス情報
+
+{config.json から解決したパス}
+
+## 処理フロー
+
+.claude/TODO.md の各タイプセクションを並列に処理する。
+各タイプ内の未チェックファイル（`- [ ]`）に対して解析を実行し、完了後に `- [x]` にマークする。
+
+## cleanup 対象がある場合
+
+public/data 配下の対象ファイルを削除する
+
+## 各タイプの処理内容
+
+{各タイプの SKILL.md を読み込み、実行コマンドを動的に構築する。}
+
+## 完了条件
+
+全ての TODO がマーク済みの場合:
+
+1. `.claude/TODO.md` を削除
+2. `.claude/ralph-loop-prompt.md` を削除
+3. config.json の`last_commit`,`last_run`を更新
+4. 以下を出力
+
+<promise>ANALYZE_COMPLETE</promise>
 ```
 
-出力: `public/data/structure/`
+### Phase 3: 実行
 
-### Phase 2: LLM 意味解析
+#### SubAgent ありの場合 (semantic または review セクションが TODO.md に存在)
 
-`--structure` や `--complexity` が指定されていない場合、かつ `run.semantic == true` の場合に実行。
+/ralph-wiggum:ralph-loop .claude/ralph-loop-prompt.md --max-iterations 3 --completion-promise "ANALYZE_COMPLETE"
 
-**実行前に [perchwork-semantic SKILL.md](../skills/perchwork-semantic/SKILL.md) を参照すること。**
+#### SubAgent なしの場合 (structure と complexity のみ)
 
-1. 対象ファイルを収集（差分実行時は変更ファイルのみ）
-2. ファイルを均等に分割（最大 5 グループ）
-3. Task ツールで `general-purpose` サブエージェントを並列起動
-   - **重要**: サブエージェントへのプロンプトに以下を必ず含める:
-     - 出力パス変換ルール（`.rs` → `.json`、`.rs.json` は禁止）
-     - 具体例: `battle_state.rs` → `battle_state.json`
-4. TaskOutput で完了を待機
+Bash スクリプトで実行
 
-出力: `public/data/semantic/`
+## 注意事項
 
-### Phase 3: rust-code-analysis 複雑度解析
-
-`--structure` や `--semantic` が指定されていない場合、かつ `run.complexity == true` の場合に実行。
-
-**実行前に [perchwork-complexity SKILL.md](../skills/perchwork-complexity/SKILL.md) を参照すること。**
-
-**全実行時（--full）の Bash コマンド:**
-
-```bash
-cd .claude/skills/perchwork-complexity/scripts && npm run build && node dist/analyze.js --config ../../../../config.json
-```
-
-**差分実行時の Bash コマンド:**
-
-```bash
-cd .claude/skills/perchwork-complexity/scripts && npm run build && node dist/analyze.js --config ../../../../config.json --files <変更ファイルリスト> --deleted <削除ファイルリスト>
-```
-
-- `--files`: 変更ファイルをカンマ区切りで指定（target_dir からの相対パス）
-- `--deleted`: 削除ファイルをカンマ区切りで指定（target_dir からの相対パス）
-
-出力: `public/data/complexity/`
-
-## 使用例
-
-```bash
-# 差分実行（デフォルト）- last_commit 以降の変更ファイルのみ
-/analyze
-
-# 全ファイル再実行
-/analyze --full
-
-# Phase 1 のみ（高速、tree-sitter 構造抽出）
-/analyze --structure
-
-# Phase 2 のみ（LLM 意味解析のみ）
-/analyze --semantic
-
-# Phase 3 のみ（複雑度解析のみ）
-/analyze --complexity
-
-# 対象ディレクトリ指定
-/analyze --target backend/src/lib/domain
-```
+- TODO.md が存在しない場合は `/analyze-prepare` を先に実行
+- TODO.md は `.claude/TODO.md` に配置される
+- プロンプトファイルは `.claude/ralph-loop-prompt.md` に生成される
+- structure/complexity は Mode: full の場合、`--all` オプションで実行

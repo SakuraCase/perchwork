@@ -10,10 +10,14 @@
 │   ├── commands/          # スラッシュコマンド
 │   └── skills/            # Claude スキル定義
 │       ├── generate-image/
+│       ├── perchwork-complexity/
+│       ├── perchwork-review/
 │       ├── perchwork-semantic/
 │       └── perchwork-structure/
 ├── public/
 │   ├── data/
+│   │   ├── complexity/    # rust-code-analysis複雑度データ
+│   │   ├── review/        # PRレビュー結果データ
 │   │   ├── semantic/      # LLM生成の意味解析データ
 │   │   └── structure/     # tree-sitter解析の構造データ
 │   └── img/
@@ -24,8 +28,9 @@
 │   │   ├── detail/       # 詳細表示
 │   │   ├── graph/        # グラフビジュアライゼーション
 │   │   ├── layout/       # レイアウト
+│   │   ├── metrics/      # メトリクス表示
 │   │   ├── note/         # ノート機能
-│   │   ├── profile/      # プロファイル表示
+│   │   ├── review/       # レビュー表示
 │   │   ├── sequence/     # シーケンス図
 │   │   └── tree/         # ツリービュー
 │   ├── generated/         # 生成ファイル
@@ -46,10 +51,12 @@ npm run typecheck  # TypeScript型チェック
 
 ## 主要ファイル
 
-| 用途             | パス                     |
-| ---------------- | ------------------------ |
-| 設定ファイル     | `config.json`            |
-| エントリポイント | `src/App.tsx`            |
-| 型定義           | `src/types/`             |
-| 解析結果         | `public/data/structure/` |
-| 意味データ       | `public/data/semantic/`  |
+| 用途             | パス                       |
+| ---------------- | -------------------------- |
+| 設定ファイル     | `config.json`              |
+| エントリポイント | `src/App.tsx`              |
+| 型定義           | `src/types/`               |
+| 構造データ       | `public/data/structure/`   |
+| 意味データ       | `public/data/semantic/`    |
+| 複雑度データ     | `public/data/complexity/`  |
+| レビューデータ   | `public/data/review/`      |

@@ -9,3 +9,7 @@ dist
 src/generated/sessions/*
 src/generated/document/*
 !src/generated/**/.gitkeep
+
+ralph-loop.local.md
+TODO.md
+ralph-loop-prompt.md

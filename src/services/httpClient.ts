@@ -4,7 +4,7 @@
  * JSONフェッチとエラーハンドリングを統一的に行う。
  */
 
-import { DataNotFoundError, ParseError, NetworkError } from '@/types/errors';
+import { DataNotFoundError, NetworkError, ParseError } from '@/types/errors';
 
 /**
  * 汎用JSONフェッチ関数
@@ -50,14 +50,14 @@ export async function fetchJson<T>(url: string): Promise<T> {
  *
  * @param url - 取得するJSONファイルのURL
  * @returns パースされたJSONデータ、または存在しない場合はnull
- * @throws {ParseError} JSONパースに失敗した場合
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
 export async function fetchJsonOrNull<T>(url: string): Promise<T | null> {
   try {
     return await fetchJson<T>(url);
   } catch (error) {
-    if (error instanceof DataNotFoundError) {
+    // 404エラーまたはパースエラー（ViteがHTMLを返す場合など）はnullを返す
+    if (error instanceof DataNotFoundError || error instanceof ParseError) {
       return null;
     }
     throw error;

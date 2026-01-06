@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(./**)",
-      "Skill(perchwork-structure)"
+      "Skill(perchwork:*)",
+      "Skill(ralph-wiggum:*)"
     ],
     "deny": []
   }

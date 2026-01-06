@@ -15,11 +15,7 @@ LLM を使って Rust コードの意味解析を行い、以下を生成する:
 
 ## Usage
 
-`/analyze` コマンドの Phase 2 で自動実行される。
-
-前提条件:
-
-- `public/data/structure/` が生成済みであること
+`/analyze` で自動実行される。
 
 ## Output
 
@@ -87,7 +83,7 @@ public/data/semantic/
 
 ## サブエージェントプロンプトテンプレート
 
-Phase 2 でサブエージェントに渡すプロンプト：
+サブエージェントに渡すプロンプト：
 
 ````markdown
 # 意味解析タスク（並列グループ処理）
@@ -121,11 +117,11 @@ Phase 2 でサブエージェントに渡すプロンプト：
       ↑ .rs を削除して .json に置換
 ```
 
-| ソースファイル              | 出力先                                         |
-| --------------------------- | ---------------------------------------------- |
-| entity/battle_state.rs      | {output_base}/semantic/entity/battle_state.json |
-| service/battle_loop.rs      | {output_base}/semantic/service/battle_loop.json |
-| mod.rs                      | {output_base}/semantic/mod.json                |
+| ソースファイル         | 出力先                                          |
+| ---------------------- | ----------------------------------------------- |
+| entity/battle_state.rs | {output_base}/semantic/entity/battle_state.json |
+| service/battle_loop.rs | {output_base}/semantic/service/battle_loop.json |
+| mod.rs                 | {output_base}/semantic/mod.json                 |
 
 ## 出力フォーマット
 

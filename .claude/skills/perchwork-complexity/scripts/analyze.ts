@@ -165,7 +165,7 @@ class ComplexityAnalyzer {
     }
 
     // ディレクトリを作成
-    await fs.mkdir(path.join(this.outputDir, 'files'), { recursive: true });
+    await fs.mkdir(this.outputDir, { recursive: true });
   }
 
   /**
@@ -174,10 +174,12 @@ class ComplexityAnalyzer {
   private async writeResults(files: FileMetrics[]): Promise<void> {
     console.log('結果を書き出しています...');
 
-    // 各ファイルのメトリクスを書き出す
+    // 各ファイルのメトリクスを書き出す（階層構造）
     for (const file of files) {
-      const fileName = file.relative_path.replace(/\//g, '__').replace(/\.[^.]+$/, '.json');
-      const outputPath = path.join(this.outputDir, 'files', fileName);
+      const jsonPath = file.relative_path.replace(/\.[^.]+$/, '.json');
+      const outputPath = path.join(this.outputDir, jsonPath);
+      // サブディレクトリを作成
+      await fs.mkdir(path.dirname(outputPath), { recursive: true });
       await fs.writeFile(outputPath, JSON.stringify(file, null, 2));
     }
 
@@ -220,10 +222,8 @@ class ComplexityAnalyzer {
   /**
    * 解析を実行
    */
-  async analyze(configPath: string, options: { target?: string; lang?: string; files?: string[]; deleted?: string[] }): Promise<void> {
+  async analyze(configPath: string, options: { all?: boolean; target?: string; lang?: string; files?: string[] }): Promise<void> {
     console.log('=== Perchwork Complexity Analyzer 開始 ===');
-
-    const isIncrementalMode = !!(options.files || options.deleted);
 
     try {
       // rust-code-analysis-cli のチェック
@@ -240,12 +240,12 @@ class ComplexityAnalyzer {
         this.language = options.lang;
       }
 
-      if (isIncrementalMode) {
-        console.log('差分実行モード');
-        await this.analyzeIncremental(options.files ?? [], options.deleted ?? []);
-      } else {
+      if (options.all) {
         console.log('全実行モード');
         await this.analyzeAll();
+      } else {
+        console.log('差分実行モード');
+        await this.analyzeIncremental(options.files ?? []);
       }
 
       console.log('=== Perchwork Complexity Analyzer 完了 ===');
@@ -297,25 +297,9 @@ class ComplexityAnalyzer {
   /**
    * 差分解析（指定ファイルのみ解析）
    */
-  private async analyzeIncremental(changedFiles: string[], deletedFiles: string[]): Promise<void> {
+  private async analyzeIncremental(changedFiles: string[]): Promise<void> {
     // 出力ディレクトリが存在しない場合は作成
-    await fs.mkdir(path.join(this.outputDir, 'files'), { recursive: true });
-
-    // 削除ファイルの結果を削除
-    if (deletedFiles.length > 0) {
-      console.log(`削除ファイル: ${deletedFiles.length} 件`);
-      for (const deletedFile of deletedFiles) {
-        const relativePath = path.relative(this.targetDir, path.resolve(this.targetDir, deletedFile));
-        const fileName = relativePath.replace(/\//g, '__').replace(/\.[^.]+$/, '.json');
-        const filePath = path.join(this.outputDir, 'files', fileName);
-        try {
-          await fs.unlink(filePath);
-          console.log(`  削除: ${fileName}`);
-        } catch {
-          // ファイルが存在しない場合は無視
-        }
-      }
-    }
+    await fs.mkdir(this.outputDir, { recursive: true });
 
     // 変更ファイルを解析
     if (changedFiles.length > 0) {
@@ -326,9 +310,11 @@ class ComplexityAnalyzer {
         const absolutePath = path.resolve(this.targetDir, changedFile);
         const metrics = await this.analyzeFile(absolutePath);
         if (metrics) {
-          // 個別ファイルを書き出す
-          const fileName = metrics.relative_path.replace(/\//g, '__').replace(/\.[^.]+$/, '.json');
-          const outputPath = path.join(this.outputDir, 'files', fileName);
+          // 個別ファイルを書き出す（階層構造）
+          const jsonPath = metrics.relative_path.replace(/\.[^.]+$/, '.json');
+          const outputPath = path.join(this.outputDir, jsonPath);
+          // サブディレクトリを作成
+          await fs.mkdir(path.dirname(outputPath), { recursive: true });
           await fs.writeFile(outputPath, JSON.stringify(metrics, null, 2));
         }
         processed++;
@@ -349,17 +335,27 @@ class ComplexityAnalyzer {
   private async regenerateIndex(): Promise<void> {
     console.log('index.json を再生成しています...');
 
-    const filesDir = path.join(this.outputDir, 'files');
-    const entries = await fs.readdir(filesDir, { withFileTypes: true });
-
     const allFiles: FileMetrics[] = [];
-    for (const entry of entries) {
-      if (entry.isFile() && entry.name.endsWith('.json')) {
-        const filePath = path.join(filesDir, entry.name);
-        const content = await fs.readFile(filePath, 'utf-8');
-        allFiles.push(JSON.parse(content) as FileMetrics);
+
+    // ディレクトリを再帰的に走査してJSONファイルを収集
+    const walkDir = async (dir: string): Promise<void> => {
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await walkDir(fullPath);
+          } else if (entry.isFile() && entry.name.endsWith('.json') && entry.name !== 'index.json') {
+            const content = await fs.readFile(fullPath, 'utf-8');
+            allFiles.push(JSON.parse(content) as FileMetrics);
+          }
+        }
+      } catch {
+        // ディレクトリが存在しない場合は無視
       }
-    }
+    };
+
+    await walkDir(this.outputDir);
 
     // 結果を書き出す（index.json のみ更新）
     await this.writeIndexOnly(allFiles);
@@ -399,19 +395,21 @@ class ComplexityAnalyzer {
 /**
  * コマンドライン引数をパース
  */
-function parseArgs(): { configPath: string; target?: string; lang?: string; files?: string[]; deleted?: string[] } {
+function parseArgs(): { configPath: string; all: boolean; target?: string; lang?: string; files?: string[] } {
   const args = process.argv.slice(2);
 
   let configPath: string | null = null;
+  let all = false;
   let target: string | undefined;
   let lang: string | undefined;
   let files: string[] | undefined;
-  let deleted: string[] | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--config' && i + 1 < args.length) {
       configPath = args[i + 1];
       i++;
+    } else if (args[i] === '--all') {
+      all = true;
     } else if (args[i] === '--target' && i + 1 < args.length) {
       target = args[i + 1];
       i++;
@@ -421,27 +419,30 @@ function parseArgs(): { configPath: string; target?: string; lang?: string; file
     } else if (args[i] === '--files' && i + 1 < args.length) {
       files = args[i + 1].split(',').map((f) => f.trim()).filter((f) => f.length > 0);
       i++;
-    } else if (args[i] === '--deleted' && i + 1 < args.length) {
-      deleted = args[i + 1].split(',').map((f) => f.trim()).filter((f) => f.length > 0);
-      i++;
     }
   }
 
   if (!configPath) {
-    console.error('使い方: node analyze.js --config <config.json> [--target <path>] [--lang <rust|typescript>] [--files <file1,file2>] [--deleted <file1,file2>]');
+    console.error('使い方: node analyze.js --config <config.json> --all | --files <file1,file2> [--target <path>] [--lang <rust|typescript>]');
     process.exit(1);
   }
 
-  return { configPath, target, lang, files, deleted };
+  if (!all && !files) {
+    console.error('エラー: --all または --files を指定してください');
+    console.error('使い方: node analyze.js --config <config.json> --all | --files <file1,file2> [--target <path>] [--lang <rust|typescript>]');
+    process.exit(1);
+  }
+
+  return { configPath, all, target, lang, files };
 }
 
 /**
  * エントリーポイント
  */
 async function main() {
-  const { configPath, target, lang, files, deleted } = parseArgs();
+  const { configPath, all, target, lang, files } = parseArgs();
   const analyzer = new ComplexityAnalyzer();
-  await analyzer.analyze(configPath, { target, lang, files, deleted });
+  await analyzer.analyze(configPath, { all, target, lang, files });
 }
 
 main().catch((error) => {

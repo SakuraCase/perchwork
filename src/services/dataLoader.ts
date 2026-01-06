@@ -12,13 +12,11 @@ import { fetchJson, fetchJsonOrNull } from './httpClient';
 
 /**
  * index.json を取得する
- * @returns インデックスファイルのデータ
- * @throws {DataNotFoundError} ファイルが見つからない場合
- * @throws {ParseError} JSONパースに失敗した場合
+ * @returns インデックスファイルのデータ、または存在しない場合は null
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
-export async function fetchIndex(): Promise<IndexFile> {
-  return fetchJson<IndexFile>('/data/structure/index.json');
+export async function fetchIndex(): Promise<IndexFile | null> {
+  return fetchJsonOrNull<IndexFile>('/data/structure/index.json');
 }
 
 /**

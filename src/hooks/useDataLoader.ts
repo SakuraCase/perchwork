@@ -38,13 +38,15 @@ export function useDataLoader() {
           return;
         }
 
-        // ネットワークから取得
+        // ネットワークから取得（存在しない場合はnull）
         const data = await fetchIndex();
 
-        // キャッシュに保存
-        cacheManager.set('index.json', data);
-
-        setIndex(data);
+        if (data) {
+          // キャッシュに保存
+          cacheManager.set('index.json', data);
+          setIndex(data);
+        }
+        // dataがnullの場合は、indexはnullのままで「データがありません」画面が表示される
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load index.json');
       } finally {

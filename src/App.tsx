@@ -39,6 +39,7 @@ import { NodeContextMenu } from './components/graph/NodeContextMenu';
 import { ColorRuleDialog } from './components/graph/ColorRuleDialog';
 import { SequenceView } from './components/sequence';
 import { MetricsView } from './components/metrics';
+import { ReviewView } from './components/review';
 import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
 import { loadAllSummaries, type SummaryMap } from './services/semanticLoader';
@@ -705,7 +706,7 @@ function App() {
     );
   }
 
-  // データなし（/perchwork 未実行）
+  // データなし（/analyze 未実行）
   if (!index) {
     return (
       <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
@@ -715,7 +716,7 @@ function App() {
           <div className="bg-gray-800 rounded-lg p-6 max-w-md">
             <p className="text-yellow-400 mb-4">データがありません</p>
             <p className="text-sm text-gray-500">
-              Claude Code で <code className="bg-gray-700 px-2 py-1 rounded">/perchwork</code> を実行して
+              Claude Code で <code className="bg-gray-700 px-2 py-1 rounded">/analyze</code> を実行して
               コードベースを解析してください。
             </p>
           </div>
@@ -935,6 +936,13 @@ function App() {
           {activeTab === 'metrics' && (
             <div className="flex-1">
               <MetricsView onSelectFile={handleOpenMetricsModal} />
+            </div>
+          )}
+
+          {/* レビュータブ */}
+          {activeTab === 'review' && (
+            <div className="flex-1">
+              <ReviewView />
             </div>
           )}
         </div>

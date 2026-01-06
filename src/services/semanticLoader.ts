@@ -3,7 +3,7 @@
  */
 
 import type { ItemId, SemanticFile, IndexFile } from '../types/schema';
-import { fetchJson, fetchJsonOrNull } from './httpClient';
+import { fetchJsonOrNull } from './httpClient';
 
 /**
  * ItemId → summary のマップ型
@@ -18,8 +18,11 @@ export type SummaryMap = Map<ItemId, string>;
 export async function loadAllSummaries(): Promise<SummaryMap> {
   const summaryMap: SummaryMap = new Map();
 
-  // index.json からファイル一覧を取得
-  const index = await fetchJson<IndexFile>('/data/structure/index.json');
+  // index.json からファイル一覧を取得（存在しない場合は空のMapを返す）
+  const index = await fetchJsonOrNull<IndexFile>('/data/structure/index.json');
+  if (!index) {
+    return summaryMap;
+  }
 
   // 各ファイルに対応するsemanticファイルを読み込み
   const promises = index.files.map(async (entry) => {

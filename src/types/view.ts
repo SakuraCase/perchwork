@@ -5,7 +5,7 @@
  */
 
 /** タブの種類 */
-export type ViewTab = 'graph' | 'tree' | 'sequence' | 'ai' | 'metrics';
+export type ViewTab = 'graph' | 'tree' | 'sequence' | 'ai' | 'metrics' | 'review';
 
 /** ディレクトリグループ（ツリー表示用） */
 export interface DirectoryGroup {

@@ -37,41 +37,42 @@ mv rust-code-analysis-cli ~/.local/bin/
 
 ## タスク
 
-以下のコマンドを順番に実行してください:
-
-```bash
-cd .claude/skills/perchwork-complexity/scripts && npm install && npm run build && node dist/analyze.js --config ../../../../config.json
-```
-
 **注意**: このスキルは `perchwork` ディレクトリ(root)から実行されることを前提としています。
 
-## オプション
+### 差分実行（デフォルト）
 
-- `--target <path>`: 解析対象のパス（config.json の設定を上書き）
-- `--lang <rust|typescript>`: 対象言語（デフォルト: rust）
-- `--files <file1,file2,...>`: 差分実行時の変更ファイル（カンマ区切り、相対パス）
-- `--deleted <file1,file2,...>`: 差分実行時の削除ファイル（カンマ区切り、相対パス）
-
-### 差分実行
-
-`--files` または `--deleted` を指定すると差分実行モードになります：
+変更ファイルを指定して解析を実行：
 
 ```bash
-# 変更ファイルのみ解析
+cd .claude/skills/perchwork-complexity/scripts && npm install && npm run build && \
+  node dist/analyze.js --config ../../../../config.json --files <file1,file2,...>
+```
+
+例：
+```bash
 node dist/analyze.js --config ../../../../config.json --files core/entity/unit.rs,core/service/battle.rs
-
-# 削除ファイルの結果を削除
-node dist/analyze.js --config ../../../../config.json --deleted old_module.rs
-
-# 変更と削除を同時に処理
-node dist/analyze.js --config ../../../../config.json --files core/entity/unit.rs --deleted old_module.rs
 ```
 
 差分実行モードでは：
 - 既存の結果ファイルを保持
 - 指定された変更ファイルのみ再解析
-- 指定された削除ファイルの結果JSONを削除
 - index.json は全結果ファイルから再計算
+
+### 全体実行
+
+`--all` オプションで全ファイル再解析：
+
+```bash
+cd .claude/skills/perchwork-complexity/scripts && npm install && npm run build && \
+  node dist/analyze.js --config ../../../../config.json --all
+```
+
+## オプション
+
+- `--files <file1,file2,...>`: 変更ファイル（カンマ区切り、相対パス）
+- `--all`: 全ファイルを解析
+- `--target <path>`: 解析対象のパス（config.json の設定を上書き）
+- `--lang <rust|typescript>`: 対象言語（デフォルト: rust）
 
 ## 出力
 

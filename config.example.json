@@ -6,7 +6,8 @@
   "run": {
     "structure": true,
     "semantic": true,
-    "complexity": true
+    "complexity": true,
+    "review": true
   },
   "last_commit": null,
   "last_run": null

@@ -23,11 +23,9 @@ export async function fetchComplexityIndex(): Promise<ComplexityIndex | null> {
 export async function fetchFileMetrics(
   relativePath: string
 ): Promise<FileMetrics> {
-  // パスをファイル名に変換（スラッシュをアンダースコアに）
-  const fileName = relativePath
-    .replace(/\//g, "__")
-    .replace(/\.[^.]+$/, ".json");
-  const fullPath = `/data/complexity/files/${fileName}`;
+  // 階層構造パスに変換（.rs → .json）
+  const jsonPath = relativePath.replace(/\.[^.]+$/, ".json");
+  const fullPath = `/data/complexity/${jsonPath}`;
   return fetchJson<FileMetrics>(fullPath);
 }
 
@@ -39,9 +37,7 @@ export async function fetchFileMetrics(
 export async function fetchFileMetricsOrNull(
   relativePath: string
 ): Promise<FileMetrics | null> {
-  const fileName = relativePath
-    .replace(/\//g, "__")
-    .replace(/\.[^.]+$/, ".json");
-  const fullPath = `/data/complexity/files/${fileName}`;
+  const jsonPath = relativePath.replace(/\.[^.]+$/, ".json");
+  const fullPath = `/data/complexity/${jsonPath}`;
   return fetchJsonOrNull<FileMetrics>(fullPath);
 }
