@@ -21,6 +21,8 @@ interface GroupedItemListProps {
   semanticTests: SemanticTest[];
   /** アイテム選択時のコールバック */
   onSelectItem: (id: ItemId) => void;
+  /** スキーマ表示ハンドラ（スキーマタブへ遷移し、型をフォーカス） */
+  onShowInSchema?: (typeName: string) => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export function GroupedItemList({
   items,
   semanticTests,
   onSelectItem,
+  onShowInSchema,
 }: GroupedItemListProps) {
   const grouped = useMemo(
     () => groupItems(items, semanticTests),
@@ -58,6 +61,7 @@ export function GroupedItemList({
               key={group.item.id}
               group={group}
               onSelectItem={onSelectItem}
+              onShowInSchema={onShowInSchema}
             />
           ))}
         </section>
@@ -75,6 +79,7 @@ export function GroupedItemList({
               key={group.item.id}
               group={group}
               onSelectItem={onSelectItem}
+              onShowInSchema={onShowInSchema}
             />
           ))}
         </section>

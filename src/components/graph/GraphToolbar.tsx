@@ -330,25 +330,27 @@ export function GraphToolbar({
             <h3 className="text-sm font-semibold text-stone-300 mb-2">
               表示オプション
             </h3>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm text-stone-300 cursor-pointer hover:text-stone-100">
-                <input
-                  type="checkbox"
-                  checked={filter.includeIsolated}
-                  onChange={handleIsolatedToggle}
-                  className="rounded border-stone-600 bg-stone-700 text-orange-500 focus:ring-2 focus:ring-orange-500"
-                />
-                <span>孤立ノードを表示</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm text-stone-300 cursor-pointer hover:text-stone-100">
-                <input
-                  type="checkbox"
-                  checked={filter.consolidateEdges}
-                  onChange={handleConsolidateToggle}
-                  className="rounded border-stone-600 bg-stone-700 text-orange-500 focus:ring-2 focus:ring-orange-500"
-                />
-                <span>重複エッジを省略</span>
-              </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleIsolatedToggle}
+                className={`px-3 py-1 text-sm rounded-full border transition-colors ${
+                  filter.includeIsolated
+                    ? 'bg-orange-600/30 border-orange-500 text-orange-300'
+                    : 'bg-stone-700/50 border-stone-600 text-stone-500 hover:text-stone-300'
+                }`}
+              >
+                孤立ノード表示
+              </button>
+              <button
+                onClick={handleConsolidateToggle}
+                className={`px-3 py-1 text-sm rounded-full border transition-colors ${
+                  filter.consolidateEdges
+                    ? 'bg-orange-600/30 border-orange-500 text-orange-300'
+                    : 'bg-stone-700/50 border-stone-600 text-stone-500 hover:text-stone-300'
+                }`}
+              >
+                重複エッジ省略
+              </button>
             </div>
           </div>
         </div>

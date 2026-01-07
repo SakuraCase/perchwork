@@ -14,6 +14,7 @@ import { useDataLoader } from './hooks/useDataLoader';
 import { useGraphTraversal } from './hooks/useGraphTraversal';
 import { useGraphLayout } from './hooks/useGraphLayout';
 import { useGraphSettings } from './hooks/useGraphSettings';
+import { useSchemaSettings } from './hooks/useSchemaSettings';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useSavedSequences } from './hooks/useSavedSequences';
 import { useSearchIndex } from './hooks/useSearchIndex';
@@ -40,6 +41,7 @@ import { ColorRuleDialog } from './components/graph/ColorRuleDialog';
 import { SequenceView } from './components/sequence';
 import { MetricsView } from './components/metrics';
 import { ReviewView } from './components/review';
+import { SchemaView } from './components/schema';
 import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
 import { loadAllSummaries, type SummaryMap } from './services/semanticLoader';
@@ -118,6 +120,14 @@ function App() {
     openSettings: openGraphSettings,
     deleteSettings: deleteGraphSettings,
   } = useGraphSettings();
+
+  // スキーマ設定の管理
+  const {
+    savedSettings: savedSchemaSettings,
+    saveSettings: saveSchemaSettings,
+    openSettings: openSchemaSettings,
+    deleteSettings: deleteSchemaSettings,
+  } = useSchemaSettings();
 
   // シーケンス保存の管理
   const {
@@ -437,6 +447,50 @@ function App() {
     [sequenceDiagram]
   );
 
+  // スキーマビュー用: フォーカス対象の型名
+  const [schemaFocusTypeName, setSchemaFocusTypeName] = useState<string | null>(null);
+
+  /**
+   * 検索からスキーマの型を選択するハンドラ
+   * 指定した型を関連ノードのみ表示
+   */
+  const handleSearchSelectSchema = useCallback(
+    (typeName: string) => {
+      setSchemaFocusTypeName(typeName);
+      // スキーマタブに切り替え
+      setActiveTab('schema');
+    },
+    []
+  );
+
+  /**
+   * スキーマからツリー表示に遷移するハンドラ
+   */
+  const handleSchemaShowInTree = useCallback(
+    async (filePath: string) => {
+      // ツリータブに切り替え
+      setActiveTab('tree');
+      // ファイルパスを.rs → .jsonに変換
+      const jsonPath = filePath.replace(/\.rs$/, '.json');
+      // ファイルを選択（定義一覧を表示）
+      await handleTreeSelectFile(jsonPath);
+      // アイテムは選択しない（定義一覧を表示）
+      setTreeSelectedItemId(null);
+    },
+    [handleTreeSelectFile]
+  );
+
+  /**
+   * ツリーからスキーマ表示に遷移するハンドラ
+   */
+  const handleTreeShowInSchema = useCallback(
+    (typeName: string) => {
+      setSchemaFocusTypeName(typeName);
+      setActiveTab('schema');
+    },
+    []
+  );
+
   /**
    * ノートセッション選択時のハンドラ
    */
@@ -739,6 +793,7 @@ function App() {
           onSearchSelectGraph={handleSearchSelectGraph}
           onSearchSelectTree={handleSearchSelectTree}
           onSearchSelectSequence={handleSearchSelectSequence}
+          onSearchSelectSchema={handleSearchSelectSchema}
         />
 
         {/* メインコンテンツエリア */}
@@ -861,6 +916,7 @@ function App() {
                       onNavigateTo={handleNavigateTo}
                       onShowInGraph={handleShowInGraph}
                       onShowInSequence={handleOpenSequenceDiagram}
+                      onShowInSchema={handleTreeShowInSchema}
                     />
                   </div>
                 )}
@@ -942,7 +998,22 @@ function App() {
           {/* レビュータブ */}
           {activeTab === 'review' && (
             <div className="flex-1">
-              <ReviewView />
+              <ReviewView onShowInTree={handleSchemaShowInTree} />
+            </div>
+          )}
+
+          {/* スキーマタブ */}
+          {activeTab === 'schema' && (
+            <div className="flex-1">
+              <SchemaView
+                focusTypeName={schemaFocusTypeName}
+                onClearFocusTypeName={() => setSchemaFocusTypeName(null)}
+                onShowInTree={handleSchemaShowInTree}
+                savedSettings={savedSchemaSettings}
+                onSave={saveSchemaSettings}
+                onOpen={openSchemaSettings}
+                onDeleteSaved={deleteSchemaSettings}
+              />
             </div>
           )}
         </div>
@@ -992,6 +1063,7 @@ function App() {
                   onNavigateTo={handleNavigateTo}
                   onShowInGraph={handleShowInGraph}
                   onShowInSequence={handleOpenSequenceDiagram}
+                  onShowInSchema={handleTreeShowInSchema}
                 />
               </div>
             </div>

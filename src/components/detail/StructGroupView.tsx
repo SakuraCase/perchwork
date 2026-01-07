@@ -17,13 +17,16 @@ interface StructGroupViewProps {
   group: StructGroup;
   /** アイテム選択時のコールバック */
   onSelectItem: (id: ItemId) => void;
+  /** スキーマ表示ハンドラ（スキーマタブへ遷移し、型をフォーカス） */
+  onShowInSchema?: (typeName: string) => void;
 }
 
 /**
  * Struct/Enum のグループ表示コンポーネント
  */
-export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
+export function StructGroupView({ group, onSelectItem, onShowInSchema }: StructGroupViewProps) {
   const [expanded, setExpanded] = useState(true);
+  const hasFieldsOrVariants = group.fields.length > 0;
 
   return (
     <div className="border border-stone-700 rounded mb-2">
@@ -95,6 +98,17 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* スキーマで表示ボタン（フィールド/バリアントがある場合のみ） */}
+          {hasFieldsOrVariants && onShowInSchema && (
+            <button
+              type="button"
+              onClick={() => onShowInSchema(group.item.name)}
+              className="px-3 py-1.5 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+            >
+              スキーマで表示
+            </button>
           )}
 
           {/* 直接テスト（struct/enum自体をテストするもの） */}

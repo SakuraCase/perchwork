@@ -33,6 +33,8 @@ interface SearchBoxProps {
   onSelectTreeItem: (filePath: string, itemId: ItemId) => void;
   /** シーケンスモード: メソッド/関数選択時のコールバック */
   onSelectSequenceMethod?: (methodId: ItemId) => void;
+  /** スキーマモード: 型選択時のコールバック */
+  onSelectSchemaType?: (typeName: string) => void;
 }
 
 /**
@@ -67,6 +69,7 @@ export function SearchBox({
   onSelectGraphNode,
   onSelectTreeItem,
   onSelectSequenceMethod,
+  onSelectSchemaType,
 }: SearchBoxProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -92,6 +95,11 @@ export function SearchBox({
       // シーケンスタブではメソッド/関数のみ表示
       if (activeTab === 'sequence') {
         if (item.type !== 'method' && item.type !== 'fn') continue;
+      }
+
+      // スキーマタブではstruct/enumのみ表示
+      if (activeTab === 'schema') {
+        if (item.type !== 'struct' && item.type !== 'enum') continue;
       }
 
       // 同一structの制限チェック
@@ -133,6 +141,9 @@ export function SearchBox({
         onSelectGraphNode(item.id, item.filePath);
       } else if (activeTab === 'sequence') {
         onSelectSequenceMethod?.(item.id);
+      } else if (activeTab === 'schema') {
+        // スキーマタブでは型名（item.name）を使用
+        onSelectSchemaType?.(item.name);
       } else {
         onSelectTreeItem(item.filePath, item.id);
       }
@@ -141,7 +152,7 @@ export function SearchBox({
       setQuery('');
       setIsOpen(false);
     },
-    [activeTab, onSelectGraphNode, onSelectTreeItem, onSelectSequenceMethod]
+    [activeTab, onSelectGraphNode, onSelectTreeItem, onSelectSequenceMethod, onSelectSchemaType]
   );
 
   // キーボードナビゲーション

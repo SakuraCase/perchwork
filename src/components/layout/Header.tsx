@@ -26,6 +26,8 @@ interface HeaderProps {
   onSearchSelectTree: (filePath: string, itemId: ItemId) => void;
   /** シーケンスモード: メソッド/関数選択時のコールバック */
   onSearchSelectSequence?: (methodId: ItemId) => void;
+  /** スキーマモード: 型選択時のコールバック */
+  onSearchSelectSchema?: (typeName: string) => void;
 }
 
 /**
@@ -41,6 +43,7 @@ export function Header({
   onSearchSelectGraph,
   onSearchSelectTree,
   onSearchSelectSequence,
+  onSearchSelectSchema,
 }: HeaderProps) {
   return (
     <header className="h-14 border-b border-stone-700 bg-stone-900 flex items-center px-6">
@@ -108,6 +111,16 @@ export function Header({
         >
           シーケンス
         </button>
+        <button
+          onClick={() => onTabChange("schema")}
+          className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
+            activeTab === "schema"
+              ? "bg-stone-800 text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
+          }`}
+        >
+          スキーマ
+        </button>
       </div>
 
       {/* 検索ボックス（右寄せ） */}
@@ -119,6 +132,7 @@ export function Header({
           onSelectGraphNode={onSearchSelectGraph}
           onSelectTreeItem={onSearchSelectTree}
           onSelectSequenceMethod={onSearchSelectSequence}
+          onSelectSchemaType={onSearchSelectSchema}
         />
       </div>
     </header>

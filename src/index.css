@@ -34,3 +34,33 @@
 .sequence-highlight-text {
   fill: #f97316 !important;
 }
+
+/* ReactFlow Controls ダークテーマ */
+.react-flow__controls {
+  background: #292524 !important; /* stone-800 */
+  border: 1px solid #57534e !important; /* stone-600 */
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.react-flow__controls-button {
+  background: #292524 !important; /* stone-800 */
+  border: none !important;
+  border-bottom: 1px solid #44403c !important; /* stone-700 */
+  fill: #a8a29e !important; /* stone-400 */
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #44403c !important; /* stone-700 */
+  fill: #f97316 !important; /* orange-500 */
+}
+
+.react-flow__controls-button svg {
+  fill: inherit !important;
+}

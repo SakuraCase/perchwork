@@ -37,6 +37,8 @@ interface DetailPanelProps {
   showInGraphLabel?: string;
   /** シーケンス図生成ハンドラ（シーケンスタブへ遷移し、rootを設定） */
   onShowInSequence?: (itemId: ItemId) => void;
+  /** スキーマ表示ハンドラ（スキーマタブへ遷移し、型をフォーカス） */
+  onShowInSchema?: (typeName: string) => void;
 }
 
 /**
@@ -58,6 +60,7 @@ export function DetailPanel({
   onShowInGraph,
   showInGraphLabel = 'グラフで表示',
   onShowInSequence,
+  onShowInSchema,
 }: DetailPanelProps) {
   // 折りたたみ状態の管理
   const [callersExpanded, setCallersExpanded] = useState(false);
@@ -89,6 +92,10 @@ export function DetailPanel({
   if (selectedItem) {
     const isFunctionType =
       selectedItem.type === 'fn' || selectedItem.type === 'method';
+    const isStructOrEnum =
+      selectedItem.type === 'struct' || selectedItem.type === 'enum';
+    const hasFields =
+      selectedItem.fields && selectedItem.fields.length > 0;
 
     return (
       <div className="h-full overflow-y-auto">
@@ -140,6 +147,19 @@ export function DetailPanel({
                   シーケンスで表示
                 </button>
               )}
+            </div>
+          )}
+
+          {/* アクションボタン（struct/enum型でフィールドありの場合） */}
+          {isStructOrEnum && hasFields && onShowInSchema && (
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => onShowInSchema(selectedItem.name)}
+                className="px-3 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+              >
+                スキーマで表示
+              </button>
             </div>
           )}
 
@@ -244,6 +264,7 @@ export function DetailPanel({
           items={file.items}
           semanticTests={semanticTests}
           onSelectItem={onSelectItem}
+          onShowInSchema={onShowInSchema}
         />
       </div>
     </div>

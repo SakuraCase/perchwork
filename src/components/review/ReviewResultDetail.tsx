@@ -16,6 +16,8 @@ const priorityOrder: Record<FixPlan["priority"], number> = {
 
 interface ReviewResultDetailProps {
   result: ReviewFileResult;
+  /** ツリーで表示ハンドラ */
+  onShowInTree?: (filePath: string) => void;
 }
 
 const agentLabels: Record<ReviewAgent, string> = {
@@ -34,7 +36,7 @@ const typeDesignScoreInfo: Record<string, { label: string; description: string }
   enforcement: { label: "Enforcement", description: "コンパイル時の強制力" },
 };
 
-export function ReviewResultDetail({ result }: ReviewResultDetailProps) {
+export function ReviewResultDetail({ result, onShowInTree }: ReviewResultDetailProps) {
   const agents = result.agents;
   const [copied, setCopied] = useState(false);
 
@@ -103,10 +105,19 @@ ${parts.join("\n\n---\n\n")}`;
   return (
     <div className="h-full overflow-y-auto p-4 space-y-6">
       {/* ヘッダー */}
-      <div>
-        <h2 className="text-lg font-semibold text-stone-100 font-mono">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-stone-100 font-mono truncate">
           {result.path}
         </h2>
+        {onShowInTree && (
+          <button
+            type="button"
+            onClick={() => onShowInTree(result.path)}
+            className="px-3 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors whitespace-nowrap"
+          >
+            ツリーで表示
+          </button>
+        )}
       </div>
 
       {/* エージェント結果サマリー */}

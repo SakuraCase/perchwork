@@ -11,7 +11,12 @@ import { ReviewFileList } from "./ReviewFileList";
 import { ReviewResultDetail } from "./ReviewResultDetail";
 import { Loading } from "../common/Loading";
 
-export function ReviewView() {
+interface ReviewViewProps {
+  /** ツリーで表示ハンドラ */
+  onShowInTree?: (filePath: string) => void;
+}
+
+export function ReviewView({ onShowInTree }: ReviewViewProps) {
   const { index, selectedFile, isLoading, error, loadFileDetails } =
     useReviewDataLoader();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -91,7 +96,7 @@ export function ReviewView() {
         {showOverview ? (
           <ReviewOverview index={index} onFileSelect={handleSelectFile} />
         ) : selectedFile ? (
-          <ReviewResultDetail key={selectedFile.path} result={selectedFile} />
+          <ReviewResultDetail key={selectedFile.path} result={selectedFile} onShowInTree={onShowInTree} />
         ) : isLoading ? (
           <Loading message="ファイルを読み込んでいます..." />
         ) : (
