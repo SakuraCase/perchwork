@@ -88,8 +88,8 @@ export function ClusterNode({
 
   return (
     <div
-      className={`border border-gray-700 rounded-lg bg-gray-800 transition-all duration-200 ${
-        isHovered ? 'border-gray-600 shadow-lg' : ''
+      className={`border border-stone-700 rounded-lg bg-stone-800 transition-all duration-200 ${
+        isHovered ? 'border-stone-600 shadow-lg' : ''
       } ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -97,7 +97,7 @@ export function ClusterNode({
       {/* クラスタヘッダー */}
       <button
         onClick={handleToggle}
-        className="w-full flex items-center justify-between p-3 hover:bg-gray-750 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-t-lg transition-colors"
+        className="w-full flex items-center justify-between p-3 hover:bg-stone-750 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-t-lg transition-colors"
         aria-expanded={cluster.expanded}
         aria-label={`${cluster.label}クラスタを${cluster.expanded ? '折りたたむ' : '展開する'}`}
       >
@@ -105,7 +105,7 @@ export function ClusterNode({
         <div className="flex items-center space-x-2">
           {/* 展開/折りたたみアイコン */}
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+            className={`w-4 h-4 text-stone-400 transition-transform duration-200 ${
               cluster.expanded ? 'rotate-90' : ''
             }`}
             fill="none"
@@ -121,35 +121,35 @@ export function ClusterNode({
           </svg>
 
           {/* クラスタ名 */}
-          <span className="text-sm font-semibold text-gray-100">
+          <span className="text-sm font-semibold text-stone-100">
             {cluster.label}
           </span>
         </div>
 
         {/* 右側: ノード数バッジ */}
-        <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-gray-100 bg-gray-700 rounded-full min-w-[24px]">
+        <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-stone-100 bg-stone-700 rounded-full min-w-[24px]">
           {cluster.nodes.length}
         </span>
       </button>
 
       {/* クラスタ内のノード一覧（展開時のみ表示） */}
       {cluster.expanded && (
-        <div className="border-t border-gray-700">
+        <div className="border-t border-stone-700">
           {/* ノードがない場合 */}
           {cluster.nodes.length === 0 && (
-            <div className="p-3 text-sm text-gray-500 text-center">
+            <div className="p-3 text-sm text-stone-500 text-center">
               ノードがありません
             </div>
           )}
 
           {/* ノードリスト */}
           {cluster.nodes.length > 0 && (
-            <ul className="divide-y divide-gray-700">
+            <ul className="divide-y divide-stone-700">
               {cluster.nodes.map((nodeId) => (
                 <li key={nodeId}>
                   <button
                     onClick={() => handleNodeClick(nodeId)}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-750 hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full px-4 py-2 text-left text-sm text-stone-300 hover:bg-stone-750 hover:text-stone-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
                     title={`${nodeId}を選択`}
                   >
                     {/* ノードIDを表示（必要に応じてノード名に変更可能） */}

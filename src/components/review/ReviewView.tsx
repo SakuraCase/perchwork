@@ -40,7 +40,7 @@ export function ReviewView() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <p className="text-red-400 mb-2">エラーが発生しました</p>
-          <p className="text-gray-400 text-sm">{error}</p>
+          <p className="text-stone-400 text-sm">{error}</p>
         </div>
       </div>
     );
@@ -50,10 +50,10 @@ export function ReviewView() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center max-w-md">
-          <p className="text-gray-300 text-lg mb-2">
+          <p className="text-stone-300 text-lg mb-2">
             レビューデータがありません
           </p>
-          <p className="text-gray-500 text-sm">
+          <p className="text-stone-500 text-sm">
             <code>/analyze</code> を実行してレビューデータを生成してください
           </p>
         </div>
@@ -64,14 +64,14 @@ export function ReviewView() {
   return (
     <div className="flex h-full">
       {/* 左パネル: ファイルリスト */}
-      <div className="w-80 border-r border-gray-700 flex flex-col">
-        <div className="p-2 border-b border-gray-700">
+      <div className="w-80 border-r border-stone-700 flex flex-col">
+        <div className="p-2 border-b border-stone-700">
           <button
             onClick={handleShowOverview}
             className={`w-full px-3 py-2 text-sm rounded transition-colors ${
               showOverview
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                ? "bg-orange-600 text-white"
+                : "bg-stone-800 text-stone-300 hover:bg-stone-700"
             }`}
           >
             概要
@@ -95,7 +95,7 @@ export function ReviewView() {
         ) : isLoading ? (
           <Loading message="ファイルを読み込んでいます..." />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="flex items-center justify-center h-full text-stone-500">
             ファイルを選択してください
           </div>
         )}

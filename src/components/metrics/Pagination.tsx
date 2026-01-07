@@ -79,17 +79,17 @@ export function Pagination({
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-700">
+    <div className="flex items-center justify-between px-4 py-3 border-t border-stone-700">
       {/* 表示件数 */}
       <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-stone-400">
           {startItem}-{endItem} / {totalItems}件
         </span>
         {onPageSizeChange && (
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600"
+            className="bg-stone-700 text-white text-sm rounded px-2 py-1 border border-stone-600"
           >
             {pageSizeOptions.map((size) => (
               <option key={size} value={size}>
@@ -107,7 +107,7 @@ export function Pagination({
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-2 py-1 text-sm rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-400"
+            className="px-2 py-1 text-sm rounded hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed text-stone-400"
           >
             ←
           </button>
@@ -115,7 +115,7 @@ export function Pagination({
           {/* ページ番号 */}
           {getPageNumbers().map((page, index) =>
             page === "..." ? (
-              <span key={`ellipsis-${index}`} className="px-2 text-gray-500">
+              <span key={`ellipsis-${index}`} className="px-2 text-stone-500">
                 ...
               </span>
             ) : (
@@ -124,8 +124,8 @@ export function Pagination({
                 onClick={() => onPageChange(page)}
                 className={`px-3 py-1 text-sm rounded transition-colors ${
                   page === currentPage
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:bg-gray-700"
+                    ? "bg-orange-600 text-white"
+                    : "text-stone-400 hover:bg-stone-700"
                 }`}
               >
                 {page}
@@ -137,7 +137,7 @@ export function Pagination({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-2 py-1 text-sm rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-400"
+            className="px-2 py-1 text-sm rounded hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed text-stone-400"
           >
             →
           </button>

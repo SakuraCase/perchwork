@@ -41,10 +41,10 @@ const BADGE_COLORS: Record<BadgeVariant, string> = {
   pub: 'bg-green-600/20 text-green-400 border-green-600/30',
   'pub-crate': 'bg-blue-600/20 text-blue-400 border-blue-600/30',
   'pub-super': 'bg-purple-600/20 text-purple-400 border-purple-600/30',
-  private: 'bg-gray-600/20 text-gray-400 border-gray-600/30',
+  private: 'bg-stone-600/20 text-stone-400 border-stone-600/30',
   // タグ
   async: 'bg-purple-600/20 text-purple-400 border-purple-600/30',
-  count: 'bg-gray-600/20 text-gray-400 border-gray-600/30',
+  count: 'bg-stone-600/20 text-stone-400 border-stone-600/30',
 };
 
 /**
@@ -132,7 +132,7 @@ const TYPE_COLOR_CLASSES: Record<string, string> = {
   enum: 'bg-amber-600 text-white',
   type: 'bg-purple-600 text-white',
   impl: 'bg-blue-600 text-white',
-  mod: 'bg-gray-600 text-white',
+  mod: 'bg-stone-600 text-white',
   const: 'bg-teal-600 text-white',
   method: 'bg-cyan-600 text-white',
 };
@@ -141,7 +141,7 @@ const TYPE_COLOR_CLASSES: Record<string, string> = {
  * アイテムタイプに応じた色クラスを取得（コンテキストメニュー用）
  */
 export function getTypeColorClass(type: string): string {
-  return TYPE_COLOR_CLASSES[type] || 'bg-gray-600 text-white';
+  return TYPE_COLOR_CLASSES[type] || 'bg-stone-600 text-white';
 }
 
 /** Cytoscape ノード用の色（HEX） */
@@ -152,7 +152,7 @@ const CYTOSCAPE_NODE_COLORS: Record<string, string> = {
   enum: '#f59e0b', // amber-500
   type: '#8b5cf6', // purple-500
   impl: '#2563eb', // blue-600
-  mod: '#4b5563', // gray-600
+  mod: '#57534e', // stone-600
   const: '#0d9488', // teal-600
   method: '#0891b2', // cyan-600
 };

@@ -38,7 +38,7 @@ export function GroupedItemList({
 
   if (items.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
+      <div className="text-center text-stone-500 py-8">
         <p>このファイルにはアイテムがありません</p>
       </div>
     );
@@ -51,7 +51,7 @@ export function GroupedItemList({
         <section>
           <h3 className="text-sm font-semibold text-orange-400 mb-2 flex items-center gap-2">
             <span>Enum</span>
-            <span className="text-gray-500 font-normal">({grouped.enums.length})</span>
+            <span className="text-stone-500 font-normal">({grouped.enums.length})</span>
           </h3>
           {grouped.enums.map((group) => (
             <StructGroupView
@@ -68,7 +68,7 @@ export function GroupedItemList({
         <section>
           <h3 className="text-sm font-semibold text-cyan-400 mb-2 flex items-center gap-2">
             <span>Struct</span>
-            <span className="text-gray-500 font-normal">({grouped.structs.length})</span>
+            <span className="text-stone-500 font-normal">({grouped.structs.length})</span>
           </h3>
           {grouped.structs.map((group) => (
             <StructGroupView
@@ -85,7 +85,7 @@ export function GroupedItemList({
         <section>
           <h3 className="text-sm font-semibold text-pink-400 mb-2 flex items-center gap-2">
             <span>Trait</span>
-            <span className="text-gray-500 font-normal">({grouped.traits.length})</span>
+            <span className="text-stone-500 font-normal">({grouped.traits.length})</span>
           </h3>
           <div className="space-y-2">
             {grouped.traits.map((item) => (
@@ -93,10 +93,10 @@ export function GroupedItemList({
                 key={item.id}
                 type="button"
                 onClick={() => onSelectItem(item.id)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded hover:bg-gray-750 text-left transition-colors"
+                className="w-full px-4 py-3 bg-stone-800 border border-stone-700 rounded hover:bg-stone-750 text-left transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-200">{item.name}</span>
+                  <span className="font-semibold text-stone-200">{item.name}</span>
                   <Badge variant="trait" withBorder={false}>
                     trait
                   </Badge>
@@ -107,7 +107,7 @@ export function GroupedItemList({
                   )}
                 </div>
                 {item.summary && (
-                  <p className="text-sm text-gray-500 mt-1">{item.summary}</p>
+                  <p className="text-sm text-stone-500 mt-1">{item.summary}</p>
                 )}
               </button>
             ))}
@@ -120,7 +120,7 @@ export function GroupedItemList({
         <section>
           <h3 className="text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-2">
             <span>Functions</span>
-            <span className="text-gray-500 font-normal">
+            <span className="text-stone-500 font-normal">
               ({grouped.functions.length})
             </span>
           </h3>
@@ -130,7 +130,7 @@ export function GroupedItemList({
                 key={item.id}
                 type="button"
                 onClick={() => onSelectItem(item.id)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded hover:bg-gray-750 text-left transition-colors"
+                className="w-full px-4 py-3 bg-stone-800 border border-stone-700 rounded hover:bg-stone-750 text-left transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-yellow-400">{item.name}()</span>
@@ -149,7 +149,7 @@ export function GroupedItemList({
                   )}
                 </div>
                 {item.summary && (
-                  <p className="text-sm text-gray-500 mt-1">{item.summary}</p>
+                  <p className="text-sm text-stone-500 mt-1">{item.summary}</p>
                 )}
               </button>
             ))}

@@ -122,7 +122,7 @@ function TreeNodeComponent({
       {node.name && (
         <button
           onClick={() => toggleDir(node.path)}
-          className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-gray-300 hover:bg-gray-700 rounded transition-colors"
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-stone-300 hover:bg-stone-700 rounded transition-colors"
           style={{ paddingLeft: `${level * 12 + 8}px` }}
         >
           {/* 展開アイコン */}
@@ -154,7 +154,7 @@ function TreeNodeComponent({
           </svg>
 
           <span className="font-medium">{node.name}</span>
-          <span className="text-gray-500 text-xs">
+          <span className="text-stone-500 text-xs">
             ({node.children.length + node.files.length})
           </span>
         </button>
@@ -183,8 +183,8 @@ function TreeNodeComponent({
               onClick={() => onSelectFile(file.path)}
               className={`w-full flex items-center gap-2 py-1 text-left text-sm rounded transition-colors ${
                 selectedFilePath === file.path
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                  ? "bg-orange-600 text-white"
+                  : "text-stone-400 hover:bg-stone-700 hover:text-stone-200"
               }`}
               style={{ paddingLeft: `${(node.name ? level + 1 : level) * 12 + 8}px`, paddingRight: "8px" }}
             >
@@ -210,8 +210,8 @@ function TreeNodeComponent({
                 <span
                   className={`text-xs ${
                     selectedFilePath === file.path
-                      ? "text-blue-200"
-                      : "text-gray-500"
+                      ? "text-orange-200"
+                      : "text-stone-500"
                   }`}
                 >
                   {file.items}
@@ -258,7 +258,7 @@ export function TreeView({
   return (
     <div className="p-4">
       {/* 統計情報 */}
-      <div className="mb-4 text-sm text-gray-400">
+      <div className="mb-4 text-sm text-stone-400">
         <span>{index.stats.total_files} files</span>
         <span className="mx-2">|</span>
         <span>{index.stats.total_items} items</span>

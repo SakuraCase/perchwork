@@ -47,13 +47,13 @@ function getTypeBadgeColor(type: string): string {
     case 'fn':
       return 'bg-indigo-600';
     case 'method':
-      return 'bg-blue-600';
+      return 'bg-orange-600';
     case 'trait':
       return 'bg-red-600';
     case 'impl':
       return 'bg-purple-600';
     default:
-      return 'bg-gray-600';
+      return 'bg-stone-600';
   }
 }
 
@@ -179,10 +179,10 @@ export function SearchBox({
   return (
     <div className="relative" ref={containerRef}>
       {/* 検索入力欄 */}
-      <div className="flex items-center bg-gray-800 border border-gray-700 rounded px-3 py-1.5 focus-within:border-blue-500 transition-colors">
+      <div className="flex items-center bg-stone-800 border border-stone-700 rounded px-3 py-1.5 focus-within:border-orange-500 transition-colors">
         {/* 検索アイコン */}
         <svg
-          className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
+          className="w-4 h-4 text-stone-400 mr-2 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -206,13 +206,13 @@ export function SearchBox({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="ID検索..."
-          className="bg-transparent text-gray-100 text-sm focus:outline-none w-48 placeholder-gray-500"
+          className="bg-transparent text-stone-100 text-sm focus:outline-none w-48 placeholder-stone-500"
         />
 
         {/* ローディングスピナー */}
         {isLoading && (
           <svg
-            className="w-4 h-4 text-gray-400 animate-spin ml-2 flex-shrink-0"
+            className="w-4 h-4 text-stone-400 animate-spin ml-2 flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -235,7 +235,7 @@ export function SearchBox({
 
       {/* ドロップダウン候補リスト */}
       {isOpen && query.trim() && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded shadow-lg z-50 max-h-80 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-stone-800 border border-stone-700 rounded shadow-lg z-50 max-h-80 overflow-y-auto">
           {candidates.length > 0 ? (
             candidates.map((item, index) => (
               <button
@@ -244,11 +244,11 @@ export function SearchBox({
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={`w-full px-3 py-2 text-left flex items-center justify-between transition-colors ${
                   index === safeSelectedIndex
-                    ? 'bg-gray-700'
-                    : 'hover:bg-gray-700/50'
+                    ? 'bg-stone-700'
+                    : 'hover:bg-stone-700/50'
                 }`}
               >
-                <span className="text-sm text-gray-100 truncate flex-1 mr-2">
+                <span className="text-sm text-stone-100 truncate flex-1 mr-2">
                   {item.displayName}
                 </span>
                 <span
@@ -259,7 +259,7 @@ export function SearchBox({
               </button>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500">
+            <div className="px-3 py-2 text-sm text-stone-500">
               候補が見つかりません
             </div>
           )}

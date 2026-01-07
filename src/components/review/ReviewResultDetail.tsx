@@ -27,17 +27,17 @@ export function ReviewResultDetail({ result }: ReviewResultDetailProps) {
     <div className="h-full overflow-y-auto p-4 space-y-6">
       {/* ヘッダー */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-100 font-mono">
+        <h2 className="text-lg font-semibold text-stone-100 font-mono">
           {result.path}
         </h2>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-stone-500 mt-1">
           生成日時: {new Date(result.generated_at).toLocaleString("ja-JP")}
         </p>
       </div>
 
       {/* エージェント結果サマリー */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">
+        <h3 className="text-sm font-semibold text-stone-300 mb-3">
           エージェント結果
         </h3>
         <div className="grid grid-cols-2 gap-2">
@@ -50,14 +50,14 @@ export function ReviewResultDetail({ result }: ReviewResultDetailProps) {
                 ? "text-green-400"
                 : agentResult.status === "error"
                   ? "text-red-400"
-                  : "text-gray-400";
+                  : "text-stone-400";
 
             return (
               <div
                 key={agentKey}
-                className="bg-gray-800 rounded p-2 text-sm flex items-center justify-between"
+                className="bg-stone-800 rounded p-2 text-sm flex items-center justify-between"
               >
-                <span className="text-gray-300">{agentLabels[agentKey]}</span>
+                <span className="text-stone-300">{agentLabels[agentKey]}</span>
                 <span className={statusColor}>
                   {agentResult.status === "success"
                     ? "✓"
@@ -74,7 +74,7 @@ export function ReviewResultDetail({ result }: ReviewResultDetailProps) {
       {/* 詳細スコア（type-design-analyzer がある場合） */}
       {agents["type-design-analyzer"]?.status === "success" && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-3">
+          <h3 className="text-sm font-semibold text-stone-300 mb-3">
             型設計スコア
           </h3>
           <div className="grid grid-cols-2 gap-2">
@@ -82,9 +82,9 @@ export function ReviewResultDetail({ result }: ReviewResultDetailProps) {
               ([key, value]) => (
                 <div
                   key={key}
-                  className="bg-gray-800 rounded p-2 text-sm flex items-center justify-between"
+                  className="bg-stone-800 rounded p-2 text-sm flex items-center justify-between"
                 >
-                  <span className="text-gray-400 capitalize">{key}</span>
+                  <span className="text-stone-400 capitalize">{key}</span>
                   <span
                     className={`font-bold ${
                       value >= 8
@@ -106,10 +106,10 @@ export function ReviewResultDetail({ result }: ReviewResultDetailProps) {
       {/* code-reviewer スコア */}
       {agents["code-reviewer"]?.status === "success" && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-3">
+          <h3 className="text-sm font-semibold text-stone-300 mb-3">
             コードレビュースコア
           </h3>
-          <div className="bg-gray-800 rounded p-3 flex items-center gap-4">
+          <div className="bg-stone-800 rounded p-3 flex items-center gap-4">
             <span
               className={`text-3xl font-bold ${
                 agents["code-reviewer"].score >= 80
@@ -121,14 +121,14 @@ export function ReviewResultDetail({ result }: ReviewResultDetailProps) {
             >
               {agents["code-reviewer"].score}
             </span>
-            <span className="text-gray-400">/ 100</span>
+            <span className="text-stone-400">/ 100</span>
           </div>
         </div>
       )}
 
       {/* 修正計画 */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">
+        <h3 className="text-sm font-semibold text-stone-300 mb-3">
           修正計画 ({result.fix_plans.length})
         </h3>
         {result.fix_plans.length === 0 ? (

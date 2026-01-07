@@ -106,21 +106,21 @@ export function LabelEditDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         ref={dialogRef}
-        className="bg-gray-800 border border-gray-600 rounded-lg shadow-lg w-[400px]"
+        className="bg-stone-800 border border-stone-600 rounded-lg shadow-lg w-[400px]"
       >
         {/* ヘッダー */}
-        <div className="px-4 py-3 border-b border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-100">ラベルを編集</h2>
+        <div className="px-4 py-3 border-b border-stone-700">
+          <h2 className="text-sm font-semibold text-stone-100">ラベルを編集</h2>
         </div>
 
         {/* フォーム */}
         <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
           {/* 元のラベル */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">
+            <label className="block text-xs text-stone-400 mb-1">
               元のラベル
             </label>
-            <div className="px-3 py-2 bg-gray-900 border border-gray-700 rounded text-sm text-gray-400 font-mono">
+            <div className="px-3 py-2 bg-stone-900 border border-stone-700 rounded text-sm text-stone-400 font-mono">
               {originalLabel}
             </div>
           </div>
@@ -129,7 +129,7 @@ export function LabelEditDialog({
           <div>
             <label
               htmlFor="label-input"
-              className="block text-xs text-gray-400 mb-1"
+              className="block text-xs text-stone-400 mb-1"
             >
               カスタムラベル
             </label>
@@ -139,13 +139,13 @@ export function LabelEditDialog({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               rows={3}
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none"
+              className="w-full bg-stone-700 text-stone-100 border border-stone-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono resize-none"
               placeholder="カスタムラベルを入力"
             />
           </div>
 
           {/* ヒント */}
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-stone-500">
             改行は &lt;br/&gt; に変換されます
           </p>
 
@@ -155,7 +155,7 @@ export function LabelEditDialog({
               type="button"
               onClick={handleReset}
               disabled={!isCustomized}
-              className="px-4 py-2 text-sm text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm text-stone-300 bg-stone-700 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               元に戻す
             </button>
@@ -164,7 +164,7 @@ export function LabelEditDialog({
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 text-sm text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm text-stone-300 bg-stone-700 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 キャンセル
               </button>

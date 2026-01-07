@@ -39,15 +39,15 @@ interface DeleteConfirmProps {
 function DeleteConfirm({ name, onConfirm, onCancel }: DeleteConfirmProps) {
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
-      <div className="bg-gray-800 border border-gray-600 rounded-lg shadow-lg w-[300px] p-4">
-        <p className="text-sm text-gray-200 mb-4">
+      <div className="bg-stone-800 border border-stone-600 rounded-lg shadow-lg w-[300px] p-4">
+        <p className="text-sm text-stone-200 mb-4">
           「{name}」を削除しますか？
         </p>
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 text-sm text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600"
+            className="px-3 py-1.5 text-sm text-stone-300 bg-stone-700 border border-stone-600 rounded hover:bg-stone-600"
           >
             キャンセル
           </button>
@@ -143,15 +143,15 @@ export function OpenDialog({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div
           ref={dialogRef}
-          className="bg-gray-800 border border-gray-600 rounded-lg shadow-lg w-[480px] max-h-[80vh] flex flex-col"
+          className="bg-stone-800 border border-stone-600 rounded-lg shadow-lg w-[480px] max-h-[80vh] flex flex-col"
         >
           {/* ヘッダー */}
-          <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-100">保存済みシーケンスを開く</h2>
+          <div className="px-4 py-3 border-b border-stone-700 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-stone-100">保存済みシーケンスを開く</h2>
             <button
               type="button"
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-200"
+              className="text-stone-400 hover:text-stone-200"
               aria-label="閉じる"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,7 +163,7 @@ export function OpenDialog({
           {/* コンテンツ */}
           <div className="flex-1 overflow-y-auto p-4">
             {savedSequences.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-stone-500">
                 <p>保存済みシーケンスがありません</p>
               </div>
             ) : (
@@ -171,22 +171,22 @@ export function OpenDialog({
                 {savedSequences.map((saved) => (
                   <div
                     key={saved.id}
-                    className="group flex items-center gap-2 p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer transition-colors"
+                    className="group flex items-center gap-2 p-3 bg-stone-700 rounded hover:bg-stone-600 cursor-pointer transition-colors"
                     onClick={() => onSelect(saved)}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm text-gray-100 truncate">{saved.name}</div>
-                      <div className="text-xs text-gray-400 truncate">
+                      <div className="text-sm text-stone-100 truncate">{saved.name}</div>
+                      <div className="text-xs text-stone-400 truncate">
                         起点: {extractDisplayName(saved.rootFunctionId)}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-stone-500">
                         {new Date(saved.updatedAt).toLocaleString('ja-JP')}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={(e) => handleDeleteClick(e, saved)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-400 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-stone-400 hover:text-red-400 transition-opacity"
                       aria-label={`${saved.name}を削除`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

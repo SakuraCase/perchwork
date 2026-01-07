@@ -17,7 +17,7 @@ interface MainContentProps {
  */
 export function MainContent({ children }: MainContentProps) {
   return (
-    <main className="flex-1 flex flex-col bg-gray-800 overflow-hidden">
+    <main className="flex-1 flex flex-col bg-stone-800 overflow-hidden">
       {children}
     </main>
   );

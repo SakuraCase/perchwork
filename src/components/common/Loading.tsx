@@ -67,12 +67,12 @@ export const Loading: React.FC<LoadingProps> = ({
     <div className="flex flex-col items-center justify-center p-8">
       {/* スピナー */}
       <div
-        className={`${spinnerSizeClass} border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin`}
+        className={`${spinnerSizeClass} border-4 border-stone-700 border-t-orange-500 rounded-full animate-spin`}
         role="status"
         aria-label="読み込み中"
       />
       {/* メッセージ */}
-      <p className={`mt-4 text-gray-300 ${textSizeClass}`}>
+      <p className={`mt-4 text-stone-300 ${textSizeClass}`}>
         {message}
       </p>
     </div>

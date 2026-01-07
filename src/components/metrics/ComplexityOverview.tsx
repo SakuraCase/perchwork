@@ -29,10 +29,10 @@ function StatCard({ label, value, subtext, warning, danger }: StatCardProps) {
   else if (warning) valueColor = "text-yellow-400";
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <div className="text-sm text-gray-400 mb-1">{label}</div>
+    <div className="bg-stone-800 rounded-lg p-4 border border-stone-700">
+      <div className="text-sm text-stone-400 mb-1">{label}</div>
       <div className={`text-2xl font-bold ${valueColor}`}>{value}</div>
-      {subtext && <div className="text-xs text-gray-500 mt-1">{subtext}</div>}
+      {subtext && <div className="text-xs text-stone-500 mt-1">{subtext}</div>}
     </div>
   );
 }
@@ -59,10 +59,10 @@ export function ComplexityOverview({
   return (
     <div className="space-y-4">
       {/* ヘッダー情報 */}
-      <div className="flex items-center justify-between text-sm text-gray-400">
+      <div className="flex items-center justify-between text-sm text-stone-400">
         <div className="flex items-center gap-4">
           {language && (
-            <span className="bg-gray-700 px-2 py-0.5 rounded">{language}</span>
+            <span className="bg-stone-700 px-2 py-0.5 rounded">{language}</span>
           )}
           <span>{stats.total_files} ファイル</span>
           <span>{stats.total_functions} 関数</span>
@@ -126,55 +126,55 @@ export function ComplexityOverview({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             {stats.warnings.high_cc > 0 && (
-              <div className="bg-gray-800/50 rounded p-3">
+              <div className="bg-stone-800/50 rounded p-3">
                 <div className="text-yellow-400 font-medium mb-1">
                   高い循環的複雑度
                 </div>
                 <div className="text-2xl font-bold text-white mb-1">
                   {stats.warnings.high_cc}
-                  <span className="text-sm font-normal text-gray-400 ml-1">
+                  <span className="text-sm font-normal text-stone-400 ml-1">
                     関数
                   </span>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-stone-500">
                   CC &gt; 10 → 分岐が多くテストが困難
                 </div>
               </div>
             )}
             {stats.warnings.high_cognitive > 0 && (
-              <div className="bg-gray-800/50 rounded p-3">
+              <div className="bg-stone-800/50 rounded p-3">
                 <div className="text-yellow-400 font-medium mb-1">
                   高い認知的複雑度
                 </div>
                 <div className="text-2xl font-bold text-white mb-1">
                   {stats.warnings.high_cognitive}
-                  <span className="text-sm font-normal text-gray-400 ml-1">
+                  <span className="text-sm font-normal text-stone-400 ml-1">
                     関数
                   </span>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-stone-500">
                   Cognitive &gt; 15 → 理解・保守が困難
                 </div>
               </div>
             )}
             {stats.warnings.low_mi > 0 && (
-              <div className="bg-gray-800/50 rounded p-3">
+              <div className="bg-stone-800/50 rounded p-3">
                 <div className="text-yellow-400 font-medium mb-1">
                   低い保守性指標
                 </div>
                 <div className="text-2xl font-bold text-white mb-1">
                   {stats.warnings.low_mi}
-                  <span className="text-sm font-normal text-gray-400 ml-1">
+                  <span className="text-sm font-normal text-stone-400 ml-1">
                     ファイル
                   </span>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-stone-500">
                   MI &lt; 20 → 大規模リファクタリングが必要
                 </div>
               </div>
             )}
           </div>
-          <div className="mt-3 text-xs text-gray-500">
+          <div className="mt-3 text-xs text-stone-500">
             ↓ 下の「関数ランキング」で具体的な対象を確認できます
           </div>
         </div>

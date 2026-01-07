@@ -39,7 +39,7 @@ export function ToggleIcon({
 
   return (
     <svg
-      className={`${SIZE_CLASSES[size]} text-gray-400 transition-transform ${rotation} ${className}`}
+      className={`${SIZE_CLASSES[size]} text-stone-400 transition-transform ${rotation} ${className}`}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -86,7 +86,7 @@ export function ToggleIconText({
 
   return (
     <span
-      className={`inline-block text-xs text-gray-400 transform transition-transform ${rotation} ${className}`}
+      className={`inline-block text-xs text-stone-400 transform transition-transform ${rotation} ${className}`}
     >
       {icon}
     </span>

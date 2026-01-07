@@ -32,12 +32,12 @@ export function TestItem({ testId, displayName, summary, onClick }: TestItemProp
       <button
         type="button"
         onClick={onClick}
-        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-left hover:bg-gray-750 hover:border-green-600/50 transition-colors overflow-hidden"
+        className="w-full px-3 py-2 bg-stone-800 border border-stone-700 rounded text-left hover:bg-stone-750 hover:border-green-600/50 transition-colors overflow-hidden"
         title={testId}
       >
         <div className="text-sm font-mono text-green-400 truncate">{testName}</div>
         {summary && (
-          <div className="text-xs text-gray-400 mt-1 break-words">{summary}</div>
+          <div className="text-xs text-stone-400 mt-1 break-words">{summary}</div>
         )}
       </button>
     );
@@ -46,12 +46,12 @@ export function TestItem({ testId, displayName, summary, onClick }: TestItemProp
   // クリック不可の場合は静的表示
   return (
     <div
-      className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-left hover:bg-gray-750 hover:border-green-600/50 transition-colors overflow-hidden"
+      className="px-3 py-2 bg-stone-800 border border-stone-700 rounded text-left hover:bg-stone-750 hover:border-green-600/50 transition-colors overflow-hidden"
       title={testId}
     >
       <div className="text-sm font-mono text-green-400 truncate">{testName}</div>
       {summary && (
-        <div className="text-xs text-gray-400 mt-1 break-words">{summary}</div>
+        <div className="text-xs text-stone-400 mt-1 break-words">{summary}</div>
       )}
     </div>
   );
@@ -82,9 +82,9 @@ export function CompactTestItem({
   const testName = displayName || extractTestName(testId);
 
   return (
-    <div className="text-sm text-gray-300 py-0.5" title={testId}>
+    <div className="text-sm text-stone-300 py-0.5" title={testId}>
       {showName && <span>• {testName}</span>}
-      {summary && <span className="text-gray-400 ml-1">- {summary}</span>}
+      {summary && <span className="text-stone-400 ml-1">- {summary}</span>}
     </div>
   );
 }

@@ -323,14 +323,14 @@ export function ComplexityHeatmap({
   const currentConfig = HEATMAP_METRIC_CONFIGS[metric];
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700">
+    <div className="bg-stone-800 rounded-lg border border-stone-700">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="flex items-center justify-between p-4 border-b border-stone-700">
         <h3 className="text-lg font-medium text-white">複雑度ヒートマップ</h3>
         <select
           value={metric}
           onChange={(e) => handleMetricChange(e.target.value as HeatmapMetric)}
-          className="bg-gray-700 text-white text-sm rounded px-3 py-1.5 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-stone-700 text-white text-sm rounded px-3 py-1.5 border border-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
         >
           {(Object.keys(HEATMAP_METRIC_CONFIGS) as HeatmapMetric[]).map((m) => (
             <option key={m} value={m}>
@@ -341,10 +341,10 @@ export function ComplexityHeatmap({
       </div>
 
       {/* 凡例 */}
-      <div className="px-4 py-3 text-xs border-b border-gray-700">
+      <div className="px-4 py-3 text-xs border-b border-stone-700">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <div className="text-gray-400">
-            <span className="text-gray-300">{currentConfig.label}</span>
+          <div className="text-stone-400">
+            <span className="text-stone-300">{currentConfig.label}</span>
             <span className="mx-2">-</span>
             <span>{currentConfig.description}</span>
           </div>
@@ -363,7 +363,7 @@ export function ComplexityHeatmap({
             </span>
           </div>
         </div>
-        <div className="mt-2 text-gray-500">
+        <div className="mt-2 text-stone-500">
           面積・色ともに選択したメトリクスに連動します。
           {currentConfig.lowerIsBetter
             ? "値が低いほど面積が大きく、赤く表示されます。"

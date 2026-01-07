@@ -483,10 +483,10 @@ export function SequenceView({
   // 起点関数が未選択の場合
   if (!rootFunctionId) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-900">
-        <div className="text-center text-gray-500">
+      <div className="flex items-center justify-center h-full bg-stone-900">
+        <div className="text-center text-stone-500">
           <svg
-            className="w-16 h-16 mx-auto mb-4 text-gray-600"
+            className="w-16 h-16 mx-auto mb-4 text-stone-600"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -508,9 +508,9 @@ export function SequenceView({
   }
 
   return (
-    <div className="flex h-full bg-gray-900">
+    <div className="flex h-full bg-stone-900">
       {/* サイドバー: 設定と編集 */}
-      <div className="w-80 flex-shrink-0 border-r border-gray-700 overflow-y-auto flex flex-col">
+      <div className="w-80 flex-shrink-0 border-r border-stone-700 overflow-y-auto flex flex-col">
         <div className="p-4 space-y-4 flex-1">
           {/* ツールバー */}
           <SequenceToolbar
@@ -525,7 +525,7 @@ export function SequenceView({
           <div className="flex items-center gap-1">
             <button
               onClick={handleZoomOut}
-              className="w-8 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-8 h-8 bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
               aria-label="ズームアウト"
               title="ズームアウト"
             >
@@ -539,14 +539,14 @@ export function SequenceView({
                 min={10}
                 max={300}
                 step={10}
-                className="w-12 h-8 text-xs text-gray-100 text-center bg-gray-800 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-12 h-8 text-xs text-stone-100 text-center bg-stone-800 border border-stone-600 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 aria-label="ズーム倍率"
               />
-              <span className="text-xs text-gray-400 ml-0.5">%</span>
+              <span className="text-xs text-stone-400 ml-0.5">%</span>
             </div>
             <button
               onClick={handleZoomIn}
-              className="w-8 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-8 h-8 bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
               aria-label="ズームイン"
               title="ズームイン"
             >
@@ -554,7 +554,7 @@ export function SequenceView({
             </button>
             <button
               onClick={handleZoomReset}
-              className="px-2 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+              className="px-2 h-8 bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs"
               aria-label="リセット"
               title="リセット"
             >
@@ -564,8 +564,8 @@ export function SequenceView({
 
           {/* 起点関数 */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">起点:</label>
-            <div className="px-3 py-2 bg-gray-800 rounded border border-gray-700 text-sm text-blue-400 font-mono truncate">
+            <label className="text-sm text-stone-400">起点:</label>
+            <div className="px-3 py-2 bg-stone-800 rounded border border-stone-700 text-sm text-orange-400 font-mono truncate">
               {extractDisplayName(rootFunctionId)}
             </div>
           </div>
@@ -577,16 +577,16 @@ export function SequenceView({
                 type="checkbox"
                 checked={useActivation}
                 onChange={onToggleActivation}
-                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
+                className="w-4 h-4 rounded border-stone-600 bg-stone-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-stone-900"
               />
-              <span className="text-sm text-gray-400">戻り矢印を表示</span>
+              <span className="text-sm text-stone-400">戻り矢印を表示</span>
             </label>
           </div>
 
           {/* 関数ごとの深さ設定 */}
           {functionDepths.length > 0 && (
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">関数の深さ設定:</label>
+              <label className="text-sm text-stone-400">関数の深さ設定:</label>
               <DepthControl
                 functionDepths={functionDepths}
                 onDepthChange={onFunctionDepthChange}
@@ -596,12 +596,12 @@ export function SequenceView({
           )}
 
           {/* 区切り線 */}
-          <div className="border-t border-gray-700 pt-4">
+          <div className="border-t border-stone-700 pt-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">呼び出し一覧</span>
+              <span className="text-sm text-stone-400">呼び出し一覧</span>
               <button
                 onClick={handleSelectAll}
-                className="text-xs text-gray-500 hover:text-gray-300"
+                className="text-xs text-stone-500 hover:text-stone-300"
               >
                 {selectedCallIds.size === calls.length ? '全解除' : '全選択'}
               </button>
@@ -642,7 +642,7 @@ export function SequenceView({
           {(editState.groups.length > 0 ||
             editState.omissions.length > 0 ||
             editState.labelEdits.length > 0) && (
-            <div className="border-t border-gray-700 pt-4">
+            <div className="border-t border-stone-700 pt-4">
               <button
                 onClick={onClearEdits}
                 className="w-full px-3 py-2 text-sm text-red-400 border border-red-800 rounded hover:bg-red-900/30"
@@ -664,8 +664,8 @@ export function SequenceView({
         onMouseLeave={handlePanMouseUp}
       >
         {isRendering && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
-            <div className="text-gray-500">レンダリング中...</div>
+          <div className="absolute inset-0 flex items-center justify-center bg-stone-900/80 z-10">
+            <div className="text-stone-500">レンダリング中...</div>
           </div>
         )}
 
@@ -673,7 +673,7 @@ export function SequenceView({
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-red-400">
               <p className="mb-2">レンダリングエラー</p>
-              <p className="text-sm text-gray-500">{error}</p>
+              <p className="text-sm text-stone-500">{error}</p>
             </div>
           </div>
         )}

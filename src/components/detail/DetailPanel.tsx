@@ -72,7 +72,7 @@ export function DetailPanel({
   if (!file) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-center text-gray-500">
+        <div className="text-center text-stone-500">
           <p className="text-lg mb-2">ノードが選択されていません</p>
           <p className="text-sm">グラフからノードをクリックしてください</p>
         </div>
@@ -105,7 +105,7 @@ export function DetailPanel({
                   }
                 }}
                 defaultValue=""
-                className="w-full px-3 py-2 text-sm bg-gray-800 text-gray-300 border border-gray-600 rounded hover:border-gray-500 focus:border-blue-500 focus:outline-none cursor-pointer"
+                className="w-full px-3 py-2 text-sm bg-stone-800 text-stone-300 border border-stone-600 rounded hover:border-stone-500 focus:border-orange-500 focus:outline-none cursor-pointer"
               >
                 <option value="" disabled>
                   ← 履歴から移動 ({navigationHistory.length})
@@ -126,7 +126,7 @@ export function DetailPanel({
                 <button
                   type="button"
                   onClick={() => onShowInGraph(selectedItem.id, file.path)}
-                  className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                  className="px-3 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
                 >
                   {showInGraphLabel}
                 </button>
@@ -135,7 +135,7 @@ export function DetailPanel({
                 <button
                   type="button"
                   onClick={() => onShowInSequence(selectedItem.id)}
-                  className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                  className="px-3 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
                 >
                   シーケンスで表示
                 </button>
@@ -148,7 +148,7 @@ export function DetailPanel({
             <button
               type="button"
               onClick={() => onSelectItem(null as unknown as ItemId)}
-              className="px-3 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded transition-colors flex items-center gap-2"
+              className="px-3 py-2 text-sm text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded transition-colors flex items-center gap-2"
             >
               <span>←</span>
               <span>定義一覧</span>
@@ -172,9 +172,9 @@ export function DetailPanel({
               className="mt-4"
             >
               {callersLoading ? (
-                <p className="text-sm text-gray-500">読み込み中...</p>
+                <p className="text-sm text-stone-500">読み込み中...</p>
               ) : callers.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-stone-500">
                   この関数を呼んでいる関数はありません（エントリポイント）
                 </p>
               ) : (
@@ -184,12 +184,12 @@ export function DetailPanel({
                       key={`${caller.id}-${index}`}
                       type="button"
                       onClick={() => onSelectItem(caller.id)}
-                      className="w-full text-left px-3 py-2 bg-gray-800 border border-gray-700 rounded hover:bg-gray-750 hover:border-blue-600/50 transition-colors"
+                      className="w-full text-left px-3 py-2 bg-stone-800 border border-stone-700 rounded hover:bg-stone-750 hover:border-orange-600/50 transition-colors"
                     >
-                      <div className="text-sm font-medium text-blue-400">
+                      <div className="text-sm font-medium text-orange-400">
                         {caller.name}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-stone-500 mt-1">
                         {caller.file}:{caller.line}
                       </div>
                     </button>
@@ -219,7 +219,7 @@ export function DetailPanel({
                 }
               }}
               defaultValue=""
-              className="w-full px-3 py-2 text-sm bg-gray-800 text-gray-300 border border-gray-600 rounded hover:border-gray-500 focus:border-blue-500 focus:outline-none cursor-pointer"
+              className="w-full px-3 py-2 text-sm bg-stone-800 text-stone-300 border border-stone-600 rounded hover:border-stone-500 focus:border-orange-500 focus:outline-none cursor-pointer"
             >
               <option value="" disabled>
                 ← 履歴から移動 ({navigationHistory.length})
@@ -234,9 +234,9 @@ export function DetailPanel({
         )}
 
         {/* ファイル情報ヘッダー */}
-        <div className="mb-6 pb-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-gray-100 mb-2">{file.path}</h2>
-          <p className="text-sm text-gray-500">アイテム数: {file.items.length}</p>
+        <div className="mb-6 pb-4 border-b border-stone-700">
+          <h2 className="text-xl font-bold text-stone-100 mb-2">{file.path}</h2>
+          <p className="text-sm text-stone-500">アイテム数: {file.items.length}</p>
         </div>
 
         {/* グループ化されたアイテム一覧 */}

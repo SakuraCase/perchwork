@@ -41,21 +41,21 @@ export function GroupList({
   return (
     <div className="space-y-1">
       {/* ヘッダー */}
-      <div className="text-xs text-gray-400 px-2 py-1">
+      <div className="text-xs text-stone-400 px-2 py-1">
         グループ ({groups.length}件)
       </div>
 
       {/* グループリスト */}
-      <div className="border border-gray-700 rounded">
+      <div className="border border-stone-700 rounded">
         {groups.map((group) => (
           <div
             key={group.id}
-            className="flex items-center gap-2 px-2 py-1 border-b border-gray-800 last:border-b-0 hover:bg-gray-800"
+            className="flex items-center gap-2 px-2 py-1 border-b border-stone-800 last:border-b-0 hover:bg-stone-800"
           >
             {/* 折りたたみトグル */}
             <button
               onClick={() => onToggleCollapse(group.id)}
-              className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-200"
+              className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-200"
               title={group.isCollapsed ? '展開' : '折りたたみ'}
             >
               {group.isCollapsed ? '▶' : '▼'}
@@ -65,21 +65,21 @@ export function GroupList({
             <span
               className={`
                 flex-1 text-sm truncate
-                ${group.isCollapsed ? 'text-gray-400' : 'text-purple-400'}
+                ${group.isCollapsed ? 'text-stone-400' : 'text-purple-400'}
               `}
             >
               {group.name}
             </span>
 
             {/* 呼び出し数 */}
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-stone-500">
               ({group.callEntryIds.length})
             </span>
 
             {/* 編集ボタン */}
             <button
               onClick={() => onEdit(group.id)}
-              className="text-gray-400 hover:text-gray-200 text-xs"
+              className="text-stone-400 hover:text-stone-200 text-xs"
               title="グループ名を編集"
             >
               ✏️
@@ -88,7 +88,7 @@ export function GroupList({
             {/* 削除ボタン */}
             <button
               onClick={() => onDelete(group.id)}
-              className="text-gray-400 hover:text-red-400 text-xs"
+              className="text-stone-400 hover:text-red-400 text-xs"
               title="グループを削除"
             >
               ✕

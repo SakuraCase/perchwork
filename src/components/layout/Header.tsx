@@ -43,7 +43,7 @@ export function Header({
   onSearchSelectSequence,
 }: HeaderProps) {
   return (
-    <header className="h-14 border-b border-gray-700 bg-gray-900 flex items-center px-6">
+    <header className="h-14 border-b border-stone-700 bg-stone-900 flex items-center px-6">
       <h1 className="text-xl font-bold text-white">{projectName}</h1>
 
       {/* タブ切り替え */}
@@ -52,8 +52,8 @@ export function Header({
           onClick={() => onTabChange("ai")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
             activeTab === "ai"
-              ? "bg-gray-800 text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+              ? "bg-stone-800 text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
           }`}
         >
           ノート
@@ -62,8 +62,8 @@ export function Header({
           onClick={() => onTabChange("review")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
             activeTab === "review"
-              ? "bg-gray-800 text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+              ? "bg-stone-800 text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
           }`}
         >
           レビュー
@@ -72,8 +72,8 @@ export function Header({
           onClick={() => onTabChange("metrics")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
             activeTab === "metrics"
-              ? "bg-gray-800 text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+              ? "bg-stone-800 text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
           }`}
         >
           メトリクス
@@ -82,8 +82,8 @@ export function Header({
           onClick={() => onTabChange("tree")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
             activeTab === "tree"
-              ? "bg-gray-800 text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+              ? "bg-stone-800 text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
           }`}
         >
           ツリー
@@ -92,8 +92,8 @@ export function Header({
           onClick={() => onTabChange("graph")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
             activeTab === "graph"
-              ? "bg-gray-800 text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+              ? "bg-stone-800 text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
           }`}
         >
           グラフ
@@ -102,8 +102,8 @@ export function Header({
           onClick={() => onTabChange("sequence")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
             activeTab === "sequence"
-              ? "bg-gray-800 text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+              ? "bg-stone-800 text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
           }`}
         >
           シーケンス

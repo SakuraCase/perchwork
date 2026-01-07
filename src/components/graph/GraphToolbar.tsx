@@ -149,20 +149,20 @@ export function GraphToolbar({
   // ============================================
 
   return (
-    <div className={`relative bg-gray-800 border-b border-gray-700 p-3 ${className}`}>
+    <div className={`relative bg-stone-800 border-b border-stone-700 p-3 ${className}`}>
       <div className="flex items-center justify-between gap-4">
         {/* 左側: レイアウト選択とフィルタ */}
         <div className="flex items-center gap-4">
           {/* レイアウトセレクター */}
           <div className="flex items-center gap-2">
-            <label htmlFor="layout-select" className="text-sm text-gray-300">
+            <label htmlFor="layout-select" className="text-sm text-stone-300">
               レイアウト:
             </label>
             <select
               id="layout-select"
               value={layout}
               onChange={handleLayoutChange}
-              className="bg-gray-700 text-gray-100 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-stone-700 text-stone-100 border border-stone-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
               aria-label="グラフレイアウトの選択"
             >
               {LAYOUT_OPTIONS.map((option) => (
@@ -179,7 +179,7 @@ export function GraphToolbar({
               setIsFilterOpen(!isFilterOpen);
               if (!isFilterOpen) setIsColorOpen(false);
             }}
-            className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 text-sm bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
             aria-label="フィルタパネルの表示切り替え"
             aria-expanded={isFilterOpen}
           >
@@ -192,7 +192,7 @@ export function GraphToolbar({
               setIsColorOpen(!isColorOpen);
               if (!isColorOpen) setIsFilterOpen(false);
             }}
-            className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 text-sm bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
             aria-label="カラーパネルの表示切り替え"
             aria-expanded={isColorOpen}
           >
@@ -237,10 +237,10 @@ export function GraphToolbar({
         {/* 右側: 保存・開く、ズームコントロール、エクスポート */}
         <div className="flex items-center gap-2">
           {/* 保存・開くボタン */}
-          <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
+          <div className="flex items-center gap-1 border-r border-stone-700 pr-2">
             <button
               onClick={() => setIsSaveDialogOpen(true)}
-              className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1 text-sm bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
               aria-label="グラフ設定を保存"
               title="名前を付けて保存"
             >
@@ -250,11 +250,11 @@ export function GraphToolbar({
               onClick={() => setIsOpenDialogOpen(true)}
               disabled={savedSettings.length === 0}
               className={`
-                px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500
+                px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-orange-500
                 ${
                   savedSettings.length === 0
-                    ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
-                    : 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
+                    ? 'bg-stone-800 text-stone-500 border-stone-700 cursor-not-allowed'
+                    : 'bg-stone-700 text-stone-100 border-stone-600 hover:bg-stone-600'
                 }
               `}
               aria-label="保存済みグラフ設定を開く"
@@ -266,11 +266,11 @@ export function GraphToolbar({
 
           {/* ズームコントロール */}
           {(onZoomIn || onZoomOut || onFitToScreen) && (
-            <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
+            <div className="flex items-center gap-1 border-r border-stone-700 pr-2">
               {onZoomIn && (
                 <button
                   onClick={onZoomIn}
-                  className="w-8 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-8 h-8 bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   aria-label="ズームイン"
                   title="ズームイン"
                 >
@@ -280,7 +280,7 @@ export function GraphToolbar({
               {onZoomOut && (
                 <button
                   onClick={onZoomOut}
-                  className="w-8 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-8 h-8 bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   aria-label="ズームアウト"
                   title="ズームアウト"
                 >
@@ -290,7 +290,7 @@ export function GraphToolbar({
               {onFitToScreen && (
                 <button
                   onClick={onFitToScreen}
-                  className="px-2 h-8 bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="px-2 h-8 bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                   aria-label="画面にフィット"
                   title="画面にフィット"
                 >
@@ -305,14 +305,14 @@ export function GraphToolbar({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => onExport('png')}
-                className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-1 text-sm bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 aria-label="PNG形式でエクスポート"
               >
                 PNG
               </button>
               <button
                 onClick={() => onExport('svg')}
-                className="px-3 py-1 text-sm bg-gray-700 text-gray-100 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-1 text-sm bg-stone-700 text-stone-100 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 aria-label="SVG形式でエクスポート"
               >
                 SVG
@@ -324,28 +324,28 @@ export function GraphToolbar({
 
       {/* フィルタパネル（absolute 配置でツールバー高さに影響しない） */}
       {isFilterOpen && (
-        <div className="absolute left-0 right-0 top-full z-40 bg-gray-800 border-b border-gray-700 p-3">
+        <div className="absolute left-0 right-0 top-full z-40 bg-stone-800 border-b border-stone-700 p-3">
           {/* 表示オプション */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">
+            <h3 className="text-sm font-semibold text-stone-300 mb-2">
               表示オプション
             </h3>
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-gray-100">
+              <label className="flex items-center gap-2 text-sm text-stone-300 cursor-pointer hover:text-stone-100">
                 <input
                   type="checkbox"
                   checked={filter.includeIsolated}
                   onChange={handleIsolatedToggle}
-                  className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-2 focus:ring-blue-500"
+                  className="rounded border-stone-600 bg-stone-700 text-orange-500 focus:ring-2 focus:ring-orange-500"
                 />
                 <span>孤立ノードを表示</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-gray-100">
+              <label className="flex items-center gap-2 text-sm text-stone-300 cursor-pointer hover:text-stone-100">
                 <input
                   type="checkbox"
                   checked={filter.consolidateEdges}
                   onChange={handleConsolidateToggle}
-                  className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-2 focus:ring-blue-500"
+                  className="rounded border-stone-600 bg-stone-700 text-orange-500 focus:ring-2 focus:ring-orange-500"
                 />
                 <span>重複エッジを省略</span>
               </label>
@@ -356,9 +356,9 @@ export function GraphToolbar({
 
       {/* カラーパネル（absolute 配置でツールバー高さに影響しない） */}
       {isColorOpen && (
-        <div className="absolute left-0 right-0 top-full z-40 bg-gray-800 border-b border-gray-700 p-3 max-h-[80vh] overflow-y-auto">
+        <div className="absolute left-0 right-0 top-full z-40 bg-stone-800 border-b border-stone-700 p-3 max-h-[80vh] overflow-y-auto">
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">
+            <h3 className="text-sm font-semibold text-stone-300 mb-2">
               ノード色設定
             </h3>
             <ColorRulesPanel

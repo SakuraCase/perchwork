@@ -34,11 +34,11 @@ export function MetricSelector({
 }: MetricSelectorProps) {
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm text-gray-400">メトリクス:</label>
+      <label className="text-sm text-stone-400">メトリクス:</label>
       <select
         value={selected}
         onChange={(e) => onChange(e.target.value as MetricType)}
-        className="bg-gray-700 text-white text-sm rounded px-3 py-1.5 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="bg-stone-700 text-white text-sm rounded px-3 py-1.5 border border-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
       >
         {availableMetrics.map((metric) => (
           <option key={metric} value={metric}>

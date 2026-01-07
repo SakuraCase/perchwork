@@ -43,7 +43,7 @@ function ColorPickerCell({ color, onChange }: ColorPickerCellProps) {
       value={localColor}
       onChange={(e) => setLocalColor(e.target.value)}
       onBlur={handleBlur}
-      className="w-8 h-8 rounded border border-gray-600 cursor-pointer bg-transparent"
+      className="w-8 h-8 rounded border border-stone-600 cursor-pointer bg-transparent"
       aria-label="ノード色"
     />
   );
@@ -169,14 +169,14 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
       {rules.map((rule, index) => (
         <div
           key={rule.id}
-          className="flex items-center gap-2 bg-gray-700 rounded px-2 py-1.5"
+          className="flex items-center gap-2 bg-stone-700 rounded px-2 py-1.5"
         >
           {/* 順番変更ボタン */}
           <div className="flex flex-col gap-0.5">
             <button
               onClick={() => handleMoveUp(index)}
               disabled={index === 0}
-              className="text-xs text-gray-400 hover:text-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed focus:outline-none"
+              className="text-xs text-stone-400 hover:text-stone-100 disabled:text-stone-600 disabled:cursor-not-allowed focus:outline-none"
               aria-label="上に移動"
               title="上に移動（優先度を上げる）"
             >
@@ -185,7 +185,7 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
             <button
               onClick={() => handleMoveDown(index)}
               disabled={index === rules.length - 1}
-              className="text-xs text-gray-400 hover:text-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed focus:outline-none"
+              className="text-xs text-stone-400 hover:text-stone-100 disabled:text-stone-600 disabled:cursor-not-allowed focus:outline-none"
               aria-label="下に移動"
               title="下に移動（優先度を下げる）"
             >
@@ -200,7 +200,7 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
             onChange={(e) =>
               handleUpdateRule(rule.id, { enabled: e.target.checked })
             }
-            className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-2 focus:ring-blue-500"
+            className="rounded border-stone-600 bg-stone-800 text-orange-500 focus:ring-2 focus:ring-orange-500"
             aria-label="ルールの有効/無効"
           />
 
@@ -212,7 +212,7 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
                 matchType: e.target.value as ColorRuleMatchType,
               })
             }
-            className="w-16 bg-gray-800 text-gray-100 border border-gray-600 rounded px-1 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-16 bg-stone-800 text-stone-100 border border-stone-600 rounded px-1 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             aria-label="マッチ対象"
           >
             {MATCH_TYPE_OPTIONS.map((option) => (
@@ -230,7 +230,7 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
               handleUpdateRule(rule.id, { prefix: e.target.value })
             }
             placeholder="プレフィックス"
-            className="flex-1 min-w-0 bg-gray-800 text-gray-100 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-0 bg-stone-800 text-stone-100 border border-stone-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             aria-label="IDプレフィックス"
           />
 
@@ -245,7 +245,7 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
           {/* 削除ボタン */}
           <button
             onClick={() => handleDeleteRule(rule.id)}
-            className="text-gray-400 hover:text-red-400 focus:outline-none px-1"
+            className="text-stone-400 hover:text-red-400 focus:outline-none px-1"
             aria-label="ルールを削除"
             title="削除"
           >
@@ -257,7 +257,7 @@ export function ColorRulesPanel({ rules, onRulesChange }: ColorRulesPanelProps) 
       {/* ルール追加ボタン */}
       <button
         onClick={handleAddRule}
-        className="w-full px-3 py-1.5 text-sm bg-gray-700 text-gray-300 border border-gray-600 border-dashed rounded hover:bg-gray-600 hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-3 py-1.5 text-sm bg-stone-700 text-stone-300 border border-stone-600 border-dashed rounded hover:bg-stone-600 hover:text-stone-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
       >
         + ルールを追加
       </button>

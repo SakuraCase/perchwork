@@ -371,7 +371,7 @@ export function GraphView({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full bg-gray-900 ${className}`}
+      className={`w-full h-full bg-stone-900 ${className}`}
       style={{ minHeight: '400px' }}
     />
   );

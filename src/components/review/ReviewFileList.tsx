@@ -24,24 +24,24 @@ export function ReviewFileList({
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="p-3 border-b border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-300">
+      <div className="p-3 border-b border-stone-700">
+        <h3 className="text-sm font-semibold text-stone-300">
           ファイル一覧 ({index.files.length})
         </h3>
       </div>
-      <div className="divide-y divide-gray-800">
+      <div className="divide-y divide-stone-800">
         {sortedFiles.map((file) => (
           <button
             key={file.path}
             onClick={() => onSelectFile(file.path)}
             className={`w-full text-left p-3 transition-colors ${
               selectedPath === file.path
-                ? "bg-blue-900/50"
-                : "hover:bg-gray-800"
+                ? "bg-orange-900/50"
+                : "hover:bg-stone-800"
             }`}
           >
             <p
-              className="text-sm text-gray-200 font-mono truncate"
+              className="text-sm text-stone-200 font-mono truncate"
               title={file.path}
             >
               {file.path}
@@ -54,7 +54,7 @@ export function ReviewFileList({
                       ? "bg-red-500/20 text-red-400"
                       : file.fix_plans >= 1
                         ? "bg-yellow-500/20 text-yellow-400"
-                        : "bg-gray-700 text-gray-400"
+                        : "bg-stone-700 text-stone-400"
                   }`}
                 >
                   {file.fix_plans} 件

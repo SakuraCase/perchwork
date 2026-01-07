@@ -32,7 +32,7 @@ export function MetricsView({ onSelectFile }: MetricsViewProps) {
   if (isLoading && !index) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-gray-400">複雑度データを読み込み中...</div>
+        <div className="text-stone-400">複雑度データを読み込み中...</div>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export function MetricsView({ onSelectFile }: MetricsViewProps) {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="text-red-400 mb-2">エラーが発生しました</div>
-          <div className="text-gray-400 text-sm">{error}</div>
+          <div className="text-stone-400 text-sm">{error}</div>
         </div>
       </div>
     );
@@ -54,18 +54,18 @@ export function MetricsView({ onSelectFile }: MetricsViewProps) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center max-w-md">
-          <div className="text-gray-300 text-lg mb-4">
+          <div className="text-stone-300 text-lg mb-4">
             複雑度データがありません
           </div>
-          <div className="text-gray-400 text-sm mb-4">
-            <code className="bg-gray-800 px-2 py-1 rounded">
+          <div className="text-stone-400 text-sm mb-4">
+            <code className="bg-stone-800 px-2 py-1 rounded">
               /perchwork-complexity
             </code>
             スキルを実行して解析データを生成してください。
           </div>
-          <div className="text-gray-500 text-xs">
+          <div className="text-stone-500 text-xs">
             <p>前提条件:</p>
-            <code className="bg-gray-800 px-2 py-0.5 rounded">
+            <code className="bg-stone-800 px-2 py-0.5 rounded">
               cargo install rust-code-analysis-cli
             </code>
           </div>

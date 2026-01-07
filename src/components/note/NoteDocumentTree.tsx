@@ -36,7 +36,7 @@ export function NoteDocumentTree({
 
   if (categories.length === 0) {
     return (
-      <div className="p-4 text-gray-500 text-sm">ドキュメントがありません</div>
+      <div className="p-4 text-stone-500 text-sm">ドキュメントがありません</div>
     );
   }
 
@@ -46,7 +46,7 @@ export function NoteDocumentTree({
         <div key={category.id}>
           <button
             onClick={() => toggleCategory(category.id)}
-            className="w-full text-left px-4 py-2 bg-gray-800 hover:bg-gray-750 flex items-center gap-2"
+            className="w-full text-left px-4 py-2 bg-stone-800 hover:bg-stone-750 flex items-center gap-2"
           >
             <span
               className={`transition-transform ${
@@ -55,24 +55,24 @@ export function NoteDocumentTree({
             >
               ▶
             </span>
-            <span className="font-medium text-gray-300">{category.name}</span>
-            <span className="text-xs text-gray-500 ml-auto">
+            <span className="font-medium text-stone-300">{category.name}</span>
+            <span className="text-xs text-stone-500 ml-auto">
               {category.items.length}
             </span>
           </button>
           {expandedCategories.has(category.id) && (
-            <div className="bg-gray-850">
+            <div className="bg-stone-850">
               {category.items.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onSelect(item)}
-                  className={`w-full text-left pl-8 pr-4 py-2 border-b border-gray-700 hover:bg-gray-800 transition-colors ${
+                  className={`w-full text-left pl-8 pr-4 py-2 border-b border-stone-700 hover:bg-stone-800 transition-colors ${
                     selectedId === item.id
-                      ? "bg-gray-800 border-l-2 border-l-blue-500"
+                      ? "bg-stone-800 border-l-2 border-l-orange-500"
                       : ""
                   }`}
                 >
-                  <div className="text-sm text-gray-200">{item.title}</div>
+                  <div className="text-sm text-stone-200">{item.title}</div>
                 </button>
               ))}
             </div>

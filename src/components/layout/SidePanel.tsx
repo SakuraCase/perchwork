@@ -23,10 +23,10 @@ export function SidePanel({ isOpen, onToggle, children }: SidePanelProps) {
   if (!isOpen) {
     // 閉じた状態：開くボタンのみ表示
     return (
-      <div className="flex items-start bg-gray-800 border-r border-gray-700">
+      <div className="flex items-start bg-stone-800 border-r border-stone-700">
         <button
           onClick={onToggle}
-          className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+          className="p-2 text-stone-400 hover:text-stone-200 hover:bg-stone-700"
           title="パネルを開く"
         >
           <svg
@@ -49,12 +49,12 @@ export function SidePanel({ isOpen, onToggle, children }: SidePanelProps) {
 
   // 開いた状態：パネル全体を表示
   return (
-    <aside className="w-[30%] min-w-[300px] max-w-[500px] flex flex-col bg-gray-800 border-r border-gray-700 overflow-hidden">
+    <aside className="w-[30%] min-w-[300px] max-w-[500px] flex flex-col bg-stone-800 border-r border-stone-700 overflow-hidden">
       {/* ヘッダー：閉じるボタン */}
-      <div className="flex justify-start p-2 border-b border-gray-700">
+      <div className="flex justify-start p-2 border-b border-stone-700">
         <button
           onClick={onToggle}
-          className="p-1 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded"
+          className="p-1 text-stone-400 hover:text-stone-200 hover:bg-stone-700 rounded"
           title="パネルを閉じる"
         >
           <svg

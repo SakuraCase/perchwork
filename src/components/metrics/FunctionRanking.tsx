@@ -140,22 +140,22 @@ export function FunctionRanking({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700">
+    <div className="bg-stone-800 rounded-lg border border-stone-700">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="flex items-center justify-between p-4 border-b border-stone-700">
         <h3 className="text-lg font-medium text-white">関数ランキング</h3>
       </div>
 
       {/* テーブル */}
       <div className="overflow-x-auto">
         {isLoading ? (
-          <div className="p-8 text-center text-gray-400">読み込み中...</div>
+          <div className="p-8 text-center text-stone-400">読み込み中...</div>
         ) : sortedFunctions.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">データがありません</div>
+          <div className="p-8 text-center text-stone-400">データがありません</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-900/50">
-              <tr className="text-gray-400 text-left">
+            <thead className="bg-stone-900/50">
+              <tr className="text-stone-400 text-left">
                 <th className="px-4 py-3 w-12">#</th>
                 <th className="px-4 py-3">関数名</th>
                 <th className="px-4 py-3">ファイル</th>
@@ -185,25 +185,25 @@ export function FunctionRanking({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-stone-700">
               {paginatedFunctions.map((item, index) => (
                 <tr
                   key={item.function.id}
-                  className="hover:bg-gray-700/50 cursor-pointer transition-colors"
+                  className="hover:bg-stone-700/50 cursor-pointer transition-colors"
                   onClick={() => handleRowClick(item)}
                 >
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 text-stone-500">
                     {(currentPage - 1) * pageSize + index + 1}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="font-mono text-blue-400">
+                    <div className="font-mono text-orange-400">
                       {item.function.name}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-stone-500">
                       L{item.function.line_start}-{item.function.line_end}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-300 truncate max-w-xs">
+                  <td className="px-4 py-3 text-stone-300 truncate max-w-xs">
                     {item.relativePath}
                   </td>
                   <td
@@ -216,10 +216,10 @@ export function FunctionRanking({
                   >
                     {item.function.cognitive}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-400 font-mono">
+                  <td className="px-4 py-3 text-right text-stone-400 font-mono">
                     {item.function.loc.code}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-400 font-mono">
+                  <td className="px-4 py-3 text-right text-stone-400 font-mono">
                     {item.function.nargs}
                   </td>
                 </tr>

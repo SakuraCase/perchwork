@@ -159,7 +159,7 @@ export function NodeContextMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[280px] max-w-[350px]"
+      className="fixed z-50 bg-stone-800 border border-stone-600 rounded-lg shadow-lg min-w-[280px] max-w-[350px]"
       style={{
         left: position.x,
         top: position.y,
@@ -167,8 +167,8 @@ export function NodeContextMenu({
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* ヘッダー: ノードラベルとタイプ */}
-      <div className="px-3 py-2 border-b border-gray-700">
-        <div className="text-sm font-semibold text-gray-100 break-all">
+      <div className="px-3 py-2 border-b border-stone-700">
+        <div className="text-sm font-semibold text-stone-100 break-all">
           {nodeLabel || nodeId}
         </div>
         {nodeType && (
@@ -183,19 +183,19 @@ export function NodeContextMenu({
       </div>
 
       {/* 詳細情報 */}
-      <div className="px-3 py-2 border-b border-gray-700 space-y-1">
+      <div className="px-3 py-2 border-b border-stone-700 space-y-1">
         {/* ファイル */}
         {nodeFile && (
           <div className="flex items-start gap-2">
-            <span className="text-xs text-gray-500 min-w-[3rem]">ファイル</span>
-            <span className="text-xs text-gray-300 break-all">{nodeFile}</span>
+            <span className="text-xs text-stone-500 min-w-[3rem]">ファイル</span>
+            <span className="text-xs text-stone-300 break-all">{nodeFile}</span>
           </div>
         )}
         {/* 行番号 */}
         {nodeLine !== null && (
           <div className="flex items-start gap-2">
-            <span className="text-xs text-gray-500 min-w-[3rem]">行</span>
-            <span className="text-xs text-gray-300">{nodeLine}</span>
+            <span className="text-xs text-stone-500 min-w-[3rem]">行</span>
+            <span className="text-xs text-stone-300">{nodeLine}</span>
           </div>
         )}
       </div>
@@ -206,7 +206,7 @@ export function NodeContextMenu({
         {onFocus && (
           <button
             onClick={handleFocus}
-            className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+            className="w-full px-3 py-2 text-sm text-stone-200 text-left hover:bg-stone-700 focus:bg-stone-700 focus:outline-none"
           >
             このノードを中心に表示
           </button>
@@ -216,7 +216,7 @@ export function NodeContextMenu({
         {onShowRelated && (
           <button
             onClick={handleShowRelated}
-            className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+            className="w-full px-3 py-2 text-sm text-stone-200 text-left hover:bg-stone-700 focus:bg-stone-700 focus:outline-none"
           >
             関連ノードのみ表示
           </button>
@@ -226,7 +226,7 @@ export function NodeContextMenu({
         {canShowSequenceDiagram && (
           <button
             onClick={handleOpenSequenceDiagram}
-            className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+            className="w-full px-3 py-2 text-sm text-stone-200 text-left hover:bg-stone-700 focus:bg-stone-700 focus:outline-none"
           >
             シーケンス図表示
           </button>
@@ -236,7 +236,7 @@ export function NodeContextMenu({
         {onAddColorRule && (
           <button
             onClick={handleAddColorRule}
-            className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+            className="w-full px-3 py-2 text-sm text-stone-200 text-left hover:bg-stone-700 focus:bg-stone-700 focus:outline-none"
           >
             ノード色設定
           </button>
@@ -245,7 +245,7 @@ export function NodeContextMenu({
         {/* このノードを除外 */}
         <button
           onClick={handleExclude}
-          className="w-full px-3 py-2 text-sm text-gray-200 text-left hover:bg-gray-700 focus:bg-gray-700 focus:outline-none"
+          className="w-full px-3 py-2 text-sm text-stone-200 text-left hover:bg-stone-700 focus:bg-stone-700 focus:outline-none"
         >
           このノードを除外
         </button>

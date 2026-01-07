@@ -97,7 +97,7 @@ export function CallList({
 
   if (calls.length === 0) {
     return (
-      <div className="text-sm text-gray-500 p-2">
+      <div className="text-sm text-stone-500 p-2">
         呼び出しがありません
       </div>
     );
@@ -106,12 +106,12 @@ export function CallList({
   return (
     <div className="space-y-1">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between px-2 py-1 text-xs text-gray-400">
+      <div className="flex items-center justify-between px-2 py-1 text-xs text-stone-400">
         <span>呼び出し一覧 ({calls.length}件)</span>
         {selectedCallIds.size > 0 && (
           <button
             onClick={onClearSelection}
-            className="text-blue-400 hover:text-blue-300"
+            className="text-orange-400 hover:text-orange-300"
           >
             選択解除 ({selectedCallIds.size})
           </button>
@@ -119,7 +119,7 @@ export function CallList({
       </div>
 
       {/* 呼び出しリスト */}
-      <div className="max-h-64 overflow-y-auto border border-gray-700 rounded">
+      <div className="max-h-64 overflow-y-auto border border-stone-700 rounded">
         {calls.map((call, index) => {
           const callEntryId = generateCallEntryId(call);
           const isSelected = selectedCallIds.has(callEntryId);
@@ -136,8 +136,8 @@ export function CallList({
               onMouseLeave={() => onHoverChange?.(null)}
               className={`
                 flex items-center gap-2 px-2 py-1 cursor-pointer text-sm
-                border-b border-gray-800 last:border-b-0
-                ${isSelected ? 'bg-blue-900/50' : 'hover:bg-gray-800'}
+                border-b border-stone-800 last:border-b-0
+                ${isSelected ? 'bg-orange-900/50' : 'hover:bg-stone-800'}
                 ${status.isOmitted ? 'opacity-50 line-through' : ''}
                 ${status.isGrouped ? 'border-l-2 border-l-purple-500' : ''}
               `}
@@ -149,14 +149,14 @@ export function CallList({
                 checked={isSelected}
                 onChange={() => onToggleSelection(callEntryId)}
                 onClick={(e) => e.stopPropagation()}
-                className="w-3 h-3 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-3 h-3 rounded border-stone-600 bg-stone-700 text-orange-500 focus:ring-1 focus:ring-orange-500"
               />
 
               {/* 呼び出し情報 */}
               <span className="flex-1 truncate font-mono text-xs">
-                <span className="text-gray-400">{extractDisplayName(call.from)}</span>
-                <span className="text-gray-500 mx-1">→</span>
-                <span className="text-blue-400">{extractDisplayName(call.to)}</span>
+                <span className="text-stone-400">{extractDisplayName(call.from)}</span>
+                <span className="text-stone-500 mx-1">→</span>
+                <span className="text-orange-400">{extractDisplayName(call.to)}</span>
               </span>
 
               {/* ステータスアイコン */}
@@ -165,7 +165,7 @@ export function CallList({
                   <span title="グループ化済み" className="text-purple-400">📦</span>
                 )}
                 {status.isOmitted && (
-                  <span title="省略" className="text-gray-400">⋯</span>
+                  <span title="省略" className="text-stone-400">⋯</span>
                 )}
                 {status.hasLabelEdit && (
                   <span title="ラベル編集済み" className="text-yellow-400">✏️</span>

@@ -688,7 +688,7 @@ function App() {
   // 初期ロード中の表示
   if (isLoading && !index) {
     return (
-      <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-900 text-stone-100 flex items-center justify-center">
         <Loading message="index.json を読み込んでいます..." />
       </div>
     );
@@ -697,10 +697,10 @@ function App() {
   // エラー表示
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-900 text-stone-100 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-400 mb-4">エラーが発生しました</h1>
-          <p className="text-gray-400 mb-8">{error}</p>
+          <p className="text-stone-400 mb-8">{error}</p>
         </div>
       </div>
     );
@@ -709,14 +709,14 @@ function App() {
   // データなし（/analyze 未実行）
   if (!index) {
     return (
-      <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-900 text-stone-100 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Perchwork</h1>
-          <p className="text-gray-400 mb-8">Code Structure Visualizer</p>
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md">
+          <p className="text-stone-400 mb-8">Code Structure Visualizer</p>
+          <div className="bg-stone-800 rounded-lg p-6 max-w-md">
             <p className="text-yellow-400 mb-4">データがありません</p>
-            <p className="text-sm text-gray-500">
-              Claude Code で <code className="bg-gray-700 px-2 py-1 rounded">/analyze</code> を実行して
+            <p className="text-sm text-stone-500">
+              Claude Code で <code className="bg-stone-700 px-2 py-1 rounded">/analyze</code> を実行して
               コードベースを解析してください。
             </p>
           </div>
@@ -728,7 +728,7 @@ function App() {
   // メインレイアウト
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen bg-gray-900 text-gray-100">
+      <div className="flex flex-col h-screen bg-stone-900 text-stone-100">
         {/* ヘッダー */}
         <Header
           projectName="Perchwork"
@@ -962,9 +962,9 @@ function App() {
               }
             }}
           >
-            <div className="bg-gray-800 rounded-lg border border-gray-700 w-full max-w-4xl max-h-[85vh] flex flex-col">
+            <div className="bg-stone-800 rounded-lg border border-stone-700 w-full max-w-4xl max-h-[85vh] flex flex-col">
               {/* ヘッダー */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-700 shrink-0">
+              <div className="flex items-center justify-between p-4 border-b border-stone-700 shrink-0">
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-medium text-white truncate">
                     {metricsModalFile?.path ?? ''}
@@ -972,7 +972,7 @@ function App() {
                 </div>
                 <button
                   onClick={handleCloseMetricsModal}
-                  className="ml-4 p-1 text-gray-400 hover:text-white transition-colors"
+                  className="ml-4 p-1 text-stone-400 hover:text-white transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -14,7 +14,7 @@ interface NoteSessionListProps {
 
 export function NoteSessionList({ sessions, selectedId, onSelect }: NoteSessionListProps) {
   if (sessions.length === 0) {
-    return <div className="p-4 text-gray-500 text-sm">セッションがありません</div>;
+    return <div className="p-4 text-stone-500 text-sm">セッションがありません</div>;
   }
 
   return (
@@ -23,14 +23,14 @@ export function NoteSessionList({ sessions, selectedId, onSelect }: NoteSessionL
         <button
           key={session.id}
           onClick={() => onSelect(session)}
-          className={`text-left px-4 py-3 border-b border-gray-700 hover:bg-gray-800 transition-colors ${
+          className={`text-left px-4 py-3 border-b border-stone-700 hover:bg-stone-800 transition-colors ${
             selectedId === session.id
-              ? "bg-gray-800 border-l-2 border-l-blue-500"
+              ? "bg-stone-800 border-l-2 border-l-orange-500"
               : ""
           }`}
         >
-          <div className="font-medium text-gray-200">{session.title}</div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="font-medium text-stone-200">{session.title}</div>
+          <div className="text-xs text-stone-500 mt-1">
             {new Date(session.createdAt).toLocaleDateString("ja-JP")}
           </div>
         </button>

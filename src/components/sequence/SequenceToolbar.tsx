@@ -63,21 +63,21 @@ export function SequenceToolbar({
   }, [mermaidCode]);
 
   return (
-    <div className="flex items-center gap-2 p-2 border-b border-gray-700">
+    <div className="flex items-center gap-2 p-2 border-b border-stone-700">
       {/* コピーボタン */}
       <button
         onClick={handleCopyMermaid}
         disabled={!mermaidCode}
         className={`
-          px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500
+          px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-orange-500
           ${
             !mermaidCode
-              ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
+              ? 'bg-stone-800 text-stone-500 border-stone-700 cursor-not-allowed'
               : copyStatus === 'copied'
               ? 'bg-green-800 text-green-200 border-green-600'
               : copyStatus === 'error'
               ? 'bg-red-800 text-red-200 border-red-600'
-              : 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
+              : 'bg-stone-700 text-stone-100 border-stone-600 hover:bg-stone-600'
           }
         `}
         aria-label="Mermaidコードをコピー"
@@ -91,11 +91,11 @@ export function SequenceToolbar({
         onClick={onSave}
         disabled={saveDisabled}
         className={`
-          px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500
+          px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-orange-500
           ${
             saveDisabled
-              ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
-              : 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
+              ? 'bg-stone-800 text-stone-500 border-stone-700 cursor-not-allowed'
+              : 'bg-stone-700 text-stone-100 border-stone-600 hover:bg-stone-600'
           }
         `}
         aria-label="保存"
@@ -112,11 +112,11 @@ export function SequenceToolbar({
         onClick={onOpen}
         disabled={!hasSavedSequences}
         className={`
-          px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500
+          px-3 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-orange-500
           ${
             !hasSavedSequences
-              ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
-              : 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
+              ? 'bg-stone-800 text-stone-500 border-stone-700 cursor-not-allowed'
+              : 'bg-stone-700 text-stone-100 border-stone-600 hover:bg-stone-600'
           }
         `}
         aria-label="開く"

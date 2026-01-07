@@ -223,26 +223,36 @@ interface NoteDocumentCategory {
 
 ## デザインルール
 
+**コンセプト**: 暖かく柔らかいダークテーマ（ウォームグレイ + オレンジ系アクセント）
+
 ### カラーパレット
 
-| 用途   | クラス                                                       |
-| ------ | ------------------------------------------------------------ |
-| 背景   | `bg-gray-950` / `bg-gray-900` / `bg-gray-800`                |
-| 見出し | `text-gray-50`                                               |
-| 本文   | `text-gray-200 leading-relaxed`                              |
-| 補助   | `text-gray-400`                                              |
-| 情報   | `text-cyan-400` / `bg-cyan-500/10` / `border-cyan-500/30`    |
-| 警告   | `text-amber-400` / `bg-amber-500/10` / `border-amber-500/30` |
-| コード | `text-violet-400`                                            |
+| 用途       | クラス                                                        |
+| ---------- | ------------------------------------------------------------- |
+| 背景       | `bg-stone-900` / `bg-stone-800` / `bg-stone-700`              |
+| ボーダー   | `border-stone-600`                                            |
+| 見出し     | `text-stone-50`                                               |
+| 本文       | `text-stone-200 leading-relaxed`                              |
+| 補助       | `text-stone-400`                                              |
+| プライマリ | `text-orange-500` / `bg-orange-500/20` / `ring-orange-500`    |
+| 情報       | `text-cyan-400` / `bg-cyan-500/10` / `border-cyan-500/30`     |
+| 警告       | `text-amber-400` / `bg-amber-500/10` / `border-amber-500/30`  |
+| コード     | `text-violet-400`                                             |
 
 ### タイポグラフィ
 
 ```
-h1: text-4xl font-bold text-gray-50 tracking-tight
-h2: text-2xl font-bold text-gray-50 mt-12 mb-6 pb-3 border-b border-gray-800
-h3: text-xl font-semibold text-cyan-400 mt-8 mb-4
-h4: text-lg font-semibold text-gray-300 mt-6 mb-3
+h1: text-4xl font-bold text-stone-50 tracking-tight
+h2: text-2xl font-bold text-stone-50 mt-12 mb-6 pb-3 border-b border-stone-700
+h3: text-xl font-semibold text-orange-400 mt-8 mb-4
+h4: text-lg font-semibold text-stone-300 mt-6 mb-3
 ```
+
+### UI要素
+
+- 角丸: ボタン `rounded-lg`、カード `rounded-xl`、バッジ `rounded-md`
+- トランジション: ホバー `duration-200`、展開 `duration-300`
+- フォーカス: `focus:ring-orange-500`
 
 ### スペーシング
 
@@ -254,128 +264,49 @@ h4: text-lg font-semibold text-gray-300 mt-6 mb-3
 
 ```tsx
 // CodeBlock
-<pre className="bg-gray-900 rounded-lg p-6 overflow-x-auto border border-gray-800 my-6">
+<pre className="bg-stone-900 rounded-xl p-6 overflow-x-auto border border-stone-700 my-6">
   <code className="language-{lang} text-sm leading-relaxed">{code}</code>
 </pre>
 
 // Table
-<table className="min-w-full border-collapse border border-gray-800">
-  <thead><tr className="bg-gray-900">...</tr></thead>
-  <tbody className="divide-y divide-gray-800">...</tbody>
+<table className="min-w-full border-collapse border border-stone-700">
+  <thead><tr className="bg-stone-800">...</tr></thead>
+  <tbody className="divide-y divide-stone-700">...</tbody>
 </table>
 
 // MermaidDiagram
-<div className="bg-gray-900 rounded-lg p-6 border border-gray-800 my-6 overflow-x-auto">
+<div className="bg-stone-900 rounded-xl p-6 border border-stone-700 my-6 overflow-x-auto">
   <div ref={ref} className="flex justify-center" />
 </div>
 
 // 注釈ボックス（情報）
-<div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-6 my-6">
+<div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-6 my-6">
   <h4 className="text-cyan-400 font-semibold mb-2 text-sm uppercase tracking-wide">Info</h4>
-  <p className="text-gray-200 text-sm leading-relaxed">{content}</p>
+  <p className="text-stone-200 text-sm leading-relaxed">{content}</p>
 </div>
 
 // 注釈ボックス（警告）
-<div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-6 my-6">
+<div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 my-6">
   <h4 className="text-amber-400 font-semibold mb-2 text-sm uppercase tracking-wide">Warning</h4>
-  <p className="text-gray-200 text-sm leading-relaxed">{content}</p>
+  <p className="text-stone-200 text-sm leading-relaxed">{content}</p>
 </div>
 
-// Framer Motion - ステップアニメーション
-import { motion } from "framer-motion";
-
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.5, delay: index * 0.1 }}
->
-  {content}
-</motion.div>
-
-// Framer Motion - SVGパスアニメーション
-<motion.svg viewBox="0 0 100 100">
-  <motion.path
-    d={pathData}
-    stroke="currentColor"
-    strokeWidth={2}
-    fill="none"
-    initial={{ pathLength: 0 }}
-    animate={{ pathLength: 1 }}
-    transition={{ duration: 1.5, ease: "easeInOut" }}
-  />
-</motion.svg>
-
-// Framer Motion - リストの順次表示
-const container = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
-const item = { hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } };
-
-<motion.ul variants={container} initial="hidden" animate="visible">
-  {items.map(i => <motion.li key={i} variants={item}>{i}</motion.li>)}
-</motion.ul>
-
-// 展開可能セクション（Progressive Disclosure）
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-
-function ExpandableSection({ title, children }: { title: string; children: React.ReactNode }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className="border border-gray-800 rounded-lg overflow-hidden my-4">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 bg-gray-900 hover:bg-gray-800 transition-colors"
-      >
-        <span className="text-gray-200 font-medium">{title}</span>
-        <span className="text-gray-400">{expanded ? "▼" : "▶"}</span>
-      </button>
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="p-4 bg-gray-950">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+// 展開可能セクション
+<div className="border border-stone-700 rounded-xl overflow-hidden my-4">
+  <button className="w-full flex items-center justify-between p-4 bg-stone-800 hover:bg-stone-700 transition-colors duration-200">
+    <span className="text-stone-200 font-medium">{title}</span>
+    <span className="text-stone-400">{expanded ? "▼" : "▶"}</span>
+  </button>
+  <div className="p-4 bg-stone-900">{children}</div>
+</div>
 
 // ホバー詳細（ツールチップ）
-function Tooltip({ term, explanation }: { term: string; explanation: string }) {
-  return (
-    <span className="group relative cursor-help border-b border-dotted border-gray-500">
-      {term}
-      <span className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-gray-800 text-gray-200 text-sm rounded-lg whitespace-nowrap z-10 shadow-lg">
-        {explanation}
-        <span className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800" />
-      </span>
-    </span>
-  );
-}
-
-// コードウォークスルー（行ホバーで説明表示）
-interface CodeLine { code: string; note?: string; }
-function CodeWalkthrough({ lines, language }: { lines: CodeLine[]; language: string }) {
-  return (
-    <pre className="bg-gray-900 rounded-lg p-4 border border-gray-800 my-6 overflow-x-auto">
-      {lines.map((line, i) => (
-        <div key={i} className="group relative hover:bg-gray-800/50 px-2 -mx-2 rounded">
-          <code className={`language-${language} text-sm`}>{line.code}</code>
-          {line.note && (
-            <span className="invisible group-hover:visible absolute left-full ml-4 top-0 px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs rounded whitespace-nowrap">
-              {line.note}
-            </span>
-          )}
-        </div>
-      ))}
-    </pre>
-  );
-}
+<span className="group relative cursor-help border-b border-dotted border-stone-500">
+  {term}
+  <span className="invisible group-hover:visible absolute ... bg-stone-800 text-stone-200 ...">
+    {explanation}
+  </span>
+</span>
 ```
 
 ### PrismJS 使用時の注意

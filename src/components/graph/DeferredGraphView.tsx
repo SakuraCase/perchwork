@@ -28,7 +28,7 @@ export function DeferredGraphView({
   // まだレンダリングすべきでない、または遅延処理中
   if (!shouldRender || isPending) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-900">
+      <div className="w-full h-full flex items-center justify-center bg-stone-900">
         <Loading message="読み込み中..." />
       </div>
     );

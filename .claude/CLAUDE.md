@@ -51,12 +51,32 @@ npm run typecheck  # TypeScript型チェック
 
 ## 主要ファイル
 
-| 用途             | パス                       |
-| ---------------- | -------------------------- |
-| 設定ファイル     | `config.json`              |
-| エントリポイント | `src/App.tsx`              |
-| 型定義           | `src/types/`               |
-| 構造データ       | `public/data/structure/`   |
-| 意味データ       | `public/data/semantic/`    |
-| 複雑度データ     | `public/data/complexity/`  |
-| レビューデータ   | `public/data/review/`      |
+| 用途             | パス                      |
+| ---------------- | ------------------------- |
+| 設定ファイル     | `config.json`             |
+| エントリポイント | `src/App.tsx`             |
+| 型定義           | `src/types/`              |
+| 構造データ       | `public/data/structure/`  |
+| 意味データ       | `public/data/semantic/`   |
+| 複雑度データ     | `public/data/complexity/` |
+| レビューデータ   | `public/data/review/`     |
+
+## デザイン方針
+
+**コンセプト**: 暖かく柔らかいダークテーマ（perch = 鳥の止まり木 → 木の温もり、自然な暖かさ）
+
+### カラー
+
+| 種別             | Tailwind                            |
+| ---------------- | ----------------------------------- |
+| 背景             | stone-900/800/700（ウォームグレイ） |
+| ボーダー         | stone-600                           |
+| テキスト         | stone-50/200/400                    |
+| プライマリ       | orange-500/600/700                  |
+| フォーカス       | ring-orange-500                     |
+| 成功/警告/エラー | emerald-500/amber-400/rose-500      |
+
+### UI 要素
+
+- 角丸: ボタン `rounded-lg`、カード `rounded-xl`、バッジ `rounded-md`
+- トランジション: ホバー `duration-200`、展開 `duration-300`

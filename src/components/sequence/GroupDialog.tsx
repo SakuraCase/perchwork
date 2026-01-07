@@ -99,11 +99,11 @@ export function GroupDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         ref={dialogRef}
-        className="bg-gray-800 border border-gray-600 rounded-lg shadow-lg w-[320px]"
+        className="bg-stone-800 border border-stone-600 rounded-lg shadow-lg w-[320px]"
       >
         {/* ヘッダー */}
-        <div className="px-4 py-3 border-b border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-100">{title}</h2>
+        <div className="px-4 py-3 border-b border-stone-700">
+          <h2 className="text-sm font-semibold text-stone-100">{title}</h2>
         </div>
 
         {/* フォーム */}
@@ -111,7 +111,7 @@ export function GroupDialog({
           <div>
             <label
               htmlFor="group-name-input"
-              className="block text-xs text-gray-400 mb-1"
+              className="block text-xs text-stone-400 mb-1"
             >
               グループ名
             </label>
@@ -121,13 +121,13 @@ export function GroupDialog({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-stone-700 text-stone-100 border border-stone-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="グループ名を入力"
             />
           </div>
 
           {/* ヒント */}
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-stone-500">
             グループ化すると、選択した呼び出しがrectブロックで囲まれます
           </p>
 
@@ -136,7 +136,7 @@ export function GroupDialog({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-sm text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 text-sm text-stone-300 bg-stone-700 border border-stone-600 rounded hover:bg-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               キャンセル
             </button>

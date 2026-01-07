@@ -23,7 +23,7 @@ type SortOrder = "asc" | "desc";
  * 値の色を決定（MI用）
  */
 function getMiColor(value: number | undefined): string {
-  if (value === undefined) return "text-gray-500";
+  if (value === undefined) return "text-stone-500";
   if (value < 20) return "text-red-400";
   if (value < 40) return "text-yellow-400";
   return "text-white";
@@ -127,12 +127,12 @@ export function FileRanking({ files, onSelectFile }: FileRankingProps) {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700">
+    <div className="bg-stone-800 rounded-lg border border-stone-700">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="flex items-center justify-between p-4 border-b border-stone-700">
         <h3 className="text-lg font-medium text-white">ファイルランキング</h3>
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-stone-400 cursor-pointer">
             <input
               type="checkbox"
               checked={showAll}
@@ -140,7 +140,7 @@ export function FileRanking({ files, onSelectFile }: FileRankingProps) {
                 setShowAll(e.target.checked);
                 setCurrentPage(1);
               }}
-              className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+              className="rounded border-stone-600 bg-stone-700 text-orange-500 focus:ring-orange-500"
             />
             すべてのファイルを表示
           </label>
@@ -148,7 +148,7 @@ export function FileRanking({ files, onSelectFile }: FileRankingProps) {
       </div>
 
       {/* 説明 */}
-      <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-700">
+      <div className="px-4 py-2 text-xs text-stone-500 border-b border-stone-700">
         MI（保守性指標）が低いファイルや、平均CCが高いファイルを表示しています。
         <br />
         デフォルトでは問題のあるファイルのみ表示されます。
@@ -157,15 +157,15 @@ export function FileRanking({ files, onSelectFile }: FileRankingProps) {
       {/* テーブル */}
       <div className="overflow-x-auto">
         {sortedFiles.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-stone-400">
             {showAll
               ? "データがありません"
               : "問題のあるファイルはありません"}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-900/50">
-              <tr className="text-gray-400 text-left">
+            <thead className="bg-stone-900/50">
+              <tr className="text-stone-400 text-left">
                 <th className="px-4 py-3 w-12">#</th>
                 <th className="px-4 py-3">ファイル</th>
                 <th
@@ -200,18 +200,18 @@ export function FileRanking({ files, onSelectFile }: FileRankingProps) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-stone-700">
               {paginatedFiles.map((file, index) => (
                 <tr
                   key={file.relative_path}
-                  className="hover:bg-gray-700/50 cursor-pointer transition-colors"
+                  className="hover:bg-stone-700/50 cursor-pointer transition-colors"
                   onClick={() => handleRowClick(file)}
                 >
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 text-stone-500">
                     {(currentPage - 1) * pageSize + index + 1}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-gray-300 truncate max-w-md">
+                    <div className="text-stone-300 truncate max-w-md">
                       {file.relative_path}
                     </div>
                   </td>
@@ -230,10 +230,10 @@ export function FileRanking({ files, onSelectFile }: FileRankingProps) {
                   >
                     {file.cognitive_avg.toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-400 font-mono">
+                  <td className="px-4 py-3 text-right text-stone-400 font-mono">
                     {file.loc}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-400 font-mono">
+                  <td className="px-4 py-3 text-right text-stone-400 font-mono">
                     {file.function_count}
                   </td>
                 </tr>

@@ -68,24 +68,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       // デフォルトのエラー表示
       return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-100">
-          <div className="max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
+        <div className="flex items-center justify-center min-h-screen bg-stone-900 text-stone-100">
+          <div className="max-w-md p-8 bg-stone-800 rounded-lg shadow-lg">
             <h1 className="text-2xl font-bold text-red-400 mb-4">
               エラーが発生しました
             </h1>
-            <p className="text-gray-300 mb-4">
+            <p className="text-stone-300 mb-4">
               アプリケーションでエラーが発生しました。ページを再読み込みしてください。
             </p>
             {this.state.error && (
-              <div className="mb-4 p-4 bg-gray-900 rounded border border-gray-700">
-                <p className="text-sm text-gray-400 font-mono break-all">
+              <div className="mb-4 p-4 bg-stone-900 rounded border border-stone-700">
+                <p className="text-sm text-stone-400 font-mono break-all">
                   {this.state.error.message}
                 </p>
               </div>
             )}
             <button
               onClick={this.handleReload}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+              className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
             >
               再読み込み
             </button>

@@ -48,21 +48,21 @@ export function CollapsibleSection({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-stone-800 hover:bg-stone-750 rounded transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-200">{title}</span>
+          <span className="text-sm font-semibold text-stone-200">{title}</span>
           {isLoading ? (
-            <span className="text-xs text-gray-500">{loadingText}</span>
+            <span className="text-xs text-stone-500">{loadingText}</span>
           ) : count !== undefined ? (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-stone-500">
               ({count}
               {countUnit})
             </span>
           ) : null}
         </div>
         <svg
-          className={`w-5 h-5 text-gray-400 transition-transform ${
+          className={`w-5 h-5 text-stone-400 transition-transform ${
             expanded ? 'rotate-180' : ''
           }`}
           fill="none"

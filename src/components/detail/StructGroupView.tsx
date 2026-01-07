@@ -26,21 +26,21 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <div className="border border-gray-700 rounded mb-2">
+    <div className="border border-stone-700 rounded mb-2">
       {/* ヘッダー: Struct/Enum 名 + バッジ */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-t flex items-center gap-2 text-left transition-colors"
+        className="w-full px-4 py-3 bg-stone-800 hover:bg-stone-750 rounded-t flex items-center gap-2 text-left transition-colors"
       >
         <span
-          className={`transform transition-transform text-gray-400 text-xs ${
+          className={`transform transition-transform text-stone-400 text-xs ${
             expanded ? 'rotate-90' : ''
           }`}
         >
           ▶
         </span>
-        <span className="font-semibold text-gray-200">{group.item.name}</span>
+        <span className="font-semibold text-stone-200">{group.item.name}</span>
         <Badge variant={typeToVariant(group.item.type)} withBorder={false}>
           {group.item.type}
         </Badge>
@@ -50,7 +50,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
           </Badge>
         )}
         {group.methods.length > 0 && (
-          <span className="text-xs text-gray-500 ml-auto">
+          <span className="text-xs text-stone-500 ml-auto">
             {group.methods.length} メソッド
           </span>
         )}
@@ -58,34 +58,34 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
 
       {/* 概要（ヘッダー直下、展開状態に関係なく表示） */}
       {group.item.summary && (
-        <p className="px-4 py-1 text-sm text-gray-500">
+        <p className="px-4 py-1 text-sm text-stone-500">
           {group.item.summary}
         </p>
       )}
 
       {expanded && (
-        <div className="px-4 py-3 space-y-3 bg-gray-800">
+        <div className="px-4 py-3 space-y-3 bg-stone-800">
           {/* 責務 */}
           {group.item.responsibility && (
             <div className="text-sm">
-              <div className="text-gray-500 mb-1">責務:</div>
-              <p className="text-gray-300">{group.item.responsibility}</p>
+              <div className="text-stone-500 mb-1">責務:</div>
+              <p className="text-stone-300">{group.item.responsibility}</p>
             </div>
           )}
 
           {/* フィールド/バリアント */}
           {group.fields.length > 0 && (
             <div className="text-sm">
-              <div className="text-gray-500 mb-1">
+              <div className="text-stone-500 mb-1">
                 {group.item.type === 'enum' ? 'バリアント:' : 'フィールド:'}
               </div>
               <div className="space-y-0.5">
                 {group.fields.map((field, idx) => (
                   <div key={idx} className="flex items-center gap-2">
-                    <span className="text-gray-300">{field.name}</span>
+                    <span className="text-stone-300">{field.name}</span>
                     {field.type && (
                       <>
-                        <span className="text-gray-500">:</span>
+                        <span className="text-stone-500">:</span>
                         <span className="text-cyan-400 font-mono text-xs">
                           {field.type}
                         </span>
@@ -100,7 +100,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
           {/* 直接テスト（struct/enum自体をテストするもの） */}
           {group.directTests.length > 0 && (
             <div className="space-y-1">
-              <div className="text-xs text-gray-500 mb-1">直接テスト:</div>
+              <div className="text-xs text-stone-500 mb-1">直接テスト:</div>
               {group.directTests.map((test) => (
                 <CompactTestItem key={test.id} testId={test.id} summary={test.summary} showName={false} />
               ))}
@@ -110,7 +110,7 @@ export function StructGroupView({ group, onSelectItem }: StructGroupViewProps) {
           {/* メソッド一覧 */}
           {group.methods.length > 0 && (
             <div className="space-y-1">
-              <div className="text-xs text-gray-500 mb-1">関数一覧:</div>
+              <div className="text-xs text-stone-500 mb-1">関数一覧:</div>
               {group.methods.map((method) => (
                 <MethodView
                   key={method.item.id}
@@ -140,7 +140,7 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
 
   return (
     <div>
-      <div className="flex items-center gap-1 py-1.5 px-2 hover:bg-gray-800 rounded transition-colors">
+      <div className="flex items-center gap-1 py-1.5 px-2 hover:bg-stone-800 rounded transition-colors">
         {/* メソッド名（クリックで詳細へ遷移） */}
         <button
           type="button"
@@ -148,12 +148,12 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
           className="flex items-center gap-2 hover:underline"
           title="詳細を表示"
         >
-          <span className="text-blue-400">{method.item.name}()</span>
+          <span className="text-orange-400">{method.item.name}()</span>
         </button>
 
         {/* バッジ類 */}
         {method.item.visibility === 'pub' && (
-          <span className="text-xs text-gray-400">[pub]</span>
+          <span className="text-xs text-stone-400">[pub]</span>
         )}
         {method.item.trait_name && (
           <span className="text-xs text-pink-400">[{method.item.trait_name}]</span>
@@ -167,12 +167,12 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="ml-auto flex items-center gap-1 p-1 hover:bg-gray-700 rounded transition-colors"
+            className="ml-auto flex items-center gap-1 p-1 hover:bg-stone-700 rounded transition-colors"
             title="テストを展開/折りたたみ"
           >
-            <span className="text-xs text-gray-500">({method.tests.length} テスト)</span>
+            <span className="text-xs text-stone-500">({method.tests.length} テスト)</span>
             <span
-              className={`text-xs text-gray-400 transform transition-transform inline-block ${
+              className={`text-xs text-stone-400 transform transition-transform inline-block ${
                 expanded ? 'rotate-180' : ''
               }`}
             >
@@ -184,7 +184,7 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
 
       {/* メソッド概要（常に表示） */}
       {method.item.summary && (
-        <p className="pl-4 text-sm text-gray-500">{method.item.summary}</p>
+        <p className="pl-4 text-sm text-stone-500">{method.item.summary}</p>
       )}
 
       {/* 関連テスト */}

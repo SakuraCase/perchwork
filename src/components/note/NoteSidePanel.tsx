@@ -34,15 +34,15 @@ export function NoteSidePanel({
   onSelectDocument,
 }: NoteSidePanelProps) {
   return (
-    <div className="h-full flex flex-col bg-gray-900">
+    <div className="h-full flex flex-col bg-stone-900">
       {/* タブ切り替え */}
-      <div className="flex border-b border-gray-700">
+      <div className="flex border-b border-stone-700">
         <button
           onClick={() => onTabChange("sessions")}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${
             activeTab === "sessions"
-              ? "text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200"
+              ? "text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200"
           }`}
         >
           セッション
@@ -51,8 +51,8 @@ export function NoteSidePanel({
           onClick={() => onTabChange("document")}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${
             activeTab === "document"
-              ? "text-white border-b-2 border-blue-500"
-              : "text-gray-400 hover:text-gray-200"
+              ? "text-white border-b-2 border-orange-500"
+              : "text-stone-400 hover:text-stone-200"
           }`}
         >
           ドキュメント
