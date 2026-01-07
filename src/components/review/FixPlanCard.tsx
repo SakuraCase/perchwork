@@ -1,15 +1,15 @@
 /**
  * FixPlanCard.tsx
  *
- * 修正計画カード（コピーボタン付き）
+ * 修正計画カード（チェックボックス付き）
  */
 
-import { useState, useCallback } from "react";
 import type { FixPlan, ReviewAgent } from "../../types/review";
 
 interface FixPlanCardProps {
   fixPlan: FixPlan;
-  filePath?: string;
+  checked: boolean;
+  onToggle: () => void;
 }
 
 const priorityStyles: Record<string, string> = {
@@ -33,66 +33,47 @@ const agentLabels: Record<ReviewAgent, string> = {
   "code-simplifier": "簡素化",
 };
 
-export function FixPlanCard({ fixPlan, filePath }: FixPlanCardProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(fixPlan.prompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  }, [fixPlan.prompt]);
-
+export function FixPlanCard({ fixPlan, checked, onToggle }: FixPlanCardProps) {
   return (
     <div
-      className={`border-l-4 rounded-r p-4 ${priorityStyles[fixPlan.priority]}`}
+      className={`border-l-4 rounded-r p-4 ${priorityStyles[fixPlan.priority]} ${
+        checked ? "ring-1 ring-orange-500/50" : ""
+      }`}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-xs font-bold px-2 py-0.5 rounded ${
-              fixPlan.priority === "high"
-                ? "bg-red-500 text-white"
-                : fixPlan.priority === "medium"
-                  ? "bg-yellow-500 text-black"
-                  : "bg-orange-500 text-white"
-            }`}
-          >
-            {priorityLabels[fixPlan.priority]}
-          </span>
-          <h4 className="font-medium text-stone-100">{fixPlan.title}</h4>
+      <div className="flex items-start gap-3">
+        {/* チェックボックス */}
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          className="mt-1 w-4 h-4 rounded border-stone-600 bg-stone-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-stone-900 cursor-pointer"
+        />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`text-xs font-bold px-2 py-0.5 rounded ${
+                  fixPlan.priority === "high"
+                    ? "bg-red-500 text-white"
+                    : fixPlan.priority === "medium"
+                      ? "bg-yellow-500 text-black"
+                      : "bg-orange-500 text-white"
+                }`}
+              >
+                {priorityLabels[fixPlan.priority]}
+              </span>
+              <h4 className="font-medium text-stone-100">{fixPlan.title}</h4>
+            </div>
+            {fixPlan.agent && (
+              <span className="text-xs text-stone-400 bg-stone-700 px-2 py-0.5 rounded ml-2 whitespace-nowrap">
+                {agentLabels[fixPlan.agent]}
+              </span>
+            )}
+          </div>
+
+          <p className="text-sm text-stone-300">{fixPlan.description}</p>
         </div>
-        {fixPlan.agent && (
-          <span className="text-xs text-stone-400 bg-stone-700 px-2 py-0.5 rounded">
-            {agentLabels[fixPlan.agent]}
-          </span>
-        )}
-      </div>
-
-      {filePath && (
-        <p className="text-xs text-stone-500 mb-2 font-mono">{filePath}</p>
-      )}
-
-      <p className="text-sm text-stone-300 mb-3">{fixPlan.description}</p>
-
-      <div className="bg-stone-900 rounded p-3 relative">
-        <p className="text-xs text-stone-400 mb-1">Prompt:</p>
-        <pre className="text-sm text-stone-200 whitespace-pre-wrap font-mono">
-          {fixPlan.prompt}
-        </pre>
-        <button
-          onClick={handleCopy}
-          className={`absolute top-2 right-2 px-2 py-1 text-xs rounded transition-colors ${
-            copied
-              ? "bg-green-600 text-white"
-              : "bg-stone-700 text-stone-300 hover:bg-stone-600"
-          }`}
-        >
-          {copied ? "Copied!" : "Copy"}
-        </button>
       </div>
     </div>
   );

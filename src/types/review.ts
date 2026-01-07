@@ -148,11 +148,25 @@ export interface ReviewIndex {
       medium: number;
       low: number;
     };
+    /** コード品質スコア平均（0-100） */
+    average_code_score?: number;
+    /** テストカバレッジスコア平均（1-10） */
+    average_coverage_score?: number;
   };
   /** ファイル一覧 */
   files: Array<{
     path: string;
     fix_plans: number;
+    /** 優先度別の件数 */
+    by_priority: {
+      high: number;
+      medium: number;
+      low: number;
+    };
+    /** コード品質スコア（0-100） */
+    code_score?: number;
+    /** テストカバレッジスコア（1-10） */
+    coverage_score?: number;
   }>;
 }
 

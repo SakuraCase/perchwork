@@ -89,9 +89,9 @@ export function ReviewView() {
       {/* 右パネル: 詳細表示 */}
       <div className="flex-1 overflow-hidden">
         {showOverview ? (
-          <ReviewOverview index={index} />
+          <ReviewOverview index={index} onFileSelect={handleSelectFile} />
         ) : selectedFile ? (
-          <ReviewResultDetail result={selectedFile} />
+          <ReviewResultDetail key={selectedFile.path} result={selectedFile} />
         ) : isLoading ? (
           <Loading message="ファイルを読み込んでいます..." />
         ) : (

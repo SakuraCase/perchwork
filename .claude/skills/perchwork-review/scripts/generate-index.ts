@@ -2,10 +2,10 @@
  * Generate index.json from existing review JSON files
  *
  * Usage:
- *   node dist/generate-index.js <review-dir>
+ *   node dist/generate-index.js <review-dir> [target-dir] [mode]
  *
  * Example:
- *   node dist/generate-index.js ./public/data/review
+ *   node dist/generate-index.js ./public/data/review ../../backend/src/lib/domain full
  */
 
 import * as fs from "fs";
@@ -15,19 +15,30 @@ import type {
   IndexJson,
   IndexFile,
   IndexSummary,
-  IndexAgentScores,
-  TypeDesignScores,
+  PriorityCount,
 } from "./types.js";
 
-function parseArgs(): string {
+const VERSION = "1.0.0";
+
+interface Args {
+  reviewDir: string;
+  targetDir: string;
+  mode: "diff" | "full";
+}
+
+function parseArgs(): Args {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("Usage: generate-index.ts <review-dir>");
+    console.error("Usage: generate-index.ts <review-dir> [target-dir] [mode]");
     process.exit(1);
   }
 
-  return args[0];
+  return {
+    reviewDir: args[0],
+    targetDir: args[1] ?? ".",
+    mode: (args[2] as "diff" | "full") ?? "full",
+  };
 }
 
 function findJsonFiles(dir: string): string[] {
@@ -65,147 +76,122 @@ function loadReviewFile(filePath: string): ReviewFile | null {
   }
 }
 
-function extractAgentScores(review: ReviewFile): IndexAgentScores {
-  const agents = review.agents;
-
-  const commentAnalyzer = agents["comment-analyzer"];
-  const prTestAnalyzer = agents["pr-test-analyzer"];
-  const silentFailureHunter = agents["silent-failure-hunter"];
-  const typeDesignAnalyzer = agents["type-design-analyzer"];
-  const codeReviewer = agents["code-reviewer"];
-  const codeSimplifier = agents["code-simplifier"];
-
-  // Count silent-failure-hunter findings by severity
-  const findings = silentFailureHunter?.findings ?? [];
-  const bySeverity = { critical: 0, high: 0, medium: 0 };
-  for (const f of findings) {
-    const sev = f.severity.toLowerCase() as keyof typeof bySeverity;
-    if (sev in bySeverity) {
-      bySeverity[sev]++;
-    }
-  }
-
-  return {
-    "comment-analyzer": {
-      issues: commentAnalyzer?.issues?.length ?? 0,
-    },
-    "pr-test-analyzer": {
-      coverage_score: prTestAnalyzer?.coverage_score ?? 0,
-    },
-    "silent-failure-hunter": {
-      findings: findings.length,
-      by_severity: bySeverity,
-    },
-    "type-design-analyzer": typeDesignAnalyzer?.scores ?? {
-      encapsulation: 0,
-      invariant: 0,
-      usefulness: 0,
-      enforcement: 0,
-    },
-    "code-reviewer": {
-      score: codeReviewer?.score ?? 0,
-    },
-    "code-simplifier": {
-      suggestions: codeSimplifier?.suggestions?.length ?? 0,
-    },
-  };
-}
-
-function generateIndex(reviewDir: string): IndexJson {
+function generateIndex(reviewDir: string, targetDir: string, mode: "diff" | "full"): IndexJson {
   const jsonFiles = findJsonFiles(reviewDir);
   const files: IndexFile[] = [];
   const summary: IndexSummary = {
     total_files: 0,
     total_fix_plans: 0,
     by_priority: { high: 0, medium: 0, low: 0 },
-    avg_scores: {
-      "pr-test-analyzer": 0,
-      "code-reviewer": 0,
-      "type-design-analyzer": { encapsulation: 0, invariant: 0, usefulness: 0, enforcement: 0 },
-    },
   };
 
   // Accumulators for averages
   let totalCoverage = 0;
   let totalCodeReview = 0;
-  const totalTypeDesign: TypeDesignScores = { encapsulation: 0, invariant: 0, usefulness: 0, enforcement: 0 };
+  let coverageCount = 0;
+  let codeReviewCount = 0;
 
   for (const filePath of jsonFiles) {
     const review = loadReviewFile(filePath);
     if (!review) continue;
 
-    const agentScores = extractAgentScores(review);
+    const agents = review.agents;
+    const prTestAnalyzer = agents["pr-test-analyzer"];
+    const codeReviewer = agents["code-reviewer"];
 
-    // Count fix_plans by priority
-    const fixPlansByPriority = { high: 0, medium: 0, low: 0 };
+    // Count fix_plans by priority (per file and summary)
+    const filePriority: PriorityCount = { high: 0, medium: 0, low: 0 };
     for (const plan of review.fix_plans ?? []) {
-      const priority = plan.priority as keyof typeof fixPlansByPriority;
-      if (priority in fixPlansByPriority) {
-        fixPlansByPriority[priority]++;
+      const priority = plan.priority as keyof PriorityCount;
+      if (priority in filePriority) {
+        filePriority[priority]++;
         summary.by_priority[priority]++;
       }
     }
 
+    // Extract scores
+    const coverageScore = prTestAnalyzer?.coverage_score;
+    const codeScore = codeReviewer?.score;
+
     files.push({
       path: review.path,
-      fix_plans: {
-        total: review.fix_plans?.length ?? 0,
-        ...fixPlansByPriority,
-      },
-      agents: agentScores,
+      fix_plans: review.fix_plans?.length ?? 0,
+      by_priority: filePriority,
+      code_score: codeScore,
+      coverage_score: coverageScore,
     });
 
     summary.total_files++;
     summary.total_fix_plans += review.fix_plans?.length ?? 0;
 
     // Accumulate for averages
-    totalCoverage += agentScores["pr-test-analyzer"].coverage_score;
-    totalCodeReview += agentScores["code-reviewer"].score;
-    totalTypeDesign.encapsulation += agentScores["type-design-analyzer"].encapsulation;
-    totalTypeDesign.invariant += agentScores["type-design-analyzer"].invariant;
-    totalTypeDesign.usefulness += agentScores["type-design-analyzer"].usefulness;
-    totalTypeDesign.enforcement += agentScores["type-design-analyzer"].enforcement;
+    if (coverageScore !== undefined) {
+      totalCoverage += coverageScore;
+      coverageCount++;
+    }
+    if (codeScore !== undefined) {
+      totalCodeReview += codeScore;
+      codeReviewCount++;
+    }
   }
 
   // Calculate averages
-  if (summary.total_files > 0) {
-    const n = summary.total_files;
-    summary.avg_scores["pr-test-analyzer"] = Math.round((totalCoverage / n) * 10) / 10;
-    summary.avg_scores["code-reviewer"] = Math.round((totalCodeReview / n) * 10) / 10;
-    summary.avg_scores["type-design-analyzer"] = {
-      encapsulation: Math.round((totalTypeDesign.encapsulation / n) * 10) / 10,
-      invariant: Math.round((totalTypeDesign.invariant / n) * 10) / 10,
-      usefulness: Math.round((totalTypeDesign.usefulness / n) * 10) / 10,
-      enforcement: Math.round((totalTypeDesign.enforcement / n) * 10) / 10,
-    };
+  if (codeReviewCount > 0) {
+    summary.average_code_score = Math.round((totalCodeReview / codeReviewCount) * 10) / 10;
+  }
+  if (coverageCount > 0) {
+    summary.average_coverage_score = Math.round((totalCoverage / coverageCount) * 10) / 10;
   }
 
-  // Sort by total fix_plans count (descending)
-  files.sort((a, b) => b.fix_plans.total - a.fix_plans.total);
+  // Sort by high priority first, then by total fix_plans count (descending)
+  files.sort((a, b) => {
+    // First by high priority (descending)
+    if (b.by_priority.high !== a.by_priority.high) {
+      return b.by_priority.high - a.by_priority.high;
+    }
+    // Then by medium priority (descending)
+    if (b.by_priority.medium !== a.by_priority.medium) {
+      return b.by_priority.medium - a.by_priority.medium;
+    }
+    // Finally by total fix_plans (descending)
+    return b.fix_plans - a.fix_plans;
+  });
 
   return {
+    version: VERSION,
+    generated_at: new Date().toISOString(),
+    config: {
+      target_dir: targetDir,
+      mode,
+    },
     summary,
     files,
   };
 }
 
 function main() {
-  const reviewDir = parseArgs();
+  const { reviewDir, targetDir, mode } = parseArgs();
 
   if (!fs.existsSync(reviewDir)) {
     console.error(`Review directory not found: ${reviewDir}`);
     process.exit(1);
   }
 
-  const index = generateIndex(reviewDir);
+  const index = generateIndex(reviewDir, targetDir, mode);
   const outputPath = path.join(reviewDir, "index.json");
 
-  fs.writeFileSync(outputPath, JSON.stringify(index, null, 2));
+  fs.writeFileSync(outputPath, JSON.stringify(index, null, 2) + "\n");
   console.log(`Generated: ${outputPath}`);
+  console.log(`  Version: ${index.version}`);
   console.log(`  Files: ${index.summary.total_files}`);
   console.log(`  Fix plans: ${index.summary.total_fix_plans}`);
   console.log(`  Priority: high=${index.summary.by_priority.high}, medium=${index.summary.by_priority.medium}, low=${index.summary.by_priority.low}`);
-  console.log(`  Avg scores: coverage=${index.summary.avg_scores["pr-test-analyzer"]}, code-review=${index.summary.avg_scores["code-reviewer"]}`);
+  if (index.summary.average_code_score !== undefined) {
+    console.log(`  Avg code score: ${index.summary.average_code_score}`);
+  }
+  if (index.summary.average_coverage_score !== undefined) {
+    console.log(`  Avg coverage score: ${index.summary.average_coverage_score}`);
+  }
 }
 
 main();

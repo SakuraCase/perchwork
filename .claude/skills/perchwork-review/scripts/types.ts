@@ -39,35 +39,37 @@ export interface ReviewFile {
   fix_plans: FixPlan[];
 }
 
-// Index types
-
-export interface IndexAgentScores {
-  "comment-analyzer": { issues: number };
-  "pr-test-analyzer": { coverage_score: number };
-  "silent-failure-hunter": { findings: number; by_severity: { critical: number; high: number; medium: number } };
-  "type-design-analyzer": TypeDesignScores;
-  "code-reviewer": { score: number };
-  "code-simplifier": { suggestions: number };
-}
-
-export interface IndexFile {
-  path: string;
-  fix_plans: { total: number; high: number; medium: number; low: number };
-  agents: IndexAgentScores;
-}
+// Index types (aligned with frontend ReviewIndex)
 
 export interface IndexSummary {
   total_files: number;
   total_fix_plans: number;
   by_priority: { high: number; medium: number; low: number };
-  avg_scores: {
-    "pr-test-analyzer": number;
-    "code-reviewer": number;
-    "type-design-analyzer": TypeDesignScores;
-  };
+  average_code_score?: number;
+  average_coverage_score?: number;
+}
+
+export interface PriorityCount {
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface IndexFile {
+  path: string;
+  fix_plans: number;
+  by_priority: PriorityCount;
+  code_score?: number;
+  coverage_score?: number;
 }
 
 export interface IndexJson {
+  version: string;
+  generated_at: string;
+  config: {
+    target_dir: string;
+    mode: "diff" | "full";
+  };
   summary: IndexSummary;
   files: IndexFile[];
 }
