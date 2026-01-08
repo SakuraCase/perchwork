@@ -6,9 +6,11 @@
 
 import { useState, useCallback } from "react";
 import { useReviewDataLoader } from "../../hooks/useReviewDataLoader";
+import { useDuplicationDataLoader } from "../../hooks/useDuplicationDataLoader";
 import { ReviewOverview } from "./ReviewOverview";
 import { ReviewFileList } from "./ReviewFileList";
 import { ReviewResultDetail } from "./ReviewResultDetail";
+import { DuplicationView } from "../duplication/DuplicationView";
 import { Loading } from "../common/Loading";
 
 interface ReviewViewProps {
@@ -16,23 +18,36 @@ interface ReviewViewProps {
   onShowInTree?: (filePath: string) => void;
 }
 
+type ViewMode = "overview" | "file" | "duplication";
+
 export function ReviewView({ onShowInTree }: ReviewViewProps) {
   const { index, selectedFile, isLoading, error, loadFileDetails } =
     useReviewDataLoader();
+  const { getAllStats, hasDuplicationData } = useDuplicationDataLoader();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [showOverview, setShowOverview] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>("overview");
+
+  // 全体の統計
+  const allStats = getAllStats();
+  // 重複データが存在するか
+  const hasDupData = hasDuplicationData();
 
   const handleSelectFile = useCallback(
     async (path: string) => {
       setSelectedPath(path);
-      setShowOverview(false);
+      setViewMode("file");
       await loadFileDetails(path);
     },
     [loadFileDetails]
   );
 
   const handleShowOverview = useCallback(() => {
-    setShowOverview(true);
+    setViewMode("overview");
+    setSelectedPath(null);
+  }, []);
+
+  const handleShowDuplication = useCallback(() => {
+    setViewMode("duplication");
     setSelectedPath(null);
   }, []);
 
@@ -66,21 +81,40 @@ export function ReviewView({ onShowInTree }: ReviewViewProps) {
     );
   }
 
+  // 重複ビューモードの場合は専用ビューを表示
+  if (viewMode === "duplication") {
+    return (
+      <DuplicationView
+        onShowInTree={onShowInTree}
+        onBackToOverview={handleShowOverview}
+      />
+    );
+  }
+
   return (
     <div className="flex h-full">
       {/* 左パネル: ファイルリスト */}
       <div className="w-80 border-r border-stone-700 flex flex-col">
-        <div className="p-2 border-b border-stone-700">
+        <div className="p-2 border-b border-stone-700 space-y-2">
           <button
             onClick={handleShowOverview}
             className={`w-full px-3 py-2 text-sm rounded transition-colors ${
-              showOverview
+              viewMode === "overview"
                 ? "bg-orange-600 text-white"
                 : "bg-stone-800 text-stone-300 hover:bg-stone-700"
             }`}
           >
             概要
           </button>
+          {/* 重複詳細ボタン - 重複データがあれば表示 */}
+          {hasDupData && (
+            <button
+              onClick={handleShowDuplication}
+              className="w-full px-3 py-2 text-sm rounded transition-colors bg-stone-800 text-stone-300 hover:bg-stone-700"
+            >
+              重複詳細 ({allStats?.total_duplicates ?? 0})
+            </button>
+          )}
         </div>
         <div className="flex-1 overflow-hidden">
           <ReviewFileList
@@ -93,8 +127,12 @@ export function ReviewView({ onShowInTree }: ReviewViewProps) {
 
       {/* 右パネル: 詳細表示 */}
       <div className="flex-1 overflow-hidden">
-        {showOverview ? (
-          <ReviewOverview index={index} onFileSelect={handleSelectFile} />
+        {viewMode === "overview" ? (
+          <ReviewOverview
+            index={index}
+            onFileSelect={handleSelectFile}
+            allDuplicationStats={allStats}
+          />
         ) : selectedFile ? (
           <ReviewResultDetail key={selectedFile.path} result={selectedFile} onShowInTree={onShowInTree} />
         ) : isLoading ? (

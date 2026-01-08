@@ -11,12 +11,14 @@
 │   └── skills/            # Claude スキル定義
 │       ├── generate-image/
 │       ├── perchwork-complexity/
+│       ├── perchwork-duplication/
 │       ├── perchwork-review/
 │       ├── perchwork-semantic/
 │       └── perchwork-structure/
 ├── public/
 │   ├── data/
 │   │   ├── complexity/    # rust-code-analysis複雑度データ
+│   │   ├── duplication/   # jscpd重複検出データ
 │   │   ├── review/        # PRレビュー結果データ
 │   │   ├── semantic/      # LLM生成の意味解析データ
 │   │   └── structure/     # tree-sitter解析の構造データ
@@ -26,6 +28,7 @@
 │   ├── components/        # Reactコンポーネント
 │   │   ├── common/       # 共通コンポーネント
 │   │   ├── detail/       # 詳細表示
+│   │   ├── duplication/  # 重複表示
 │   │   ├── graph/        # グラフビジュアライゼーション
 │   │   ├── layout/       # レイアウト
 │   │   ├── metrics/      # メトリクス表示
@@ -51,15 +54,16 @@ npm run typecheck  # TypeScript型チェック
 
 ## 主要ファイル
 
-| 用途             | パス                      |
-| ---------------- | ------------------------- |
-| 設定ファイル     | `config.json`             |
-| エントリポイント | `src/App.tsx`             |
-| 型定義           | `src/types/`              |
-| 構造データ       | `public/data/structure/`  |
-| 意味データ       | `public/data/semantic/`   |
-| 複雑度データ     | `public/data/complexity/` |
-| レビューデータ   | `public/data/review/`     |
+| 用途             | パス                        |
+| ---------------- | --------------------------- |
+| 設定ファイル     | `config.json`               |
+| エントリポイント | `src/App.tsx`               |
+| 型定義           | `src/types/`                |
+| 構造データ       | `public/data/structure/`    |
+| 意味データ       | `public/data/semantic/`     |
+| 複雑度データ     | `public/data/complexity/`   |
+| 重複データ       | `public/data/duplication/`  |
+| レビューデータ   | `public/data/review/`       |
 
 ## デザイン方針
 

@@ -1,13 +1,13 @@
 {
   "target_dir": "../projects/src",
   "extensions": [".rs"],
-  "exclude": ["**/tests/**"],
+  "exclude": ["**/mod.rs"],
   "language": "ja",
   "run": {
     "structure": true,
-    "semantic": true,
+    "semantic": false,
     "complexity": true,
-    "review": true
+    "review": false
   },
   "last_commit": null,
   "last_run": null
