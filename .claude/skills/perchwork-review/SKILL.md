@@ -58,6 +58,7 @@ node dist/generate-index.js ../../../public/data/review
 Use Task tool to invoke 6 pr-review-toolkit sub-agents in parallel for each file.
 
 **重要**: 各エージェントへのプロンプトには以下を含めること：
+
 - ファイルパス
 - 言語設定（`config.json` の `language` の値）
 - 出力形式の指定（下記参照）
