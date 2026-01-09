@@ -27,6 +27,7 @@ import type {
   SchemaNodeData,
   SchemaEdgeData,
   SchemaLayoutType,
+  SchemaFilter,
   SavedSchemaSettings,
 } from '../../types/schemaGraph';
 import { DEFAULT_SCHEMA_FILTER } from '../../types/schemaGraph';
@@ -463,6 +464,14 @@ interface SchemaViewInnerProps {
   onSave: (name: string, existingId?: string) => void;
   onOpen: (saved: SavedSchemaSettings) => void;
   onDeleteSaved: (id: string) => void;
+  /** 外部管理のフィルタ状態 */
+  filter: SchemaFilter;
+  /** 外部管理のフィルタ更新関数 */
+  onFilterChange: (filter: SchemaFilter) => void;
+  /** 外部管理のレイアウトタイプ */
+  layoutType: SchemaLayoutType;
+  /** レイアウトタイプ更新関数 */
+  onLayoutTypeChange: (layoutType: SchemaLayoutType) => void;
 }
 
 /** 内部ビューコンポーネント */
@@ -474,13 +483,19 @@ function SchemaViewInner({
   onSave,
   onOpen,
   onDeleteSaved,
+  filter,
+  onFilterChange,
+  layoutType,
+  onLayoutTypeChange,
 }: SchemaViewInnerProps) {
-  const { rawData, filteredData, filter, setFilter, isLoading, error, reload } = useSchemaLoader();
+  const { rawData, filteredData, isLoading, error, reload } = useSchemaLoader({
+    externalFilter: filter,
+    onFilterChange,
+  });
   const { fitView } = useReactFlow();
 
   const [nodes, setNodes, onNodesChange] = useNodesState<SchemaFlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const [layoutType, setLayoutType] = useState<SchemaLayoutType>('hierarchy');
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(initialContextMenuState);
 
   // フィルタ適用後のデータからノードとエッジを生成
@@ -508,7 +523,7 @@ function SchemaViewInner({
       // 指定された型名が存在するか確認
       const exists = rawData.nodes.some(node => node.name === focusTypeName);
       if (exists) {
-        setFilter({
+        onFilterChange({
           ...filter,
           focusNodeId: focusTypeName,
         });
@@ -517,7 +532,7 @@ function SchemaViewInner({
       onClearFocusTypeName?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- filterを依存に含めると無限ループになるため除外
-  }, [focusTypeName, rawData, setFilter, onClearFocusTypeName]);
+  }, [focusTypeName, rawData, onFilterChange, onClearFocusTypeName]);
 
   // ノードクリックハンドラ
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -555,35 +570,35 @@ function SchemaViewInner({
 
   // 関連ノードのみ表示
   const handleShowRelated = useCallback((nodeName: string) => {
-    setFilter({
+    onFilterChange({
       ...filter,
       focusNodeId: nodeName,
     });
-  }, [filter, setFilter]);
+  }, [filter, onFilterChange]);
 
   // ノードを除外
   const handleExclude = useCallback((nodeName: string) => {
-    setFilter({
+    onFilterChange({
       ...filter,
       excludeNodeIds: [...filter.excludeNodeIds, nodeName],
     });
-  }, [filter, setFilter]);
+  }, [filter, onFilterChange]);
 
   // フォーカスを解除
   const handleClearFocus = useCallback(() => {
-    setFilter({
+    onFilterChange({
       ...filter,
       focusNodeId: undefined,
     });
-  }, [filter, setFilter]);
+  }, [filter, onFilterChange]);
 
   // 除外をリセット
   const handleClearExclude = useCallback(() => {
-    setFilter({
+    onFilterChange({
       ...filter,
       excludeNodeIds: [],
     });
-  }, [filter, setFilter]);
+  }, [filter, onFilterChange]);
 
   // ローディング表示
   if (isLoading) {
@@ -629,10 +644,10 @@ function SchemaViewInner({
       {/* ツールバー（常に表示） */}
       <SchemaToolbar
         filter={filter}
-        onFilterChange={setFilter}
+        onFilterChange={onFilterChange}
         stats={filteredData?.stats ?? emptyStats}
         layoutType={layoutType}
-        onLayoutChange={setLayoutType}
+        onLayoutChange={onLayoutTypeChange}
         onClearFocus={handleClearFocus}
         onClearExclude={handleClearExclude}
         savedSettings={savedSettings}
@@ -651,7 +666,7 @@ function SchemaViewInner({
           </div>
           {rawData && rawData.nodes.length > 0 && (
             <button
-              onClick={() => setFilter(DEFAULT_SCHEMA_FILTER)}
+              onClick={() => onFilterChange(DEFAULT_SCHEMA_FILTER)}
               className="px-4 py-2 bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
             >
               フィルタをリセット
@@ -725,6 +740,14 @@ export interface SchemaViewProps {
   onOpen: (saved: SavedSchemaSettings) => void;
   /** 保存済み設定を削除する時のコールバック */
   onDeleteSaved: (id: string) => void;
+  /** 外部管理のフィルタ状態 */
+  filter: SchemaFilter;
+  /** 外部管理のフィルタ更新関数 */
+  onFilterChange: (filter: SchemaFilter) => void;
+  /** 外部管理のレイアウトタイプ */
+  layoutType: SchemaLayoutType;
+  /** レイアウトタイプ更新関数 */
+  onLayoutTypeChange: (layoutType: SchemaLayoutType) => void;
 }
 
 /** メインコンポーネント（Provider付き） */
@@ -736,6 +759,10 @@ export function SchemaView({
   onSave,
   onOpen,
   onDeleteSaved,
+  filter,
+  onFilterChange,
+  layoutType,
+  onLayoutTypeChange,
 }: SchemaViewProps) {
   return (
     <ReactFlowProvider>
@@ -747,6 +774,10 @@ export function SchemaView({
         onSave={onSave}
         onOpen={onOpen}
         onDeleteSaved={onDeleteSaved}
+        filter={filter}
+        onFilterChange={onFilterChange}
+        layoutType={layoutType}
+        onLayoutTypeChange={onLayoutTypeChange}
       />
     </ReactFlowProvider>
   );

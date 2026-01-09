@@ -14,6 +14,15 @@ import * as cacheManager from '../services/cacheManager';
 
 const CACHE_KEY = 'schema:graph';
 
+/** useSchemaLoaderの引数 */
+interface UseSchemaLoaderOptions {
+  /** 外部管理のフィルタ状態 */
+  externalFilter?: SchemaFilter;
+
+  /** 外部管理のフィルタ更新関数 */
+  onFilterChange?: (filter: SchemaFilter) => void;
+}
+
 interface UseSchemaLoaderResult {
   /** スキーマグラフデータ（フィルタ適用前） */
   rawData: SchemaGraphData | null;
@@ -39,12 +48,27 @@ interface UseSchemaLoaderResult {
 
 /**
  * スキーマグラフデータの読み込みと管理を行うフック
+ *
+ * @param options.externalFilter - 外部で管理されるフィルタ状態（指定時は内部状態を使用しない）
+ * @param options.onFilterChange - 外部フィルタの更新関数
  */
-export function useSchemaLoader(): UseSchemaLoaderResult {
+export function useSchemaLoader(options?: UseSchemaLoaderOptions): UseSchemaLoaderResult {
+  const { externalFilter, onFilterChange } = options ?? {};
+
   const [rawData, setRawData] = useState<SchemaGraphData | null>(null);
-  const [filter, setFilter] = useState<SchemaFilter>(DEFAULT_SCHEMA_FILTER);
+  const [internalFilter, setInternalFilter] = useState<SchemaFilter>(DEFAULT_SCHEMA_FILTER);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 外部フィルタが指定されている場合はそちらを使用
+  const filter = externalFilter ?? internalFilter;
+  const setFilter = useCallback((newFilter: SchemaFilter) => {
+    if (onFilterChange) {
+      onFilterChange(newFilter);
+    } else {
+      setInternalFilter(newFilter);
+    }
+  }, [onFilterChange]);
 
   /**
    * スキーマデータを読み込み

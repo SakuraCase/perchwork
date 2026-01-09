@@ -123,6 +123,9 @@ function App() {
 
   // スキーマ設定の管理
   const {
+    settings: schemaSettings,
+    updateLayoutType: updateSchemaLayoutType,
+    updateFilter: updateSchemaFilter,
     savedSettings: savedSchemaSettings,
     saveSettings: saveSchemaSettings,
     openSettings: openSchemaSettings,
@@ -1013,6 +1016,10 @@ function App() {
                 onSave={saveSchemaSettings}
                 onOpen={openSchemaSettings}
                 onDeleteSaved={deleteSchemaSettings}
+                filter={schemaSettings.filter}
+                onFilterChange={updateSchemaFilter}
+                layoutType={schemaSettings.layoutType}
+                onLayoutTypeChange={updateSchemaLayoutType}
               />
             </div>
           )}

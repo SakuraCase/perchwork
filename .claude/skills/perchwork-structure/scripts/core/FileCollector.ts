@@ -6,6 +6,8 @@ import type { Config } from '../types/index.js';
  * 対象ファイルを収集するクラス
  */
 export class FileCollector {
+  private targetDir!: string;
+
   constructor(private config: Config) {}
 
   /**
@@ -14,12 +16,12 @@ export class FileCollector {
   async collectTargetFiles(): Promise<string[]> {
     console.log('対象ファイルを収集しています...');
 
-    const targetDir = this.config.target_dir;
+    this.targetDir = this.config.target_dir;
     const extensions = this.config.extensions || ['.rs'];
     const excludePatterns = this.config.exclude || [];
     const targetFiles: string[] = [];
 
-    await this.walkDirectory(targetDir, targetFiles, extensions, excludePatterns);
+    await this.walkDirectory(this.targetDir, targetFiles, extensions, excludePatterns);
 
     console.log(`収集完了: ${targetFiles.length} ファイル`);
 
@@ -40,8 +42,9 @@ export class FileCollector {
 
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
+        const relativePath = path.relative(this.targetDir, fullPath);
 
-        if (this.shouldExclude(fullPath, excludePatterns)) {
+        if (this.shouldExclude(relativePath, excludePatterns)) {
           continue;
         }
 
@@ -60,24 +63,56 @@ export class FileCollector {
   }
 
   /**
+   * シンプルなglobパターンマッチ
+   * 対応パターン: ＊＊/X, ＊＊/X/＊＊, ＊＊/X_＊.Y
+   */
+  private matchGlob(filePath: string, pattern: string): boolean {
+    const p = pattern.replace(/\\/g, '/');
+    const fp = filePath.replace(/\\/g, '/');
+
+    // **/tests/** → /tests/ を含む
+    if (p.startsWith('**/') && p.endsWith('/**')) {
+      const dir = p.slice(3, -3);
+      return fp.includes('/' + dir + '/') || fp.startsWith(dir + '/');
+    }
+
+    // **/で始まるパターン
+    if (p.startsWith('**/')) {
+      const suffix = p.slice(3);
+      // **/test_*.rs → ファイル名がtest_で始まり.rsで終わる
+      if (suffix.includes('*')) {
+        const [prefix, ext] = suffix.split('*');
+        const fileName = fp.split('/').pop() || '';
+        return fileName.startsWith(prefix) && fileName.endsWith(ext);
+      }
+      // **/mod.rs → mod.rsで終わる
+      return fp.endsWith('/' + suffix) || fp === suffix;
+    }
+
+    return fp.includes(pattern);
+  }
+
+  /**
    * exclude パターンにマッチするかチェック
    */
-  private shouldExclude(filePath: string, excludePatterns: string[]): boolean {
-    for (const pattern of excludePatterns) {
-      if (pattern.includes('**/')) {
-        const regex = pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
-        if (new RegExp(regex).test(filePath)) {
-          return true;
-        }
-      } else if (pattern.includes('*')) {
-        const regex = pattern.replace(/\*/g, '.*');
-        if (new RegExp(regex).test(path.basename(filePath))) {
-          return true;
-        }
-      } else if (filePath.includes(pattern)) {
+  private shouldExclude(relativePath: string, excludePatterns: string[]): boolean {
+    const fp = relativePath.replace(/\\/g, '/');
+
+    // デフォルトの除外パターン
+    const defaultExcludes = ['node_modules', 'target', 'dist', '.git', 'vendor'];
+    for (const pattern of defaultExcludes) {
+      if (fp.includes(pattern)) {
         return true;
       }
     }
+
+    // 設定の除外パターン
+    for (const pattern of excludePatterns) {
+      if (this.matchGlob(fp, pattern)) {
+        return true;
+      }
+    }
+
     return false;
   }
 }

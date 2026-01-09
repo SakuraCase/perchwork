@@ -104,14 +104,45 @@ class ComplexityAnalyzer {
   }
 
   /**
+   * シンプルなglobパターンマッチ
+   * 対応パターン: ＊＊/X, ＊＊/X/＊＊, ＊＊/X_＊.Y
+   */
+  private matchGlob(filePath: string, pattern: string): boolean {
+    const p = pattern.replace(/\\/g, '/');
+    const fp = filePath.replace(/\\/g, '/');
+
+    // **/tests/** → /tests/ を含む
+    if (p.startsWith('**/') && p.endsWith('/**')) {
+      const dir = p.slice(3, -3);
+      return fp.includes('/' + dir + '/') || fp.startsWith(dir + '/');
+    }
+
+    // **/で始まるパターン
+    if (p.startsWith('**/')) {
+      const suffix = p.slice(3);
+      // **/test_*.rs → ファイル名がtest_で始まり.rsで終わる
+      if (suffix.includes('*')) {
+        const [prefix, ext] = suffix.split('*');
+        const fileName = fp.split('/').pop() || '';
+        return fileName.startsWith(prefix) && fileName.endsWith(ext);
+      }
+      // **/mod.rs → mod.rsで終わる
+      return fp.endsWith('/' + suffix) || fp === suffix;
+    }
+
+    return fp.includes(pattern);
+  }
+
+  /**
    * パスを除外すべきか判定
    */
   private shouldExclude(relativePath: string): boolean {
+    const fp = relativePath.replace(/\\/g, '/');
+
     // デフォルトの除外パターン
     const defaultExcludes = ['node_modules', 'target', 'dist', '.git', 'vendor'];
-
     for (const pattern of defaultExcludes) {
-      if (relativePath.includes(pattern)) {
+      if (fp.includes(pattern)) {
         return true;
       }
     }
@@ -119,7 +150,7 @@ class ComplexityAnalyzer {
     // 設定の除外パターン
     if (this.config.exclude) {
       for (const pattern of this.config.exclude) {
-        if (relativePath.includes(pattern)) {
+        if (this.matchGlob(fp, pattern)) {
           return true;
         }
       }
