@@ -138,8 +138,8 @@ export const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
 
       {/* フィールドリスト */}
       {fields.length > 0 && (
-        <div className="px-3 py-2 space-y-1 max-h-40 overflow-y-auto">
-          {fields.slice(0, 8).map((field) => {
+        <div className="px-3 py-2 space-y-1">
+          {fields.map((field) => {
             const hasRef = referencedTypes.has(field.name);
             return (
               <div
@@ -165,11 +165,6 @@ export const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
               </div>
             );
           })}
-          {fields.length > 8 && (
-            <div className="text-[10px] text-stone-500 text-center">
-              ...他 {fields.length - 8} フィールド
-            </div>
-          )}
         </div>
       )}
 

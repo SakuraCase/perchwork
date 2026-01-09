@@ -43,6 +43,15 @@ const nodeTypes: NodeTypes = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SchemaFlowNode = Node<any, 'schema'>;
 
+/** ノードの高さを計算（フィールド数に応じて動的に） */
+function calculateNodeHeight(fieldsCount: number): number {
+  const headerHeight = 44;
+  const fieldHeight = 20;
+  const footerHeight = 30;
+  const padding = 10;
+  return headerHeight + (fieldsCount * fieldHeight) + footerHeight + padding;
+}
+
 /** 共通データを付加 */
 function enrichNodeData(
   schemaNodes: SchemaNodeData[],
@@ -74,9 +83,24 @@ function layoutNodesGrid(
   // グリッド配置
   const cols = Math.ceil(Math.sqrt(sortedNodes.length * 1.5));
   const nodeWidth = 220;
-  const nodeHeight = 180;
   const gapX = 80;
   const gapY = 60;
+
+  // 各行の最大高さを計算
+  const rowMaxHeights: number[] = [];
+  sortedNodes.forEach((node, index) => {
+    const row = Math.floor(index / cols);
+    const height = calculateNodeHeight(node.fields?.length || 0);
+    if (rowMaxHeights[row] === undefined || height > rowMaxHeights[row]) {
+      rowMaxHeights[row] = height;
+    }
+  });
+
+  // 各行のY座標を累積計算
+  const rowYPositions: number[] = [0];
+  for (let i = 0; i < rowMaxHeights.length - 1; i++) {
+    rowYPositions.push(rowYPositions[i] + rowMaxHeights[i] + gapY);
+  }
 
   return sortedNodes.map((node, index) => {
     const col = index % cols;
@@ -87,7 +111,7 @@ function layoutNodesGrid(
       type: 'schema',
       position: {
         x: col * (nodeWidth + gapX),
-        y: row * (nodeHeight + gapY),
+        y: rowYPositions[row] || 0,
       },
       data: {
         ...node,
@@ -138,24 +162,44 @@ function layoutNodesForce(
   }));
 
   // シミュレーションを実行
+  const nodeWidth = 220;
+
+  // 各ノードの衝突半径を計算（重ならない最小限のサイズ）
+  const getCollisionRadius = (d: D3Node) => {
+    const height = calculateNodeHeight(d.originalNode.fields?.length || 0);
+    return Math.sqrt(nodeWidth * nodeWidth + height * height) / 2 + 5;
+  };
+
+  // リンク距離を動的に計算（両端のノードサイズに基づく）
+  const getLinkDistance = (link: D3Link) => {
+    const sourceNode = typeof link.source === 'string'
+      ? d3Nodes.find(n => n.id === link.source)
+      : link.source;
+    const targetNode = typeof link.target === 'string'
+      ? d3Nodes.find(n => n.id === link.target)
+      : link.target;
+    const sourceRadius = sourceNode ? getCollisionRadius(sourceNode) : 100;
+    const targetRadius = targetNode ? getCollisionRadius(targetNode) : 100;
+    return sourceRadius + targetRadius + 30; // 最小限の間隔
+  };
+
   const simulation = d3.forceSimulation(d3Nodes)
     .force('link', d3.forceLink<D3Node, D3Link>(d3Links)
       .id((d) => d.id)
-      .distance(300)    // リンクの理想的な長さ（250→300）
-      .strength(0.3))   // リンク強度を緩和（0.5→0.3）
+      .distance(getLinkDistance)
+      .strength(0.8))  // リンク力を強く（接続ノードを引き寄せる）
     .force('charge', d3.forceManyBody()
-      .strength(-1200)  // 反発力を強化（-800→-1200）
-      .distanceMax(800))
+      .strength(-600)  // 反発力を弱める
+      .distanceMax(500))
     .force('center', d3.forceCenter(600, 400))
-    .force('collision', d3.forceCollide()
-      .radius(150)      // 衝突回避半径を拡大（120→150）
-      .strength(1))     // 衝突回避を強制
-    .force('x', d3.forceX(600).strength(0.05))  // X軸方向の引力
-    .force('y', d3.forceY(400).strength(0.05))  // Y軸方向の引力
+    .force('collision', d3.forceCollide<D3Node>()
+      .radius(getCollisionRadius)
+      .iterations(2)
+      .strength(1))
     .stop();
 
   // シミュレーションを同期的に実行
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 400; i++) {
     simulation.tick();
   }
 
@@ -175,7 +219,7 @@ function layoutNodesForce(
   }));
 }
 
-/** 階層レイアウト（左から右へ依存フロー） */
+/** 階層レイアウト（左から右へ依存フロー、フィールド順で配置） */
 function layoutNodesHierarchy(
   schemaNodes: SchemaNodeData[],
   schemaEdges: SchemaEdgeData[]
@@ -184,39 +228,42 @@ function layoutNodesHierarchy(
 
   if (sortedNodes.length === 0) return [];
 
-  // ノード名のセット
   const nodeNames = new Set(sortedNodes.map(n => n.name));
 
-  // 入次数と出辺を計算（このグラフ内のエッジのみ）
+  // 入次数と出辺を計算（フィールド順序を保持）
   const inDegreeMap = new Map<string, number>();
-  const outEdgesMap = new Map<string, string[]>();
+  const outEdgesOrdered = new Map<string, string[]>(); // フィールド順
 
   for (const node of sortedNodes) {
     inDegreeMap.set(node.name, 0);
-    outEdgesMap.set(node.name, []);
+    // フィールド順に子ノードを取得
+    const children: string[] = [];
+    if (node.fields) {
+      for (const field of node.fields) {
+        // このフィールドが参照する型を探す
+        for (const edge of schemaEdges) {
+          if (edge.sourceId === node.name && edge.fieldName === field.name && nodeNames.has(edge.targetId)) {
+            if (!children.includes(edge.targetId)) {
+              children.push(edge.targetId);
+            }
+          }
+        }
+      }
+    }
+    outEdgesOrdered.set(node.name, children);
   }
 
-  // 重複を除いたエッジを使用
-  const uniqueEdges = new Map<string, { source: string; target: string }>();
-  for (const edge of schemaEdges) {
-    if (nodeNames.has(edge.sourceId) && nodeNames.has(edge.targetId)) {
-      const key = `${edge.sourceId}-${edge.targetId}`;
-      if (!uniqueEdges.has(key)) {
-        uniqueEdges.set(key, { source: edge.sourceId, target: edge.targetId });
-      }
+  // 入次数を計算
+  for (const children of outEdgesOrdered.values()) {
+    for (const child of children) {
+      inDegreeMap.set(child, (inDegreeMap.get(child) || 0) + 1);
     }
   }
 
-  for (const { source, target } of uniqueEdges.values()) {
-    inDegreeMap.set(target, (inDegreeMap.get(target) || 0) + 1);
-    outEdgesMap.get(source)?.push(target);
-  }
-
-  // BFSでレベルを割り当て（inDegree=0のノードがレベル0）
+  // BFSでレベルを割り当て
   const levels = new Map<string, number>();
-
-  // ルートノード（他から参照されていないノード）を見つける
   const rootNodes: string[] = [];
+
   for (const node of sortedNodes) {
     if ((inDegreeMap.get(node.name) || 0) === 0) {
       rootNodes.push(node.name);
@@ -224,12 +271,12 @@ function layoutNodesHierarchy(
     }
   }
 
-  // ルートがない場合（循環参照のみ）、outDegreeが最も高いノードをルートとする
   if (rootNodes.length === 0) {
+    // 循環参照のみの場合、outDegreeが最も高いノードをルートに
     let maxOutDegree = -1;
     let bestRoot: string | null = null;
     for (const node of sortedNodes) {
-      const outDegree = outEdgesMap.get(node.name)?.length || 0;
+      const outDegree = outEdgesOrdered.get(node.name)?.length || 0;
       if (outDegree > maxOutDegree) {
         maxOutDegree = outDegree;
         bestRoot = node.name;
@@ -241,30 +288,54 @@ function layoutNodesHierarchy(
     }
   }
 
-  // BFSでレベルを伝播（各ノードの最大レベルを使用）
+  // BFSでレベルを伝播
   const queue = [...rootNodes];
   while (queue.length > 0) {
     const current = queue.shift()!;
     const currentLevel = levels.get(current) || 0;
-    const outEdges = outEdgesMap.get(current) || [];
+    const children = outEdgesOrdered.get(current) || [];
 
-    for (const target of outEdges) {
-      const existingLevel = levels.get(target);
+    for (const child of children) {
+      const existingLevel = levels.get(child);
       const newLevel = currentLevel + 1;
-
-      // まだ訪問していないか、より深いレベルの場合に更新
       if (existingLevel === undefined || newLevel > existingLevel) {
-        levels.set(target, newLevel);
-        queue.push(target);
+        levels.set(child, newLevel);
+        queue.push(child);
       }
     }
   }
 
-  // 未訪問ノード（孤立ノードや循環内のノード）を処理
+  // 未訪問ノードを処理
   for (const node of sortedNodes) {
     if (!levels.has(node.name)) {
-      // 孤立ノードはレベル0に配置
       levels.set(node.name, 0);
+    }
+  }
+
+  // 各ノードのY座標順序を決定（親のフィールド順に基づく）
+  const nodeOrder = new Map<string, number>();
+  let orderCounter = 0;
+
+  // ルートノードから順序を割り当て
+  const assignOrder = (nodeName: string) => {
+    if (nodeOrder.has(nodeName)) return;
+    nodeOrder.set(nodeName, orderCounter++);
+    const children = outEdgesOrdered.get(nodeName) || [];
+    for (const child of children) {
+      assignOrder(child);
+    }
+  };
+
+  // ルートノードをoutDegree順にソートしてから順序を割り当て
+  rootNodes.sort((a, b) => (outEdgesOrdered.get(b)?.length || 0) - (outEdgesOrdered.get(a)?.length || 0));
+  for (const root of rootNodes) {
+    assignOrder(root);
+  }
+
+  // 未割当ノードに順序を割り当て
+  for (const node of sortedNodes) {
+    if (!nodeOrder.has(node.name)) {
+      nodeOrder.set(node.name, orderCounter++);
     }
   }
 
@@ -280,29 +351,27 @@ function layoutNodesHierarchy(
 
   // レイアウト計算
   const nodeWidth = 220;
-  const nodeHeight = 200;
-  const gapX = 150;  // 列間の間隔
-  const gapY = 40;   // 行間の間隔
+  const gapX = 150;
+  const gapY = 40;
 
   const nodePositions = new Map<string, { x: number; y: number }>();
-
-  // 各レベルのノードを配置
   const sortedLevels = [...levelGroups.keys()].sort((a, b) => a - b);
 
   for (const level of sortedLevels) {
     const nodesAtLevel = levelGroups.get(level) || [];
-    // outDegreeが高い順にソート（参照が多いものを上に）
-    nodesAtLevel.sort((a, b) => b.outDegree - a.outDegree);
+    // 親のフィールド順に基づいてソート
+    nodesAtLevel.sort((a, b) => (nodeOrder.get(a.name) || 0) - (nodeOrder.get(b.name) || 0));
 
-    const x = level * (nodeWidth + gapX);
-    const totalHeight = nodesAtLevel.length * nodeHeight + (nodesAtLevel.length - 1) * gapY;
+    const nodeHeights = nodesAtLevel.map(node => calculateNodeHeight(node.fields?.length || 0));
+    const totalHeight = nodeHeights.reduce((sum, h) => sum + h, 0) + (nodesAtLevel.length - 1) * gapY;
     const startY = -totalHeight / 2;
 
+    const x = level * (nodeWidth + gapX);
+    let currentY = startY;
+
     nodesAtLevel.forEach((node, index) => {
-      nodePositions.set(node.name, {
-        x,
-        y: startY + index * (nodeHeight + gapY),
-      });
+      nodePositions.set(node.name, { x, y: currentY });
+      currentY += nodeHeights[index] + gapY;
     });
   }
 
@@ -337,13 +406,16 @@ function layoutNodes(
 }
 
 /** エッジを生成 */
-function createEdges(schemaEdges: SchemaEdgeData[]): Edge[] {
+function createEdges(schemaEdges: SchemaEdgeData[], layoutType: SchemaLayoutType): Edge[] {
+  // レイアウトに応じたエッジタイプを選択
+  const edgeType = layoutType === 'hierarchy' ? 'smoothstep' : 'default';
+
   return schemaEdges.map((edge) => ({
     id: edge.id,
     source: edge.sourceId,
     target: edge.targetId,
-    sourceHandle: `field-${edge.fieldName}`,  // フィールドごとのハンドル
-    type: 'smoothstep',  // smoothstepで横方向に自然な曲線
+    sourceHandle: `field-${edge.fieldName}`,
+    type: edgeType,
     animated: false,
     style: {
       stroke: '#78716c', // stone-500
@@ -415,7 +487,7 @@ function SchemaViewInner({
   useEffect(() => {
     if (filteredData) {
       const newNodes = layoutNodes(filteredData.nodes, filteredData.edges, layoutType);
-      const newEdges = createEdges(filteredData.edges);
+      const newEdges = createEdges(filteredData.edges, layoutType);
       setNodes(newNodes);
       setEdges(newEdges);
     }

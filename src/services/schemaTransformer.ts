@@ -210,11 +210,16 @@ export function extractStructsAndEnums(splitFiles: SplitFile[]): CodeItemWithPat
  * CodeItem配列からスキーマグラフデータを生成
  */
 export function buildSchemaGraph(items: CodeItemWithPath[]): SchemaGraphData {
-  // 型名 → CodeItemWithPath のマップを作成
+  // 型名 → CodeItemWithPath のマップを作成（同名の型は最初に見つかったものを使用）
   const typeMap = new Map<string, CodeItemWithPath>();
   for (const item of items) {
-    typeMap.set(item.name, item);
+    if (!typeMap.has(item.name)) {
+      typeMap.set(item.name, item);
+    }
   }
+
+  // 重複を除去したアイテムリスト
+  const uniqueItems = Array.from(typeMap.values());
 
   // ノードを生成
   const nodes: SchemaNodeData[] = [];
@@ -222,12 +227,12 @@ export function buildSchemaGraph(items: CodeItemWithPath[]): SchemaGraphData {
   const inDegreeMap = new Map<string, number>();
 
   // 初期化: 全ノードのinDegreeを0に
-  for (const item of items) {
+  for (const item of uniqueItems) {
     inDegreeMap.set(item.name, 0);
   }
 
   // エッジを生成し、inDegreeを計算
-  for (const item of items) {
+  for (const item of uniqueItems) {
     const outRefs: string[] = [];
 
     if (item.fields) {
@@ -299,7 +304,9 @@ export function buildSchemaGraph(items: CodeItemWithPath[]): SchemaGraphData {
 }
 
 /**
- * フォーカスノードに関連するノードのみを抽出（BFS）
+ * フォーカスノードに関連するノードのみを抽出
+ * - 上方向（参照元）と下方向（参照先）を分離して探索
+ * - 下方向で見つかったノードの別の親は含まない
  */
 function filterByFocusNode(
   nodes: SchemaNodeData[],
@@ -307,21 +314,27 @@ function filterByFocusNode(
   focusNodeId: string
 ): SchemaNodeData[] {
   const relatedIds = new Set<string>([focusNodeId]);
-  const queue = [focusNodeId];
 
-  // BFSで参照関係を辿る
-  while (queue.length > 0) {
-    const current = queue.shift()!;
+  // 1. 上方向のみ探索（参照元：親、祖父母...）
+  const upQueue = [focusNodeId];
+  while (upQueue.length > 0) {
+    const current = upQueue.shift()!;
     for (const edge of edges) {
-      // 参照先（current → target）
-      if (edge.sourceId === current && !relatedIds.has(edge.targetId)) {
-        relatedIds.add(edge.targetId);
-        queue.push(edge.targetId);
-      }
-      // 参照元（source → current）
       if (edge.targetId === current && !relatedIds.has(edge.sourceId)) {
         relatedIds.add(edge.sourceId);
-        queue.push(edge.sourceId);
+        upQueue.push(edge.sourceId);
+      }
+    }
+  }
+
+  // 2. 下方向のみ探索（参照先：子、孫...）
+  const downQueue = [focusNodeId];
+  while (downQueue.length > 0) {
+    const current = downQueue.shift()!;
+    for (const edge of edges) {
+      if (edge.sourceId === current && !relatedIds.has(edge.targetId)) {
+        relatedIds.add(edge.targetId);
+        downQueue.push(edge.targetId);
       }
     }
   }
@@ -372,8 +385,12 @@ export function applySchemaFilter(
 
   // 6. フォーカスノードフィルタ（関連する型のみ）
   if (filter.focusNodeId) {
-    // フィルタ適用前のエッジを使用（フォーカス対象が除外されていない前提）
-    filteredNodes = filterByFocusNode(filteredNodes, data.edges, filter.focusNodeId);
+    // フィルタ済みノードのみで構成されるエッジを使用
+    const nodeNameSet = new Set(filteredNodes.map(n => n.name));
+    const filteredEdgesForFocus = data.edges.filter(
+      edge => nodeNameSet.has(edge.sourceId) && nodeNameSet.has(edge.targetId)
+    );
+    filteredNodes = filterByFocusNode(filteredNodes, filteredEdgesForFocus, filter.focusNodeId);
   }
 
   // フィルタ後のノード名セット
