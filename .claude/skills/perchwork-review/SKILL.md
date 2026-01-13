@@ -35,7 +35,7 @@ public/data/review/
 
 ```bash
 cd scripts && npm install && npm run build
-node dist/generate-index.js ../../../public/data/review
+node dist/generate-index.js ../../../../public/data/review
 ```
 
 ---
