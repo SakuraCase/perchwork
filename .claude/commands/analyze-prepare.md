@@ -61,7 +61,7 @@ Types: structure, semantic, complexity
 - `target_dir`: 解析対象ディレクトリ
 - `extensions`: 対象ファイル拡張子
 - `exclude`: 除外パターン
-- `last_commit`: 前回コミットハッシュ
+- `last_commit`: **target_dir の git** の前回コミットハッシュ
 - `run`: 実行対象タイプ
   - `run.structure`: 構造解析
   - `run.semantic`: 意味解析
@@ -75,18 +75,23 @@ Types: structure, semantic, complexity
 
 ### 3. ファイル収集
 
+**重要**: perchwork と target_dir は別々の git リポジトリである可能性がある。
+git コマンドは必ず **target_dir のディレクトリに移動してから** 実行すること。
+
 #### 差分モード（デフォルト）
 
-1. git diff で変更・追加ファイルを検出:
+1. target_dir に移動して git diff で変更・追加ファイルを検出:
    ```bash
-   git diff --name-only --diff-filter=AM <last_commit>..HEAD -- <target_dir>
+   cd <target_dir> && git diff --name-only --diff-filter=AM <last_commit>..HEAD -- .
    ```
 2. 削除ファイルを検出:
    ```bash
-   git diff --name-only --diff-filter=D <last_commit>..HEAD -- <target_dir>
+   cd <target_dir> && git diff --name-only --diff-filter=D <last_commit>..HEAD -- .
    ```
 3. 削除ファイルをリスト化（cleanup 用）
 4. 変更がない場合は「変更なし」と表示
+5. last_commit が target_dir の git に存在しない場合はエラーを報告し、
+   ユーザーに正しいコミットハッシュを確認する
 
 #### 全ファイルモード（--full）
 

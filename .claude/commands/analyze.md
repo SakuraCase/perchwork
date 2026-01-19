@@ -31,7 +31,7 @@ description: コードベースを解析し構造化JSONを生成
 | `run.semantic`   | 意味解析の実行有無（デフォルト: `true`）                  |
 | `run.complexity` | 複雑度解析の実行有無（デフォルト: `true`）                |
 | `run.review`     | コードレビューの実行有無（デフォルト: `false`）           |
-| `last_commit`    | 前回実行時のコミットハッシュ（差分検出用、初期は `null`） |
+| `last_commit`    | **target_dir の git** の前回コミットハッシュ（差分検出用、初期は `null`） |
 | `last_run`       | 前回実行日時（ISO 8601 形式、初期は `null`）              |
 
 ## 実行フロー
@@ -83,8 +83,14 @@ public/data 配下の対象ファイル（structure, semantic, complexity, revie
 すべての TODO が処理完了した場合：
 
 1. `.claude/TODO.md` を削除
-2. config.json の `last_commit` を現在の HEAD コミットハッシュに更新
+2. **target_dir の git** から現在の HEAD コミットハッシュを取得し、config.json の `last_commit` を更新:
+   ```bash
+   cd <target_dir> && git rev-parse HEAD
+   ```
 3. config.json の `last_run` を現在時刻（ISO 8601 形式）に更新
+
+**重要**: perchwork と target_dir は別々の git リポジトリである可能性がある。
+`last_commit` は必ず target_dir の git コミットハッシュを保存すること。
 
 ## 注意事項
 
