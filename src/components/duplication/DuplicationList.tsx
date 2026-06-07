@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo } from "react";
-import type { DuplicationIndex, DuplicationSeverity } from "../../types/duplication";
+import type { DuplicationIndex } from "../../types/duplication";
 
 interface DuplicationListProps {
   index: DuplicationIndex;
@@ -13,32 +13,7 @@ interface DuplicationListProps {
   onSelectDuplicate: (id: string) => void;
 }
 
-type SortBy = "locations" | "lines" | "severity";
-
-/** severityの優先度（ソート用） */
-const SEVERITY_ORDER: Record<DuplicationSeverity | 'undefined', number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
-  none: 3,
-  undefined: 4,
-};
-
-/** severityに応じたドット色 */
-function getSeverityDotColor(severity: DuplicationSeverity | undefined): string {
-  switch (severity) {
-    case 'high':
-      return 'bg-red-500';
-    case 'medium':
-      return 'bg-yellow-500';
-    case 'low':
-      return 'bg-blue-500';
-    case 'none':
-      return 'bg-stone-500';
-    default:
-      return 'bg-stone-700';
-  }
-}
+type SortBy = "locations" | "lines";
 
 export function DuplicationList({
   index,
@@ -51,13 +26,6 @@ export function DuplicationList({
     const duplicates = [...index.duplicates];
     if (sortBy === "lines") {
       return duplicates.sort((a, b) => b.lines - a.lines);
-    } else if (sortBy === "severity") {
-      return duplicates.sort((a, b) => {
-        const aOrder = SEVERITY_ORDER[a.severity ?? 'undefined'];
-        const bOrder = SEVERITY_ORDER[b.severity ?? 'undefined'];
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return b.location_count - a.location_count;
-      });
     } else {
       // locations順（デフォルト）
       return duplicates.sort((a, b) => b.location_count - a.location_count);
@@ -77,16 +45,6 @@ export function DuplicationList({
           }`}
         >
           箇所数順
-        </button>
-        <button
-          onClick={() => setSortBy("severity")}
-          className={`px-2 py-1 text-xs rounded transition-colors ${
-            sortBy === "severity"
-              ? "bg-orange-600 text-white"
-              : "bg-stone-800 text-stone-400 hover:bg-stone-700"
-          }`}
-        >
-          重要度順
         </button>
         <button
           onClick={() => setSortBy("lines")}
@@ -120,21 +78,11 @@ export function DuplicationList({
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    {/* severity ドット */}
-                    <span
-                      className={`w-2 h-2 rounded-full ${getSeverityDotColor(dup.severity)}`}
-                      title={dup.severity ?? '未解析'}
-                    />
                     <span className="text-xs font-mono text-stone-500">
                       {dup.id}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {dup.needs_fix && (
-                      <span className="text-xs px-1.5 py-0.5 bg-red-600/30 text-red-300 rounded">
-                        要修正
-                      </span>
-                    )}
                     {/* 箇所数バッジ */}
                     <span className="text-xs px-1.5 py-0.5 bg-orange-600/30 text-orange-300 rounded">
                       {dup.location_count}箇所

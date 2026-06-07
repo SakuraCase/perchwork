@@ -2,12 +2,11 @@
   "target_dir": "../projects/src",
   "extensions": [".rs"],
   "exclude": ["**/mod.rs"],
-  "language": "ja",
+  "language": "rust",
   "run": {
     "structure": true,
-    "semantic": false,
     "complexity": true,
-    "review": false
+    "duplication": true
   },
   "last_commit": null,
   "last_run": null

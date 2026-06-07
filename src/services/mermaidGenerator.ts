@@ -17,7 +17,6 @@ import type {
   CallEntryId,
 } from '../types/sequence';
 import { generateCallEntryId } from '../types/sequence';
-import type { SummaryMap } from './semanticLoader';
 
 /**
  * 深さ設定
@@ -37,8 +36,6 @@ export interface SequenceDiagramOptions {
   startFunctionId: ItemId;
   /** 深さ設定 */
   depthConfig: DepthConfig;
-  /** ItemId → summary のマップ（オプション） */
-  summaries?: SummaryMap;
   /** アクティベーション（+/-）を使用するか（デフォルト: true） */
   useActivation?: boolean;
   /** 編集状態（オプション） */
@@ -122,16 +119,6 @@ function sanitizeContextLabel(text: string): string {
     .replace(/[<>]/g, '')
     .replace(/"/g, "'")
     .trim();
-}
-
-/**
- * 概要を省略する（30文字以上の場合）
- */
-function truncateSummary(summary: string, maxLength = 30): string {
-  if (summary.length <= maxLength) {
-    return summary;
-  }
-  return summary.slice(0, maxLength - 1) + '…';
 }
 
 /**
@@ -229,7 +216,7 @@ export function generateSequenceDiagram(
   graphData: CytoscapeData,
   options: SequenceDiagramOptions
 ): SequenceDiagramData {
-  const { startFunctionId, depthConfig, summaries, useActivation = true, editState } = options;
+  const { startFunctionId, depthConfig, useActivation = true, editState } = options;
 
   // 呼び出しイベントを収集
   const { events, participants: participantIds } = collectCallEvents(
@@ -265,7 +252,7 @@ export function generateSequenceDiagram(
   const participants = Array.from(structParticipants.values());
 
   // Mermaidコードを生成
-  const { code: mermaidCode, renderedCalls } = generateMermaidCode(participants, events, summaries, useActivation, editState);
+  const { code: mermaidCode, renderedCalls } = generateMermaidCode(participants, events, useActivation, editState);
 
   return {
     mermaidCode,
@@ -383,7 +370,6 @@ interface GenerateMermaidCodeResult {
 function generateMermaidCode(
   participants: ParticipantInfo[],
   events: CallEvent[],
-  summaries?: SummaryMap,
   useActivation: boolean = true,
   editState?: SequenceEditState
 ): GenerateMermaidCodeResult {
@@ -478,22 +464,10 @@ function generateMermaidCode(
       } else if (isSelfCall) {
         // セルフコール: 呼び出し元メソッド名も含める
         const fromMethodName = extractMethodName(call.from);
-        const summary = summaries?.get(call.to);
-        if (summary) {
-          const escapedSummary = escapeMermaidLabel(truncateSummary(summary));
-          label = `${fromMethodName} → ${toMethodName}<br/>${escapedSummary}`;
-        } else {
-          label = `${fromMethodName} → ${toMethodName}`;
-        }
+        label = `${fromMethodName} → ${toMethodName}`;
       } else {
         // 通常の呼び出し: 呼び出し先メソッド名のみ
-        const summary = summaries?.get(call.to);
-        if (summary) {
-          const escapedSummary = escapeMermaidLabel(truncateSummary(summary));
-          label = `${toMethodName}<br/>${escapedSummary}`;
-        } else {
-          label = toMethodName;
-        }
+        label = toMethodName;
       }
 
       // コンテキストの開始を検出

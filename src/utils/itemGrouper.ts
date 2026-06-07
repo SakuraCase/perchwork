@@ -8,12 +8,11 @@
  * - 関数グループ
  */
 
-import type { CodeItem, SemanticTest, FieldInfo } from '@/types/schema';
+import type { CodeItem, FieldInfo } from '@/types/schema';
 
-/** テスト情報（セマンティック情報付き） */
+/** テスト情報 */
 export interface TestInfo {
   id: string;
-  summary: string;
 }
 
 /** メソッド情報（テスト紐付け付き） */
@@ -42,24 +41,10 @@ export interface GroupedItems {
  * アイテムとテストをグループ化
  *
  * @param items - ファイル内のすべてのCodeItem
- * @param semanticTests - セマンティック情報のテスト配列
  * @returns グループ化されたアイテム
  */
-export function groupItems(
-  items: CodeItem[],
-  semanticTests: SemanticTest[]
-): GroupedItems {
-  // 1. テスト情報のマップを構築（tested_item -> TestInfo[]）
-  const testsByItem = new Map<string, TestInfo[]>();
-  for (const test of semanticTests) {
-    if (test.tested_item) {
-      const existing = testsByItem.get(test.tested_item) || [];
-      existing.push({ id: test.id, summary: test.summary });
-      testsByItem.set(test.tested_item, existing);
-    }
-  }
-
-  // 2. アイテムを種類別に分類
+export function groupItems(items: CodeItem[]): GroupedItems {
+  // 1. アイテムを種類別に分類
   const enums: CodeItem[] = [];
   const structs: CodeItem[] = [];
   const traits: CodeItem[] = [];
@@ -80,6 +65,7 @@ export function groupItems(
       case 'method':
         methods.push(item);
         break;
+      case 'function':
       case 'fn':
         // テスト関数（test_ で始まる）は除外
         if (!item.name.startsWith('test_')) {
@@ -89,19 +75,19 @@ export function groupItems(
     }
   }
 
-  // 3. Struct/Enum グループを構築
+  // 2. Struct/Enum グループを構築
   const buildGroups = (structItems: CodeItem[]): StructGroup[] => {
     return structItems.map(structItem => {
       // このstruct/enumに属するメソッドを収集
       const structMethods = methods
         .filter(m => m.impl_for === structItem.name)
         .map(method => {
-          const tests = testsByItem.get(method.id) || [];
+          const tests = buildTestInfo(method);
           return { item: method, tests };
         });
 
       // struct/enumを直接テストするテスト
-      const directTests = testsByItem.get(structItem.id) || [];
+      const directTests = buildTestInfo(structItem);
 
       return {
         item: structItem,
@@ -118,4 +104,8 @@ export function groupItems(
     traits,
     functions,
   };
+}
+
+function buildTestInfo(item: CodeItem): TestInfo[] {
+  return (item.tested_by ?? []).map((id) => ({ id }));
 }

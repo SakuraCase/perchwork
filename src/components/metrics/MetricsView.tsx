@@ -59,9 +59,9 @@ export function MetricsView({ onSelectFile }: MetricsViewProps) {
           </div>
           <div className="text-stone-400 text-sm mb-4">
             <code className="bg-stone-800 px-2 py-1 rounded">
-              /perchwork-complexity
+              npm run analyze:complexity
             </code>
-            スキルを実行して解析データを生成してください。
+            を実行して解析データを生成してください。
           </div>
           <div className="text-stone-500 text-xs">
             <p>前提条件:</p>

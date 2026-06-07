@@ -11,7 +11,7 @@ import type {
   CytoscapeNode,
   CytoscapeEdge,
 } from '../types/graph';
-import { loadFullGraph } from '../services/graphLoader';
+import { loadFullGraph, loadGraphNodeFromFile, loadInitialGraph } from '../services/graphLoader';
 
 /**
  * グラフ探索の方向
@@ -41,17 +41,26 @@ export interface UseGraphTraversalResult {
   /** グラフデータ */
   graphData: CytoscapeData | null;
 
+  /** 全件グラフを読み込み中かどうか */
+  isLoadingFullGraph: boolean;
+
   /** ローディング状態 */
   isLoading: boolean;
 
   /** エラー状態 */
   error: Error | null;
+
+  /** 全件グラフを読み込む */
+  loadCompleteGraph: () => Promise<void>;
+
+  /** 指定ノードが未読み込みなら追加する */
+  ensureNodeLoaded: (nodeId: string, filePath: string) => Promise<void>;
 }
 
 /**
  * グラフ探索機能を提供するフック
  *
- * @param initialData - 初期グラフデータ（省略時はloadFullGraphで取得）
+ * @param initialData - 初期グラフデータ（省略時は軽量な初期グラフを取得）
  * @returns グラフ探索API
  */
 export function useGraphTraversal(
@@ -61,6 +70,7 @@ export function useGraphTraversal(
     initialData || null
   );
   const [isLoading, setIsLoading] = useState(!initialData);
+  const [isLoadingFullGraph, setIsLoadingFullGraph] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   // グラフデータの初期読み込み（initialDataがない場合のみ）
@@ -76,7 +86,7 @@ export function useGraphTraversal(
       setError(null);
 
       try {
-        const data = await loadFullGraph();
+        const data = await loadInitialGraph();
         setGraphData(data);
       } catch (err) {
         setError(
@@ -89,6 +99,53 @@ export function useGraphTraversal(
 
     loadData();
   }, [initialData]);
+
+  const loadCompleteGraph = useCallback(async () => {
+    setIsLoadingFullGraph(true);
+    setError(null);
+
+    try {
+      const data = await loadFullGraph();
+      setGraphData(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err : new Error('Failed to load graph data')
+      );
+    } finally {
+      setIsLoadingFullGraph(false);
+    }
+  }, []);
+
+  const ensureNodeLoaded = useCallback(
+    async (nodeId: string, filePath: string) => {
+      if (graphData?.nodes.some((node) => node.data.id === nodeId)) {
+        return;
+      }
+
+      const node = await loadGraphNodeFromFile(nodeId, filePath);
+      if (!node) {
+        return;
+      }
+
+      setGraphData((current) => {
+        if (!current || current.nodes.some((existing) => existing.data.id === nodeId)) {
+          return current;
+        }
+
+        return {
+          ...current,
+          nodes: [...current.nodes, node],
+          meta: current.meta
+            ? {
+                ...current.meta,
+                loadedNodes: current.nodes.length + 1,
+              }
+            : undefined,
+        };
+      });
+    },
+    [graphData]
+  );
 
   // エッジマップをメモ化（効率的な探索のため）
   const { outgoingEdges, incomingEdges, nodeMap } = useMemo(() => {
@@ -337,7 +394,10 @@ export function useGraphTraversal(
     getSubgraph,
     detectCycles,
     graphData,
+    isLoadingFullGraph,
     isLoading,
     error,
+    loadCompleteGraph,
+    ensureNodeLoaded,
   };
 }

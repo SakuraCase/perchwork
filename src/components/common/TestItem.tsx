@@ -12,8 +12,6 @@ interface TestItemProps {
   testId: string;
   /** 表示名（省略時はtestIdから抽出） */
   displayName?: string;
-  /** テストの概要 */
-  summary?: string;
   /** クリック時のコールバック */
   onClick?: () => void;
 }
@@ -23,7 +21,7 @@ interface TestItemProps {
  *
  * コンパクトな表示形式でテスト情報を表示する。
  */
-export function TestItem({ testId, displayName, summary, onClick }: TestItemProps) {
+export function TestItem({ testId, displayName, onClick }: TestItemProps) {
   const testName = displayName || extractTestName(testId);
 
   // クリック可能な場合はボタンとして表示
@@ -36,9 +34,6 @@ export function TestItem({ testId, displayName, summary, onClick }: TestItemProp
         title={testId}
       >
         <div className="text-sm font-mono text-green-400 truncate">{testName}</div>
-        {summary && (
-          <div className="text-xs text-stone-400 mt-1 break-words">{summary}</div>
-        )}
       </button>
     );
   }
@@ -50,9 +45,6 @@ export function TestItem({ testId, displayName, summary, onClick }: TestItemProp
       title={testId}
     >
       <div className="text-sm font-mono text-green-400 truncate">{testName}</div>
-      {summary && (
-        <div className="text-xs text-stone-400 mt-1 break-words">{summary}</div>
-      )}
     </div>
   );
 }
@@ -62,8 +54,6 @@ interface CompactTestItemProps {
   testId: string;
   /** 表示名（省略時はtestIdから抽出） */
   displayName?: string;
-  /** テストの概要 */
-  summary?: string;
   /** テスト名を表示するか（デフォルト: true） */
   showName?: boolean;
 }
@@ -76,7 +66,6 @@ interface CompactTestItemProps {
 export function CompactTestItem({
   testId,
   displayName,
-  summary,
   showName = true,
 }: CompactTestItemProps) {
   const testName = displayName || extractTestName(testId);
@@ -84,7 +73,6 @@ export function CompactTestItem({
   return (
     <div className="text-sm text-stone-300 py-0.5" title={testId}>
       {showName && <span>• {testName}</span>}
-      {summary && <span className="text-stone-400 ml-1">- {summary}</span>}
     </div>
   );
 }

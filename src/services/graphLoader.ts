@@ -4,14 +4,40 @@
 
 import type {
   CallGraphEdgesData,
+  CallGraphEdgeData,
   CytoscapeData,
   CytoscapeNode,
   CytoscapeEdge,
 } from '../types/graph';
-import type { IndexFile, SplitFile, CodeItem } from '../types/schema';
+import type { CallGraphIndex, IndexFile, SplitFile, CodeItem } from '../types/schema';
 import * as cacheManager from './cacheManager';
-import { fetchJson } from './httpClient';
-import { getIdLabel, isTestId, inferTypeFromId } from '@/utils/idParser';
+import { fetchJson, fetchJsonOrNull } from './httpClient';
+import { getIdFile, getIdLabel, isTestId, inferTypeFromId } from '@/utils/idParser';
+
+const INITIAL_GRAPH_EDGE_LIMIT = 2500;
+const INITIAL_GRAPH_SPLIT_FILE_LIMIT = 80;
+
+interface LoadedCallGraphEdgesData extends CallGraphEdgesData {
+  isPartial: boolean;
+  loadedEdges: number;
+  source: 'chunked' | 'legacy';
+}
+
+interface LoadCallGraphEdgesOptions {
+  edgeLimit?: number;
+}
+
+interface LoadGraphOptions {
+  edgeLimit?: number;
+  splitFileLimit?: number;
+}
+
+interface ItemMapResult {
+  itemMap: Map<string, CodeItemWithFile>;
+  loadedFiles: number;
+  totalFiles: number;
+  isPartial: boolean;
+}
 
 /**
  * call_graph/edges.json を取得する
@@ -20,16 +46,103 @@ import { getIdLabel, isTestId, inferTypeFromId } from '@/utils/idParser';
  * @throws {ParseError} JSONパースに失敗した場合
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
-export async function loadCallGraphEdges(): Promise<CallGraphEdgesData> {
+export async function loadCallGraphEdges(
+  options: LoadCallGraphEdgesOptions = {}
+): Promise<LoadedCallGraphEdgesData> {
+  if (options.edgeLimit !== undefined) {
+    try {
+      const chunkedData = await loadChunkedCallGraphEdges(options.edgeLimit);
+      if (chunkedData) {
+        return chunkedData;
+      }
+    } catch (error) {
+      console.warn('Failed to load chunked call graph. Falling back to edges.json:', error);
+    }
+  }
+
   const cacheKey = 'call_graph_edges';
+  const cached = cacheManager.get<CallGraphEdgesData>(cacheKey);
+  const data = cached ?? (await fetchJson<CallGraphEdgesData>('/data/structure/call_graph/edges.json'));
+  if (!cached) {
+    cacheManager.set(cacheKey, data);
+  }
+
+  if (options.edgeLimit !== undefined && data.edges.length > options.edgeLimit) {
+    const edges = data.edges.slice(0, options.edgeLimit);
+    return {
+      ...data,
+      edges,
+      loadedEdges: edges.length,
+      isPartial: true,
+      source: 'legacy',
+    };
+  }
+
+  return {
+    ...data,
+    loadedEdges: data.edges.length,
+    isPartial: false,
+    source: 'legacy',
+  };
+}
+
+async function loadChunkedCallGraphEdges(edgeLimit: number): Promise<LoadedCallGraphEdgesData | null> {
+  const cacheKey = `call_graph_edges_chunked_${edgeLimit}`;
+  const cached = cacheManager.get<LoadedCallGraphEdgesData>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const index = await fetchJsonOrNull<CallGraphIndex>('/data/structure/call_graph/index.json');
+  if (!index || index.chunks.length === 0) {
+    return null;
+  }
+
+  const edges: CallGraphEdgeData[] = [];
+  for (const chunk of index.chunks) {
+    if (edges.length >= edgeLimit) {
+      break;
+    }
+
+    const chunkData = await loadCallGraphChunkEdges(chunk.path);
+    edges.push(...chunkData.edges);
+  }
+
+  const limitedEdges = edges.slice(0, edgeLimit);
+  const data: LoadedCallGraphEdgesData = {
+    generated_at: index.generated_at,
+    total_edges: index.statistics.total_edges,
+    edges: limitedEdges,
+    loadedEdges: limitedEdges.length,
+    isPartial: index.statistics.total_edges > limitedEdges.length,
+    source: 'chunked',
+  };
+
+  cacheManager.set(cacheKey, data);
+  return data;
+}
+
+async function loadCallGraphChunkEdges(path: string): Promise<CallGraphEdgesData> {
+  const normalizedPath = normalizeCallGraphChunkPath(path);
+  const cacheKey = `call_graph_chunk_${normalizedPath}`;
   const cached = cacheManager.get<CallGraphEdgesData>(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const data = await fetchJson<CallGraphEdgesData>('/data/structure/call_graph/edges.json');
+  const data = await fetchJson<CallGraphEdgesData>(`/data/structure/${normalizedPath}`);
   cacheManager.set(cacheKey, data);
   return data;
+}
+
+function normalizeCallGraphChunkPath(path: string): string {
+  if (path.startsWith('/data/structure/')) {
+    return path.slice('/data/structure/'.length);
+  }
+  if (path.startsWith('call_graph/')) {
+    return path;
+  }
+  return `call_graph/${path}`;
 }
 
 /**
@@ -83,36 +196,159 @@ interface CodeItemWithFile extends CodeItem {
  * 全アイテムのマッピング（id -> CodeItem）を構築する
  * @returns アイテムマップ（各アイテムにファイルパス情報を付加）
  */
-async function buildItemMap(): Promise<Map<string, CodeItemWithFile>> {
+async function buildItemMap(
+  nodeIds?: Set<string>,
+  sourceFiles?: Set<string>,
+  splitFileLimit?: number
+): Promise<ItemMapResult> {
   const index = await loadMainIndex();
   const itemMap = new Map<string, CodeItemWithFile>();
+  const candidatePaths = buildCandidateSplitFileSet(index, nodeIds, sourceFiles);
+  const targetFiles = candidatePaths
+    ? index.files.filter((fileEntry) => candidatePaths.has(fileEntry.path))
+    : index.files;
+  const limitedFiles = splitFileLimit === undefined
+    ? targetFiles
+    : targetFiles.slice(0, splitFileLimit);
 
-  // 全分割ファイルを読み込んでアイテムマップを構築
-  for (const fileEntry of index.files) {
+  for (const fileEntry of limitedFiles) {
     const splitFile = await loadSplitFile(fileEntry.path);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawFile = splitFile as any;
+    for (const item of extractItemsWithFile(splitFile, fileEntry.path)) {
+      itemMap.set(item.id, item);
+    }
+  }
 
-    // SplitFileの構造: { path, language, items: CodeItem[] } の場合
-    // または { files: SourceFile[] } の場合
-    if ('items' in rawFile && Array.isArray(rawFile.items)) {
-      // 直接items配列を持つ形式
-      for (const item of rawFile.items) {
-        itemMap.set(item.id, { ...item, _filePath: fileEntry.path });
-      }
-    } else if ('files' in rawFile && Array.isArray(rawFile.files)) {
-      // files配列を持つ形式
-      for (const sourceFile of rawFile.files) {
-        for (const item of sourceFile.items) {
-          itemMap.set(item.id, { ...item, _filePath: fileEntry.path });
-        }
+  return {
+    itemMap,
+    loadedFiles: limitedFiles.length,
+    totalFiles: index.files.length,
+    isPartial: limitedFiles.length < targetFiles.length,
+  };
+}
+
+function buildCandidateSplitFileSet(
+  index: IndexFile,
+  nodeIds?: Set<string>,
+  sourceFiles?: Set<string>
+): Set<string> | null {
+  if ((!nodeIds || nodeIds.size === 0) && (!sourceFiles || sourceFiles.size === 0)) {
+    return null;
+  }
+
+  const exactPaths = new Set(index.files.map((fileEntry) => fileEntry.path));
+  const basenameToPaths = new Map<string, string[]>();
+  for (const fileEntry of index.files) {
+    const basename = getPathBasename(fileEntry.path);
+    const paths = basenameToPaths.get(basename) ?? [];
+    paths.push(fileEntry.path);
+    basenameToPaths.set(basename, paths);
+  }
+
+  const candidateKeys = new Set<string>();
+  for (const nodeId of nodeIds ?? []) {
+    for (const key of getJsonPathCandidates(getIdFile(nodeId))) {
+      candidateKeys.add(key);
+    }
+  }
+  for (const sourceFile of sourceFiles ?? []) {
+    for (const key of getJsonPathCandidates(sourceFile)) {
+      candidateKeys.add(key);
+    }
+  }
+
+  const result = new Set<string>();
+  for (const key of candidateKeys) {
+    if (exactPaths.has(key)) {
+      result.add(key);
+    }
+
+    const basename = getPathBasename(key);
+    for (const path of basenameToPaths.get(basename) ?? []) {
+      result.add(path);
+    }
+  }
+
+  return result;
+}
+
+function getJsonPathCandidates(pathOrIdFile: string): string[] {
+  if (!pathOrIdFile || pathOrIdFile === 'unknown') {
+    return [];
+  }
+
+  const normalized = pathOrIdFile.replace(/\\/g, '/');
+  const withoutQuery = normalized.split('?')[0];
+  const withoutExtension = withoutQuery.endsWith('.rs')
+    ? withoutQuery.slice(0, -'.rs'.length)
+    : withoutQuery.endsWith('.json')
+      ? withoutQuery.slice(0, -'.json'.length)
+      : withoutQuery;
+  const jsonPath = `${withoutExtension}.json`;
+  return [jsonPath, getPathBasename(jsonPath)];
+}
+
+function getPathBasename(value: string): string {
+  const normalized = value.replace(/\\/g, '/');
+  return normalized.split('/').pop() || normalized;
+}
+
+function extractItemsWithFile(splitFile: SplitFile, fallbackFilePath: string): CodeItemWithFile[] {
+  const items: CodeItemWithFile[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawFile = splitFile as any;
+
+  if ('items' in rawFile && Array.isArray(rawFile.items)) {
+    for (const item of rawFile.items as CodeItem[]) {
+      items.push({ ...item, _filePath: fallbackFilePath });
+    }
+  } else if ('files' in rawFile && Array.isArray(rawFile.files)) {
+    for (const sourceFile of rawFile.files) {
+      for (const item of sourceFile.items as CodeItem[]) {
+        items.push({ ...item, _filePath: fallbackFilePath });
       }
     }
   }
 
-  return itemMap;
+  return items;
 }
 
+export async function loadGraphNodeFromFile(
+  nodeId: string,
+  filePath: string
+): Promise<CytoscapeNode | null> {
+  const index = await loadMainIndex();
+  const candidatePaths = buildCandidateSplitFileSet(
+    index,
+    new Set([nodeId]),
+    new Set([filePath])
+  );
+  const paths = candidatePaths ? [...candidatePaths] : [filePath];
+
+  for (const path of paths) {
+    try {
+      const splitFile = await loadSplitFile(path);
+      const item = extractItemsWithFile(splitFile, path).find((candidate) => candidate.id === nodeId);
+      if (item) {
+        return createNode(item.id, item);
+      }
+    } catch {
+      // 候補パスの一部が存在しない場合は次の候補を試す
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 初期表示向けの軽量なコールグラフをCytoscape形式で取得する
+ * @returns Cytoscapeグラフデータ（上限付き）
+ */
+export async function loadInitialGraph(): Promise<CytoscapeData> {
+  return loadGraph({
+    edgeLimit: INITIAL_GRAPH_EDGE_LIMIT,
+    splitFileLimit: INITIAL_GRAPH_SPLIT_FILE_LIMIT,
+  });
+}
 
 /**
  * 完全なコールグラフをCytoscape形式で取得する
@@ -121,22 +357,29 @@ async function buildItemMap(): Promise<Map<string, CodeItemWithFile>> {
  * @throws {ParseError} JSONパースに失敗した場合
  * @throws {NetworkError} ネットワークエラーが発生した場合
  */
-export async function loadFullGraph(): Promise<CytoscapeData> {
-  // エッジデータを読み込む
-  const edgesData = await loadCallGraphEdges();
+export async function loadFullGraph(options: LoadGraphOptions = {}): Promise<CytoscapeData> {
+  return loadGraph(options);
+}
 
-  // アイテムマップを構築（ノード詳細情報取得用）
-  const itemMap = await buildItemMap();
+async function loadGraph(options: LoadGraphOptions): Promise<CytoscapeData> {
+  // エッジデータを読み込む
+  const edgesData = await loadCallGraphEdges({ edgeLimit: options.edgeLimit });
 
   // テストを除外したエッジをフィルタ
   const filteredEdges = edgesData.edges.filter(edge => !isTestId(edge.from));
 
   // エッジからノードIDを収集
   const nodeIds = new Set<string>();
+  const sourceFiles = new Set<string>();
   for (const edge of filteredEdges) {
     nodeIds.add(edge.from);
     nodeIds.add(edge.to);  // 解決済みの完全なIDなので追加
+    sourceFiles.add(edge.file);
   }
+
+  // 表示対象ノードに関係する分割ファイルだけ読み込む
+  const itemMapResult = await buildItemMap(nodeIds, sourceFiles, options.splitFileLimit);
+  const itemMap = itemMapResult.itemMap;
 
   // ノード配列を構築
   const nodes: CytoscapeNode[] = [];
@@ -156,16 +399,7 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
       continue;
     }
 
-    nodes.push({
-      data: {
-        id: item.id,
-        label: generateNodeLabel(item),
-        type: item.type,
-        file: item._filePath,
-        line: item.line_start,
-        implFor: item.impl_for,
-      },
-    });
+    nodes.push(createNode(item.id, item));
   }
 
   // ノード名からIDへのマッピングを構築（内部呼び出しの解決用）
@@ -217,7 +451,19 @@ export async function loadFullGraph(): Promise<CytoscapeData> {
     });
   }
 
-  return { nodes, edges };
+  return {
+    nodes,
+    edges,
+    meta: {
+      isPartial: edgesData.isPartial || itemMapResult.isPartial,
+      totalEdges: edgesData.total_edges,
+      loadedEdges: filteredEdges.length,
+      totalFiles: itemMapResult.totalFiles,
+      loadedFiles: itemMapResult.loadedFiles,
+      loadedNodes: nodes.length,
+      source: edgesData.source,
+    },
+  };
 }
 
 /**
@@ -312,4 +558,17 @@ function generateNodeLabel(item: CodeItemWithFile): string {
     return `${item.impl_for}::${item.name}`;
   }
   return item.name;
+}
+
+function createNode(nodeId: string, item: CodeItemWithFile): CytoscapeNode {
+  return {
+    data: {
+      id: nodeId,
+      label: generateNodeLabel(item),
+      type: item.type,
+      file: item._filePath,
+      line: item.line_start,
+      implFor: item.impl_for,
+    },
+  };
 }

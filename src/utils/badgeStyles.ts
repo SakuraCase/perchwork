@@ -84,6 +84,7 @@ export function visibilityToVariant(visibility?: string): BadgeVariant {
 export function typeToVariant(type: string): BadgeVariant {
   switch (type) {
     case 'fn':
+    case 'function':
       return 'fn';
     case 'struct':
       return 'struct';
@@ -108,6 +109,7 @@ export function typeToVariant(type: string): BadgeVariant {
 const TYPE_LABELS: Record<string, string> = {
   struct: '構造体',
   fn: '関数',
+  function: '関数',
   trait: 'トレイト',
   enum: '列挙型',
   type: '型エイリアス',
@@ -128,6 +130,7 @@ export function getTypeLabel(type: string): string {
 const TYPE_COLOR_CLASSES: Record<string, string> = {
   struct: 'bg-green-600 text-white',
   fn: 'bg-indigo-600 text-white',
+  function: 'bg-indigo-600 text-white',
   trait: 'bg-red-600 text-white',
   enum: 'bg-amber-600 text-white',
   type: 'bg-purple-600 text-white',
@@ -148,6 +151,7 @@ export function getTypeColorClass(type: string): string {
 const CYTOSCAPE_NODE_COLORS: Record<string, string> = {
   struct: '#059669', // green-600
   fn: '#4f46e5', // indigo-600
+  function: '#4f46e5', // indigo-600
   trait: '#dc2626', // red-600
   enum: '#f59e0b', // amber-500
   type: '#8b5cf6', // purple-500

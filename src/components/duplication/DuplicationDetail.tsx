@@ -4,7 +4,6 @@
  * 重複グループの詳細表示
  */
 
-import { useState, useCallback } from "react";
 import type { DuplicationGroup } from "../../types/duplication";
 import { RefactoringCard } from "./RefactoringCard";
 
@@ -13,52 +12,7 @@ interface DuplicationDetailProps {
   onShowInTree?: (filePath: string) => void;
 }
 
-/** severityに応じた色を返す */
-function getSeverityColor(severity: string | undefined): string {
-  switch (severity) {
-    case 'high':
-      return 'bg-red-600/20 text-red-300 border-red-500/30';
-    case 'medium':
-      return 'bg-yellow-600/20 text-yellow-300 border-yellow-500/30';
-    case 'low':
-      return 'bg-blue-600/20 text-blue-300 border-blue-500/30';
-    case 'none':
-      return 'bg-stone-600/20 text-stone-300 border-stone-500/30';
-    default:
-      return 'bg-stone-700 text-stone-300 border-stone-600';
-  }
-}
-
-/** severityの日本語ラベル */
-function getSeverityLabel(severity: string | undefined): string {
-  switch (severity) {
-    case 'high':
-      return '高';
-    case 'medium':
-      return '中';
-    case 'low':
-      return '低';
-    case 'none':
-      return 'なし';
-    default:
-      return '未解析';
-  }
-}
-
 export function DuplicationDetail({ group, onShowInTree }: DuplicationDetailProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    if (!group.refactoring_suggestion?.prompt) return;
-    try {
-      await navigator.clipboard.writeText(group.refactoring_suggestion.prompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  }, [group.refactoring_suggestion]);
-
   return (
     <div className="h-full overflow-y-auto p-4 space-y-6">
       {/* ヘッダー */}
@@ -67,16 +21,6 @@ export function DuplicationDetail({ group, onShowInTree }: DuplicationDetailProp
           {group.id}
         </h2>
         <div className="flex items-center gap-2">
-          {/* severity バッジ */}
-          <span className={`px-2 py-1 text-sm rounded border ${getSeverityColor(group.severity)}`}>
-            {getSeverityLabel(group.severity)}
-          </span>
-          {/* needs_fix バッジ */}
-          {group.needs_fix && (
-            <span className="px-2 py-1 text-sm bg-red-600 text-white rounded">
-              要修正
-            </span>
-          )}
           {/* 箇所数 */}
           <span className="px-2 py-1 text-sm bg-orange-600 text-white rounded">
             {group.locations.length}箇所
@@ -89,25 +33,6 @@ export function DuplicationDetail({ group, onShowInTree }: DuplicationDetailProp
           </span>
         </div>
       </div>
-
-      {/* LLM解析結果（存在する場合） */}
-      {group.explanation && (
-        <div className={`rounded-lg p-4 border ${getSeverityColor(group.severity)}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-sm font-semibold">解析結果</h3>
-            {group.is_meaningful !== undefined && (
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                group.is_meaningful
-                  ? 'bg-orange-600/30 text-orange-300'
-                  : 'bg-stone-600/30 text-stone-400'
-              }`}>
-                {group.is_meaningful ? '意味のある重複' : 'ボイラープレート'}
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-stone-200">{group.explanation}</p>
-        </div>
-      )}
 
       {/* 重複箇所一覧 */}
       <div className="space-y-3">
@@ -157,21 +82,9 @@ export function DuplicationDetail({ group, onShowInTree }: DuplicationDetailProp
       {/* リファクタリング提案 */}
       {group.refactoring_suggestion && (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-stone-300">
-              リファクタリング提案
-            </h3>
-            <button
-              onClick={handleCopy}
-              className={`px-3 py-1 text-sm rounded transition-colors ${
-                copied
-                  ? "bg-green-600 text-white"
-                  : "bg-orange-600 text-white hover:bg-orange-500"
-              }`}
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
+          <h3 className="text-sm font-semibold text-stone-300 mb-3">
+            リファクタリング候補
+          </h3>
           <RefactoringCard suggestion={group.refactoring_suggestion} />
         </div>
       )}

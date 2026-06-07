@@ -72,10 +72,11 @@ export function getIdFile(id: string): string {
  */
 export function inferTypeFromId(
   id: string
-): 'fn' | 'struct' | 'enum' | 'trait' | 'mod' | 'const' | 'type' | 'method' | 'impl' {
+): 'function' | 'fn' | 'struct' | 'enum' | 'trait' | 'mod' | 'const' | 'type' | 'method' | 'impl' {
   const label = getIdLabel(id);
   // 明示的な型情報があればそれを使用
   if (label === 'fn') return 'fn';
+  if (label === 'function') return 'function';
   if (label === 'struct') return 'struct';
   if (label === 'enum') return 'enum';
   if (label === 'trait') return 'trait';
@@ -90,7 +91,7 @@ export function inferTypeFromId(
   if (/^[A-Z]/.test(name)) {
     return 'struct';
   }
-  return 'fn';
+  return 'function';
 }
 
 /**

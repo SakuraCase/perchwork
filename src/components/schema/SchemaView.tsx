@@ -297,12 +297,10 @@ function layoutNodesHierarchy(
     const children = outEdgesOrdered.get(current) || [];
 
     for (const child of children) {
-      const existingLevel = levels.get(child);
-      const newLevel = currentLevel + 1;
-      if (existingLevel === undefined || newLevel > existingLevel) {
-        levels.set(child, newLevel);
-        queue.push(child);
-      }
+      if (levels.has(child)) continue;
+
+      levels.set(child, currentLevel + 1);
+      queue.push(child);
     }
   }
 
@@ -488,7 +486,13 @@ function SchemaViewInner({
   layoutType,
   onLayoutTypeChange,
 }: SchemaViewInnerProps) {
-  const { rawData, filteredData, isLoading, error, reload } = useSchemaLoader({
+  const {
+    rawData,
+    filteredData,
+    isLoading,
+    error,
+    reload,
+  } = useSchemaLoader({
     externalFilter: filter,
     onFilterChange,
   });
@@ -640,7 +644,7 @@ function SchemaViewInner({
   const isEmptySource = rawData?.nodes.length === 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* ツールバー（常に表示） */}
       <SchemaToolbar
         filter={filter}
@@ -674,7 +678,7 @@ function SchemaViewInner({
           )}
         </div>
       ) : (
-        <div className="flex-1">
+        <div className="flex-1 min-h-0">
           <ReactFlow
             nodes={nodes}
             edges={edges}

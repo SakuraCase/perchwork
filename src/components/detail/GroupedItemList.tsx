@@ -9,16 +9,15 @@
  */
 
 import { useMemo } from 'react';
-import type { CodeItem, ItemId, SemanticTest } from '@/types/schema';
+import type { CodeItem, ItemId } from '@/types/schema';
 import { groupItems } from '@/utils/itemGrouper';
 import { StructGroupView } from './StructGroupView';
 import { Badge } from '@/components/common/Badge';
+import { typeToVariant } from '@/utils/badgeStyles';
 
 interface GroupedItemListProps {
   /** ファイル内のすべてのCodeItem */
   items: CodeItem[];
-  /** セマンティックテスト情報 */
-  semanticTests: SemanticTest[];
   /** アイテム選択時のコールバック */
   onSelectItem: (id: ItemId) => void;
   /** スキーマ表示ハンドラ（スキーマタブへ遷移し、型をフォーカス） */
@@ -30,13 +29,12 @@ interface GroupedItemListProps {
  */
 export function GroupedItemList({
   items,
-  semanticTests,
   onSelectItem,
   onShowInSchema,
 }: GroupedItemListProps) {
   const grouped = useMemo(
-    () => groupItems(items, semanticTests),
-    [items, semanticTests]
+    () => groupItems(items),
+    [items]
   );
 
   if (items.length === 0) {
@@ -111,9 +109,6 @@ export function GroupedItemList({
                     </Badge>
                   )}
                 </div>
-                {item.summary && (
-                  <p className="text-sm text-stone-500 mt-1">{item.summary}</p>
-                )}
               </button>
             ))}
           </div>
@@ -139,8 +134,8 @@ export function GroupedItemList({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-yellow-400">{item.name}()</span>
-                  <Badge variant="fn" withBorder={false}>
-                    fn
+                  <Badge variant={typeToVariant(item.type)} withBorder={false}>
+                    {item.type === 'function' ? 'fn' : item.type}
                   </Badge>
                   {item.visibility === 'pub' && (
                     <Badge variant="pub" withBorder={false}>
@@ -153,9 +148,6 @@ export function GroupedItemList({
                     </Badge>
                   )}
                 </div>
-                {item.summary && (
-                  <p className="text-sm text-stone-500 mt-1">{item.summary}</p>
-                )}
               </button>
             ))}
           </div>

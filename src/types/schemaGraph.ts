@@ -64,6 +64,27 @@ export interface SchemaGraphData {
 
   /** 統計情報 */
   stats: SchemaGraphStats;
+
+  /** 読み込み状況のメタデータ */
+  meta?: SchemaLoadMeta;
+}
+
+/** スキーマ読み込み状況 */
+export interface SchemaLoadMeta {
+  /** 表示データが全体の一部かどうか */
+  isPartial: boolean;
+
+  /** 総ファイル数 */
+  totalFiles: number;
+
+  /** 読み込んだファイル数 */
+  loadedFiles: number;
+
+  /** 総アイテム数 */
+  totalItems: number;
+
+  /** 読み込んだstruct/enum数 */
+  loadedSchemaItems: number;
 }
 
 /** スキーマグラフ統計 */

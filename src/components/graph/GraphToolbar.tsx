@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-import type { LayoutType, GraphFilter, NodeColorRule, SavedGraphSettings } from '../../types/graph';
+import type { LayoutType, GraphFilter, GraphLoadMeta, NodeColorRule, SavedGraphSettings } from '../../types/graph';
 import { ColorRulesPanel } from './ColorRulesPanel';
 import { GraphSaveDialog } from './GraphSaveDialog';
 import { GraphOpenDialog } from './GraphOpenDialog';
@@ -70,6 +70,15 @@ export interface GraphToolbarProps {
   /** 保存済み設定を削除する時のコールバック */
   onDeleteSaved: (id: string) => void;
 
+  /** グラフ読み込み状況 */
+  loadMeta?: GraphLoadMeta;
+
+  /** 全件読み込み中かどうか */
+  isLoadingFullGraph?: boolean;
+
+  /** 全件読み込み時のコールバック */
+  onLoadCompleteGraph?: () => void;
+
   /** カスタムクラス名 */
   className?: string;
 }
@@ -108,6 +117,9 @@ export function GraphToolbar({
   onSave,
   onOpen,
   onDeleteSaved,
+  loadMeta,
+  isLoadingFullGraph = false,
+  onLoadCompleteGraph,
   className = '',
 }: GraphToolbarProps) {
   // フィルタパネルの表示/非表示状態
@@ -198,6 +210,31 @@ export function GraphToolbar({
           >
             カラー {isColorOpen ? '▲' : '▼'}
           </button>
+
+          {loadMeta && (
+            <div className="flex items-center gap-2 text-xs text-stone-400">
+              <span>
+                {loadMeta.loadedEdges.toLocaleString()} / {loadMeta.totalEdges.toLocaleString()} edges
+              </span>
+              {loadMeta.isPartial && onLoadCompleteGraph && (
+                <button
+                  onClick={onLoadCompleteGraph}
+                  disabled={isLoadingFullGraph}
+                  className={`
+                    px-2 py-1 rounded border focus:outline-none focus:ring-2 focus:ring-orange-500
+                    ${
+                      isLoadingFullGraph
+                        ? 'bg-stone-800 text-stone-500 border-stone-700 cursor-wait'
+                        : 'bg-stone-700 text-stone-100 border-stone-600 hover:bg-stone-600'
+                    }
+                  `}
+                  title="全件グラフを読み込む"
+                >
+                  {isLoadingFullGraph ? '読み込み中...' : '全件読み込み'}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* フォーカスインジケータ */}
           {filter.focusNodeId && onClearFocus && (

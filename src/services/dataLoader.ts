@@ -6,7 +6,6 @@ import type {
   IndexFile,
   SplitFile,
   CallGraphChunk,
-  SemanticFile,
 } from '../types/schema';
 import { fetchJson, fetchJsonOrNull } from './httpClient';
 
@@ -43,14 +42,4 @@ export async function fetchSplitFile(path: string): Promise<SplitFile> {
 export async function fetchCallGraphChunk(path: string): Promise<CallGraphChunk> {
   const fullPath = `/data/structure/${path}`;
   return fetchJson<CallGraphChunk>(fullPath);
-}
-
-/**
- * セマンティックファイル（Phase 2 出力）を取得する
- * @param path - ファイルパス（例: "entity/battle_state.json"）
- * @returns セマンティックファイルのデータ、または存在しない場合は null
- */
-export async function fetchSemanticFile(path: string): Promise<SemanticFile | null> {
-  const fullPath = `/data/semantic/${path}`;
-  return fetchJsonOrNull<SemanticFile>(fullPath);
 }

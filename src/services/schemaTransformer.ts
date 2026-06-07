@@ -10,6 +10,7 @@ import type {
   SchemaNodeData,
   SchemaEdgeData,
   SchemaFilter,
+  SchemaLoadMeta,
 } from '../types/schemaGraph';
 
 /** Rustのプリミティブ型 */
@@ -209,7 +210,10 @@ export function extractStructsAndEnums(splitFiles: SplitFile[]): CodeItemWithPat
 /**
  * CodeItem配列からスキーマグラフデータを生成
  */
-export function buildSchemaGraph(items: CodeItemWithPath[]): SchemaGraphData {
+export function buildSchemaGraph(
+  items: CodeItemWithPath[],
+  meta?: SchemaLoadMeta
+): SchemaGraphData {
   // 型名 → CodeItemWithPath のマップを作成（同名の型は最初に見つかったものを使用）
   const typeMap = new Map<string, CodeItemWithPath>();
   for (const item of items) {
@@ -294,6 +298,7 @@ export function buildSchemaGraph(items: CodeItemWithPath[]): SchemaGraphData {
   return {
     nodes,
     edges,
+    meta,
     stats: {
       totalStructs,
       totalEnums,
@@ -459,6 +464,7 @@ export function applySchemaFilter(
   return {
     nodes: updatedNodes,
     edges: filteredEdges,
+    meta: data.meta,
     stats: {
       totalStructs,
       totalEnums,

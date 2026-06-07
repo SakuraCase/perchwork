@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import type { SourceFile, ItemId, SemanticTest, ItemType } from './types/schema';
+import type { SplitFile, SourceFile, ItemId, ItemType } from './types/schema';
 import { createEmptyEditState } from './types/sequence';
 import type { SavedSequenceDiagram } from './types/sequence';
 import type { ViewTab } from './types/view';
@@ -19,14 +19,6 @@ import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useSavedSequences } from './hooks/useSavedSequences';
 import { useSearchIndex } from './hooks/useSearchIndex';
 import { useSequenceDiagram } from './hooks/useSequenceDiagram';
-import { useNoteDataLoader } from './hooks/useNoteDataLoader';
-import type {
-  NoteSidePanelTab,
-  NoteSessionEntry,
-  NoteDocumentEntry,
-  NoteSelection,
-} from './types/note';
-import { NoteSidePanel, NoteContentViewer, NoteEmptyState } from './components/note';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loading } from './components/common/Loading';
 import { Header } from './components/layout/Header';
@@ -40,11 +32,39 @@ import { NodeContextMenu } from './components/graph/NodeContextMenu';
 import { ColorRuleDialog } from './components/graph/ColorRuleDialog';
 import { SequenceView } from './components/sequence';
 import { MetricsView } from './components/metrics';
-import { ReviewView } from './components/review';
+import { DuplicationView } from './components/duplication';
 import { SchemaView } from './components/schema';
 import { buildIndex } from './services/callersIndexer';
 import type { CallersIndex } from './types/callers';
-import { loadAllSummaries, type SummaryMap } from './services/semanticLoader';
+
+type RawStructureFile = Partial<SourceFile> & {
+  items?: SourceFile['items'];
+  files?: SourceFile[];
+};
+
+function toSourceFile(splitFile: SplitFile, fallbackPath: string): SourceFile {
+  const rawData = splitFile as RawStructureFile;
+
+  if (Array.isArray(rawData.items)) {
+    return {
+      path: rawData.path ?? fallbackPath,
+      hash: rawData.hash ?? '',
+      last_modified: rawData.last_modified ?? '',
+      items: rawData.items,
+    };
+  }
+
+  if (Array.isArray(rawData.files) && rawData.files.length > 0) {
+    return rawData.files[0];
+  }
+
+  return {
+    path: fallbackPath,
+    hash: '',
+    last_modified: '',
+    items: [],
+  };
+}
 
 /**
  * アプリケーションルートコンポーネント
@@ -64,13 +84,13 @@ import { loadAllSummaries, type SummaryMap } from './services/semanticLoader';
  */
 function App() {
   // データ読み込みとキャッシュ管理
-  const { index, loadFileWithSemantic, isLoading, error } = useDataLoader();
+  const { index, loadFile, isLoading, error } = useDataLoader();
 
   // 検索インデックス
   const { items: searchItems, isLoading: searchLoading } = useSearchIndex(index);
 
   // タブ状態
-  const [activeTab, setActiveTab] = useState<ViewTab>('ai');
+  const [activeTab, setActiveTab] = useState<ViewTab>('metrics');
 
   // サイドパネル開閉状態
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
@@ -78,38 +98,16 @@ function App() {
   // グラフビュー用: ファイル・アイテム選択状態
   const [graphCurrentFile, setGraphCurrentFile] = useState<SourceFile | null>(null);
   const [graphSelectedItemId, setGraphSelectedItemId] = useState<ItemId | null>(null);
-  const [graphSemanticTests, setGraphSemanticTests] = useState<SemanticTest[]>([]);
 
   // ツリービュー用: ファイル・アイテム選択状態
   const [treeSelectedFilePath, setTreeSelectedFilePath] = useState<string | null>(null);
   const [treeCurrentFile, setTreeCurrentFile] = useState<SourceFile | null>(null);
   const [treeSelectedItemId, setTreeSelectedItemId] = useState<ItemId | null>(null);
-  const [treeSemanticTests, setTreeSemanticTests] = useState<SemanticTest[]>([]);
 
   // メトリクスモーダル用状態
   const [metricsModalOpen, setMetricsModalOpen] = useState(false);
   const [metricsModalFile, setMetricsModalFile] = useState<SourceFile | null>(null);
   const [metricsModalSelectedItemId, setMetricsModalSelectedItemId] = useState<ItemId | null>(null);
-  const [metricsModalSemanticTests, setMetricsModalSemanticTests] = useState<SemanticTest[]>([]);
-
-  // semantic情報（シーケンス図用）
-  const [summaries, setSummaries] = useState<SummaryMap | undefined>(undefined);
-
-  // ノート機能用状態
-  const {
-    sessions: noteSessions,
-    categories: noteCategories,
-    isLoading: noteLoading,
-  } = useNoteDataLoader();
-  const [noteSidePanelTab, setNoteSidePanelTab] = useState<NoteSidePanelTab>("sessions");
-  const [noteSelection, setNoteSelection] = useState<NoteSelection | null>(null);
-
-  // semantic情報の読み込み
-  useEffect(() => {
-    loadAllSummaries()
-      .then(setSummaries)
-      .catch((err) => console.error('Failed to load summaries:', err));
-  }, []);
 
   // グラフ設定の永続化
   const {
@@ -140,7 +138,14 @@ function App() {
   } = useSavedSequences();
 
   // グラフ関連のフック
-  const { graphData, isLoading: graphLoading, error: graphError } = useGraphTraversal();
+  const {
+    graphData,
+    isLoading: graphLoading,
+    isLoadingFullGraph,
+    error: graphError,
+    loadCompleteGraph,
+    ensureNodeLoaded,
+  } = useGraphTraversal();
   const {
     layoutOptions,
     filter,
@@ -155,7 +160,7 @@ function App() {
   } = useGraphLayout({ settings, updateSettings });
 
   // シーケンス図関連
-  const sequenceDiagram = useSequenceDiagram(graphData, summaries);
+  const sequenceDiagram = useSequenceDiagram(graphData);
 
   // ナビゲーション履歴（グラフ/ツリー共通）
   const navigationHistory = useNavigationHistory();
@@ -237,17 +242,9 @@ function App() {
   const handleGraphNodeClick = useCallback(
     async (nodeId: string, filePath: string) => {
       try {
-        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(filePath);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawData = splitFile as any;
-        const sourceFile: SourceFile = {
-          path: rawData.path || filePath,
-          hash: '',
-          last_modified: '',
-          items: rawData.items || [],
-        };
+        const splitFile = await loadFile(filePath);
+        const sourceFile = toSourceFile(splitFile, filePath);
         setGraphCurrentFile(sourceFile);
-        setGraphSemanticTests(tests);
         setGraphSelectedItemId(nodeId as ItemId);
 
         // 履歴に追加
@@ -267,11 +264,10 @@ function App() {
       } catch (err) {
         console.error('Failed to load file:', err);
         setGraphCurrentFile(null);
-        setGraphSemanticTests([]);
         setGraphSelectedItemId(null);
       }
     },
-    [loadFileWithSemantic, navigationHistory]
+    [loadFile, navigationHistory]
   );
 
   /**
@@ -334,17 +330,9 @@ function App() {
       setTreeSelectedItemId(null);
 
       try {
-        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(filePath);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawData = splitFile as any;
-        const sourceFile: SourceFile = {
-          path: rawData.path || filePath,
-          hash: '',
-          last_modified: '',
-          items: rawData.items || [],
-        };
+        const splitFile = await loadFile(filePath);
+        const sourceFile = toSourceFile(splitFile, filePath);
         setTreeCurrentFile(sourceFile);
-        setTreeSemanticTests(tests);
 
         // 履歴に追加（構造体名を取得）
         // 主要なstruct/enumの名前を使用。なければファイル名
@@ -361,10 +349,9 @@ function App() {
       } catch (err) {
         console.error('Failed to load file:', err);
         setTreeCurrentFile(null);
-        setTreeSemanticTests([]);
       }
     },
-    [loadFileWithSemantic, navigationHistory]
+    [loadFile, navigationHistory]
   );
 
   /**
@@ -417,6 +404,8 @@ function App() {
    */
   const handleSearchSelectGraph = useCallback(
     async (nodeId: string, filePath: string) => {
+      await ensureNodeLoaded(nodeId, filePath);
+
       // ノードを中心表示
       setCenterNodeId(null);
       setTimeout(() => setCenterNodeId(nodeId), 0);
@@ -424,7 +413,7 @@ function App() {
       // ファイル情報を読み込んで詳細パネルに表示
       await handleGraphNodeClick(nodeId, filePath);
     },
-    [handleGraphNodeClick]
+    [ensureNodeLoaded, handleGraphNodeClick]
   );
 
   /**
@@ -495,20 +484,6 @@ function App() {
   );
 
   /**
-   * ノートセッション選択時のハンドラ
-   */
-  const handleSelectNoteSession = useCallback((session: NoteSessionEntry) => {
-    setNoteSelection({ type: "session", id: session.id, path: session.path });
-  }, []);
-
-  /**
-   * ノートドキュメント選択時のハンドラ
-   */
-  const handleSelectNoteDocument = useCallback((entry: NoteDocumentEntry) => {
-    setNoteSelection({ type: "document", id: entry.id, path: entry.path });
-  }, []);
-
-  /**
    * メトリクスモーダルを開くハンドラ
    */
   const handleOpenMetricsModal = useCallback(
@@ -517,18 +492,10 @@ function App() {
       const jsonPath = relativePath.replace(/\.rs$/, '.json');
 
       try {
-        const { splitFile, semanticTests: tests } = await loadFileWithSemantic(jsonPath);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawData = splitFile as any;
-        const sourceFile: SourceFile = {
-          path: rawData.path || jsonPath,
-          hash: '',
-          last_modified: '',
-          items: rawData.items || [],
-        };
+        const splitFile = await loadFile(jsonPath);
+        const sourceFile = toSourceFile(splitFile, jsonPath);
 
         setMetricsModalFile(sourceFile);
-        setMetricsModalSemanticTests(tests);
 
         // 行番号が指定されている場合、該当する関数を選択
         if (lineNumber) {
@@ -550,7 +517,7 @@ function App() {
         console.error('Failed to load file for modal:', err);
       }
     },
-    [loadFileWithSemantic]
+    [loadFile]
   );
 
   /**
@@ -633,19 +600,11 @@ function App() {
     if (!targetEntry) return;
 
     try {
-      const { splitFile, semanticTests: tests } = await loadFileWithSemantic(targetEntry.filePath);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawData = splitFile as any;
-      const sourceFile: SourceFile = {
-        path: rawData.path || targetEntry.filePath,
-        hash: '',
-        last_modified: '',
-        items: rawData.items || [],
-      };
+      const splitFile = await loadFile(targetEntry.filePath);
+      const sourceFile = toSourceFile(splitFile, targetEntry.filePath);
 
       if (activeTab === 'graph') {
         setGraphCurrentFile(sourceFile);
-        setGraphSemanticTests(tests);
         setGraphSelectedItemId(targetEntry.itemId);
 
         // アイテムが選択されている場合、ノードを中心表示
@@ -656,35 +615,36 @@ function App() {
       } else if (activeTab === 'tree') {
         setTreeSelectedFilePath(targetEntry.filePath);
         setTreeCurrentFile(sourceFile);
-        setTreeSemanticTests(tests);
         setTreeSelectedItemId(targetEntry.itemId);
       }
     } catch (err) {
       console.error('Failed to load file:', err);
     }
-  }, [navigationHistory, activeTab, loadFileWithSemantic]);
+  }, [navigationHistory, activeTab, loadFile]);
 
   /**
    * グラフタブでノードを中心表示するハンドラ（グラフビューから呼ばれる）
    */
   const handleCenterOnGraphNode = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    (itemId: ItemId, _filePath: string) => {
+    async (itemId: ItemId, filePath: string) => {
+      await ensureNodeLoaded(itemId, filePath);
+
       // ノードを中心表示
       setCenterNodeId(null);
       setTimeout(() => setCenterNodeId(itemId), 0);
     },
-    []
+    [ensureNodeLoaded]
   );
 
   /**
    * ツリービューからグラフ表示に遷移するハンドラ
    */
   const handleShowInGraph = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async (itemId: ItemId, _filePath: string) => {
+    async (itemId: ItemId, filePath: string) => {
       // グラフタブに切り替え
       setActiveTab('graph');
+
+      await ensureNodeLoaded(itemId, filePath);
 
       // ノードを中心表示
       setCenterNodeId(null);
@@ -697,7 +657,7 @@ function App() {
         await handleGraphNodeClick(itemId, node.data.file);
       }
     },
-    [graphData, handleGraphNodeClick]
+    [ensureNodeLoaded, graphData, handleGraphNodeClick]
   );
 
   /**
@@ -763,7 +723,7 @@ function App() {
     );
   }
 
-  // データなし（/analyze 未実行）
+  // データなし
   if (!index) {
     return (
       <div className="min-h-screen bg-stone-900 text-stone-100 flex items-center justify-center">
@@ -773,7 +733,7 @@ function App() {
           <div className="bg-stone-800 rounded-lg p-6 max-w-md">
             <p className="text-yellow-400 mb-4">データがありません</p>
             <p className="text-sm text-stone-500">
-              Claude Code で <code className="bg-stone-700 px-2 py-1 rounded">/analyze</code> を実行して
+              <code className="bg-stone-700 px-2 py-1 rounded">npm run analyze</code> を実行して
               コードベースを解析してください。
             </p>
           </div>
@@ -813,7 +773,6 @@ function App() {
                     selectedItemId={graphSelectedItemId}
                     onSelectItem={handleGraphSelectItem}
                     callersIndex={callersIndex}
-                    semanticTests={graphSemanticTests}
                     navigationHistory={navigationHistory.history}
                     onNavigateTo={handleNavigateTo}
                     onShowInGraph={handleCenterOnGraphNode}
@@ -850,6 +809,9 @@ function App() {
                       onSave={saveGraphSettings}
                       onOpen={openGraphSettings}
                       onDeleteSaved={deleteGraphSettings}
+                      loadMeta={graphData?.meta}
+                      isLoadingFullGraph={isLoadingFullGraph}
+                      onLoadCompleteGraph={loadCompleteGraph}
                     />
 
                     {/* グラフビュー */}
@@ -914,7 +876,6 @@ function App() {
                       selectedItemId={treeSelectedItemId}
                       onSelectItem={handleTreeSelectItem}
                       callersIndex={null}
-                      semanticTests={treeSemanticTests}
                       navigationHistory={navigationHistory.history}
                       onNavigateTo={handleNavigateTo}
                       onShowInGraph={handleShowInGraph}
@@ -963,34 +924,6 @@ function App() {
             </div>
           )}
 
-          {/* ノートタブ */}
-          {activeTab === 'ai' && (
-            <>
-              <SidePanel isOpen={isSidePanelOpen} onToggle={handleToggleSidePanel}>
-                {noteLoading ? (
-                  <Loading message="ノートデータを読み込んでいます..." />
-                ) : !noteSessions.length && !noteCategories.length ? (
-                  <NoteEmptyState type="no-data" />
-                ) : (
-                  <NoteSidePanel
-                    sessions={noteSessions}
-                    categories={noteCategories}
-                    activeTab={noteSidePanelTab}
-                    onTabChange={setNoteSidePanelTab}
-                    selectedId={noteSelection?.id ?? null}
-                    onSelectSession={handleSelectNoteSession}
-                    onSelectDocument={handleSelectNoteDocument}
-                  />
-                )}
-              </SidePanel>
-              <MainContent>
-                <div className="flex-1 overflow-auto">
-                  <NoteContentViewer contentPath={noteSelection?.path ?? null} />
-                </div>
-              </MainContent>
-            </>
-          )}
-
           {/* メトリクスタブ */}
           {activeTab === 'metrics' && (
             <div className="flex-1">
@@ -998,16 +931,16 @@ function App() {
             </div>
           )}
 
-          {/* レビュータブ */}
-          {activeTab === 'review' && (
+          {/* 重複タブ */}
+          {activeTab === 'duplication' && (
             <div className="flex-1">
-              <ReviewView onShowInTree={handleSchemaShowInTree} />
+              <DuplicationView onShowInTree={handleSchemaShowInTree} />
             </div>
           )}
 
           {/* スキーマタブ */}
           {activeTab === 'schema' && (
-            <div className="flex-1">
+            <MainContent>
               <SchemaView
                 focusTypeName={schemaFocusTypeName}
                 onClearFocusTypeName={() => setSchemaFocusTypeName(null)}
@@ -1021,7 +954,7 @@ function App() {
                 layoutType={schemaSettings.layoutType}
                 onLayoutTypeChange={updateSchemaLayoutType}
               />
-            </div>
+            </MainContent>
           )}
         </div>
 
@@ -1065,7 +998,6 @@ function App() {
                   selectedItemId={metricsModalSelectedItemId}
                   onSelectItem={handleMetricsModalSelectItem}
                   callersIndex={null}
-                  semanticTests={metricsModalSemanticTests}
                   navigationHistory={navigationHistory.history}
                   onNavigateTo={handleNavigateTo}
                   onShowInGraph={handleShowInGraph}

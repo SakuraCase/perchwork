@@ -8,7 +8,13 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "analyze": "node --import tsx tools/perchwork/cli/analyze.ts",
+    "analyze:prepare": "node --import tsx tools/perchwork/cli/prepare.ts",
+    "analyze:cleanup": "node --import tsx tools/perchwork/cli/cleanup.ts",
+    "analyze:structure": "node --import tsx tools/perchwork/analyzers/structure/analyze.ts --config config.json --all",
+    "analyze:complexity": "node --import tsx tools/perchwork/analyzers/complexity/analyze.ts --config config.json --all",
+    "analyze:duplication": "node --import tsx tools/perchwork/analyzers/duplication/analyze.ts --config config.json"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.0",
@@ -36,7 +42,11 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jscpd": "^4.0.5",
     "tailwindcss": "^4.1.18",
+    "tree-sitter": "^0.22.4",
+    "tree-sitter-rust": "^0.24.0",
+    "tsx": "^4.8.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"

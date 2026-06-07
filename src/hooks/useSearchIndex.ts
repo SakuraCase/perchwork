@@ -92,8 +92,7 @@ export function useSearchIndex(index: IndexFile | null): UseSearchIndexResult {
             // アイテムをSearchIndexItem形式に変換（テスト関数を除外）
             const searchItems: SearchIndexItem[] = [];
             for (const item of codeItems) {
-              // テスト関数を除外（IDの末尾が ::test または ::function）
-              if (item.id.endsWith('::test') || item.id.endsWith('::function')) {
+              if (item.id.endsWith('::test')) {
                 continue;
               }
 

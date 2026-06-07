@@ -52,24 +52,14 @@ export function Header({
       {/* タブ切り替え */}
       <div className="ml-8 flex gap-1">
         <button
-          onClick={() => onTabChange("ai")}
+          onClick={() => onTabChange("duplication")}
           className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
-            activeTab === "ai"
+            activeTab === "duplication"
               ? "bg-stone-800 text-white border-b-2 border-orange-500"
               : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
           }`}
         >
-          ノート
-        </button>
-        <button
-          onClick={() => onTabChange("review")}
-          className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
-            activeTab === "review"
-              ? "bg-stone-800 text-white border-b-2 border-orange-500"
-              : "text-stone-400 hover:text-stone-200 hover:bg-stone-800"
-          }`}
-        >
-          レビュー
+          重複
         </button>
         <button
           onClick={() => onTabChange("metrics")}

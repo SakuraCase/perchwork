@@ -13,6 +13,7 @@ import { extractStructsAndEnums, buildSchemaGraph, applySchemaFilter } from '../
 import * as cacheManager from '../services/cacheManager';
 
 const CACHE_KEY = 'schema:graph';
+const SPLIT_FILE_BATCH_SIZE = 12;
 
 /** useSchemaLoaderの引数 */
 interface UseSchemaLoaderOptions {
@@ -82,19 +83,17 @@ export function useSchemaLoader(options?: UseSchemaLoaderOptions): UseSchemaLoad
       const cached = cacheManager.get<SchemaGraphData>(CACHE_KEY);
       if (cached) {
         setRawData(cached);
-        setIsLoading(false);
         return;
       }
 
       // index.json を読み込み
       const index = await fetchIndex();
       if (!index) {
-        setError('index.json が見つかりません。/analyze を実行してください。');
+        setError('index.json が見つかりません。npm run analyze を実行してください。');
         setIsLoading(false);
         return;
       }
 
-      // 全ファイルを並列で読み込み
       const splitFiles = await loadAllSplitFiles(index);
 
       // struct/enum を抽出
@@ -118,19 +117,27 @@ export function useSchemaLoader(options?: UseSchemaLoaderOptions): UseSchemaLoad
    * 全分割ファイルを読み込み
    */
   async function loadAllSplitFiles(index: IndexFile): Promise<SplitFile[]> {
-    const promises = index.files.map(async (fileEntry) => {
-      const cacheKey = `split:${fileEntry.path}`;
-      const cached = cacheManager.get<SplitFile>(cacheKey);
-      if (cached) {
-        return cached;
-      }
+    const splitFiles: SplitFile[] = [];
 
-      const data = await fetchSplitFile(fileEntry.path);
-      cacheManager.set(cacheKey, data);
-      return data;
-    });
+    for (let i = 0; i < index.files.length; i += SPLIT_FILE_BATCH_SIZE) {
+      const batch = index.files.slice(i, i + SPLIT_FILE_BATCH_SIZE);
+      const loadedBatch = await Promise.all(
+        batch.map(async (fileEntry) => {
+          const cacheKey = `split:${fileEntry.path}`;
+          const cached = cacheManager.get<SplitFile>(cacheKey);
+          if (cached) {
+            return cached;
+          }
 
-    return Promise.all(promises);
+          const data = await fetchSplitFile(fileEntry.path);
+          cacheManager.set(cacheKey, data);
+          return data;
+        })
+      );
+      splitFiles.push(...loadedBatch);
+    }
+
+    return splitFiles;
   }
 
   /**

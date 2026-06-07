@@ -51,7 +51,7 @@ export interface IndexFile {
  * 現在は使用していないが、Phase 1のジェネレーター改善時に使用予定
  */
 export interface IndexFileFormat {
-  /** スキーマバージョン（セマンティックバージョニング） */
+  /** スキーマバージョン（例: 1.0.0） */
   schema_version: `${number}.${number}.${number}`;
 
   /** 最低限必要なリーダーバージョン（後方互換性の明示） */
@@ -110,7 +110,17 @@ export interface FileEntry {
 // ============================================
 
 /** アイテムの種類 */
-export type ItemType = 'struct' | 'enum' | 'trait' | 'fn' | 'impl' | 'mod' | 'const' | 'type' | 'method';
+export type ItemType =
+  | 'struct'
+  | 'enum'
+  | 'trait'
+  | 'function'
+  | 'fn'
+  | 'impl'
+  | 'mod'
+  | 'const'
+  | 'type'
+  | 'method';
 
 /** アイテムID（一意性保証のフォーマット） */
 export type ItemId = `${string}::${string}::${ItemType}`;
@@ -174,12 +184,6 @@ export interface CodeItem {
   /** シグネチャ（関数の場合は引数と戻り値を含む） */
   signature: string;
 
-  /** 1行概要（セマンティック情報、Phase 2出力でマージ） */
-  summary?: string;
-
-  /** 責務説明（セマンティック情報、Phase 2出力でマージ） */
-  responsibility?: string;
-
   /** 可視性 */
   visibility?: 'pub' | 'pub(crate)' | 'pub(super)' | 'private';
 
@@ -221,8 +225,9 @@ export interface CallGraphIndex {
 
   /** 統計情報 */
   statistics: {
-    total_nodes: number;
+    total_nodes?: number;
     total_edges: number;
+    chunk_count?: number;
   };
 }
 
@@ -234,10 +239,13 @@ export interface ChunkEntry {
   path: string;
 
   /** 含まれるソースディレクトリ */
-  source_dirs: string[];
+  source_dirs?: string[];
+
+  /** 含まれるソースファイル */
+  source_files?: string[];
 
   /** ノード数 */
-  node_count: number;
+  node_count?: number;
 
   /** エッジ数 */
   edge_count: number;
@@ -314,53 +322,4 @@ export interface SearchIndex {
 
   /** トークン → アイテムIDリストのマッピング */
   tokens: Record<string, ItemId[]>;
-}
-
-// ============================================
-// semantic/*.json（Phase 2 LLM出力）
-// ============================================
-
-/**
- * セマンティックファイル（Phase 2 出力）
- */
-export interface SemanticFile {
-  /** ソースファイルパス */
-  path: string;
-
-  /** 生成日時（ISO 8601形式） */
-  generated_at?: string;
-
-  /** アイテムの意味情報 */
-  items: SemanticItem[];
-
-  /** テストの意味情報 */
-  tests: SemanticTest[];
-}
-
-/**
- * アイテムの意味情報
- */
-export interface SemanticItem {
-  /** 対応するアイテムのID */
-  id: ItemId;
-
-  /** 1行説明（最大50文字） */
-  summary: string;
-
-  /** 責務説明（struct/enumのみ、最大100文字） */
-  responsibility?: string;
-}
-
-/**
- * テストの意味情報
- */
-export interface SemanticTest {
-  /** テストのID */
-  id: string;
-
-  /** テストの目的（最大50文字） */
-  summary: string;
-
-  /** テスト対象のアイテムID */
-  tested_item?: ItemId;
 }

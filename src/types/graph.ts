@@ -78,6 +78,35 @@ export interface CytoscapeData {
 
   /** エッジ配列 */
   edges: CytoscapeEdge[];
+
+  /** 読み込み状況のメタデータ */
+  meta?: GraphLoadMeta;
+}
+
+/**
+ * グラフ読み込み状況
+ */
+export interface GraphLoadMeta {
+  /** 表示データが全体の一部かどうか */
+  isPartial: boolean;
+
+  /** 総エッジ数 */
+  totalEdges: number;
+
+  /** 読み込んだエッジ数 */
+  loadedEdges: number;
+
+  /** 総ファイル数 */
+  totalFiles: number;
+
+  /** 読み込んだ分割ファイル数 */
+  loadedFiles: number;
+
+  /** 読み込んだノード数 */
+  loadedNodes: number;
+
+  /** 読み込み元 */
+  source: 'chunked' | 'legacy';
 }
 
 // ============================================

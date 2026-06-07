@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import type { SourceFile, ItemId, SemanticTest } from '@/types/schema';
+import type { SourceFile, ItemId } from '@/types/schema';
 import type { CallersIndex } from '@/types/callers';
 import type { NavigationHistoryEntry } from '@/types/navigation';
 import { ItemSummary } from './ItemSummary';
@@ -25,8 +25,6 @@ interface DetailPanelProps {
   onSelectItem: (id: ItemId) => void;
   /** Callersインデックス */
   callersIndex: CallersIndex | null;
-  /** セマンティックテスト情報 */
-  semanticTests: SemanticTest[];
   /** ナビゲーション履歴 */
   navigationHistory?: NavigationHistoryEntry[];
   /** 指定インデックスのエントリに移動 */
@@ -54,7 +52,6 @@ export function DetailPanel({
   selectedItemId,
   onSelectItem,
   callersIndex,
-  semanticTests,
   navigationHistory = [],
   onNavigateTo,
   onShowInGraph,
@@ -91,7 +88,7 @@ export function DetailPanel({
   // アイテム選択済み: ItemSummary + Callers + 影響分析
   if (selectedItem) {
     const isFunctionType =
-      selectedItem.type === 'fn' || selectedItem.type === 'method';
+      selectedItem.type === 'fn' || selectedItem.type === 'function' || selectedItem.type === 'method';
     const isStructOrEnum =
       selectedItem.type === 'struct' || selectedItem.type === 'enum';
     const hasFields =
@@ -178,7 +175,6 @@ export function DetailPanel({
           {/* アイテム詳細（Callersは概要→責務→シグネチャ→テストの後に挿入） */}
           <ItemSummary
             item={selectedItem}
-            semanticTests={semanticTests}
             testsExpanded={testsExpanded}
             onToggleTests={() => setTestsExpanded(!testsExpanded)}
           >
@@ -262,7 +258,6 @@ export function DetailPanel({
         {/* グループ化されたアイテム一覧 */}
         <GroupedItemList
           items={file.items}
-          semanticTests={semanticTests}
           onSelectItem={onSelectItem}
           onShowInSchema={onShowInSchema}
         />

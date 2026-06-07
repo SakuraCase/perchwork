@@ -59,23 +59,8 @@ export function StructGroupView({ group, onSelectItem, onShowInSchema }: StructG
         )}
       </button>
 
-      {/* 概要（ヘッダー直下、展開状態に関係なく表示） */}
-      {group.item.summary && (
-        <p className="px-4 py-1 text-sm text-stone-500">
-          {group.item.summary}
-        </p>
-      )}
-
       {expanded && (
         <div className="px-4 py-3 space-y-3 bg-stone-800">
-          {/* 責務 */}
-          {group.item.responsibility && (
-            <div className="text-sm">
-              <div className="text-stone-500 mb-1">責務:</div>
-              <p className="text-stone-300">{group.item.responsibility}</p>
-            </div>
-          )}
-
           {/* フィールド/バリアント */}
           {group.fields.length > 0 && (
             <div className="text-sm">
@@ -116,7 +101,7 @@ export function StructGroupView({ group, onSelectItem, onShowInSchema }: StructG
             <div className="space-y-1">
               <div className="text-xs text-stone-500 mb-1">直接テスト:</div>
               {group.directTests.map((test) => (
-                <CompactTestItem key={test.id} testId={test.id} summary={test.summary} showName={false} />
+                <CompactTestItem key={test.id} testId={test.id} showName={false} />
               ))}
             </div>
           )}
@@ -196,11 +181,6 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
         )}
       </div>
 
-      {/* メソッド概要（常に表示） */}
-      {method.item.summary && (
-        <p className="pl-4 text-sm text-stone-500">{method.item.summary}</p>
-      )}
-
       {/* 関連テスト */}
       {expanded && hasTests && (
         <div className="pl-4 space-y-1 mt-1">
@@ -208,7 +188,6 @@ function MethodView({ method, onSelectItem }: MethodViewProps) {
             <CompactTestItem
               key={test.id}
               testId={test.id}
-              summary={test.summary}
               showName={false}
             />
           ))}

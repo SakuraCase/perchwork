@@ -7,6 +7,4 @@ export * from './ui';
 export * from './graph';
 export * from './callers';
 export * from './navigation';
-export * from './note';
 export * from './complexity';
-export * from './review';

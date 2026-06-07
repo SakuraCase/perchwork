@@ -2,12 +2,12 @@
  * ItemSummary コンポーネント
  *
  * 選択されたコードアイテムの詳細情報を表示する。
- * 概要、責務、シグネチャ、テスト参照、フィールド、依存関係を視覚的に提示。
+ * シグネチャ、テスト参照、フィールド、依存関係を視覚的に提示。
  * childrenはテストセクションの後に挿入される（Callers等）。
  */
 
 import type { ReactNode } from 'react';
-import type { CodeItem, SemanticTest } from '@/types/schema';
+import type { CodeItem } from '@/types/schema';
 import type { TestInfo } from '@/utils/itemGrouper';
 import { Badge } from '@/components/common/Badge';
 import { CollapsibleSection } from '@/components/common/CollapsibleSection';
@@ -17,8 +17,6 @@ import { typeToVariant, visibilityToVariant } from '@/utils/badgeStyles';
 interface ItemSummaryProps {
   /** 表示対象のコードアイテム */
   item: CodeItem;
-  /** セマンティックテスト情報 */
-  semanticTests?: SemanticTest[];
   /** テストセクションの後に挿入されるコンテンツ（Callers等） */
   children?: ReactNode;
   /** テストセクションの展開状態 */
@@ -32,19 +30,15 @@ interface ItemSummaryProps {
  *
  * コードアイテムの詳細情報を階層的に表示。
  * シグネチャはコードブロック風に、テスト・依存関係はセクション化して提示。
- * 表示順序: 概要 → 責務 → シグネチャ → テスト → children(Callers) → フィールド → 依存関係
+ * 表示順序: シグネチャ → テスト → children(Callers) → フィールド → 依存関係
  */
 export function ItemSummary({
   item,
-  semanticTests = [],
   children,
   testsExpanded = true,
   onToggleTests,
 }: ItemSummaryProps) {
-  // semanticTestsからこのアイテムに紐づくテストを検索
-  const itemTests: TestInfo[] = semanticTests
-    .filter((test) => test.tested_item === item.id)
-    .map((test) => ({ id: test.id, summary: test.summary }));
+  const itemTests: TestInfo[] = (item.tested_by ?? []).map((id) => ({ id }));
 
   return (
     <div className="space-y-4">
@@ -72,22 +66,6 @@ export function ItemSummary({
         </p>
       </div>
 
-      {/* 概要（存在する場合のみ） */}
-      {item.summary && (
-        <div>
-          <h3 className="text-sm font-semibold text-stone-400 mb-2">概要</h3>
-          <p className="text-stone-300 text-sm leading-relaxed">{item.summary}</p>
-        </div>
-      )}
-
-      {/* 責務（存在する場合のみ） */}
-      {item.responsibility && (
-        <div>
-          <h3 className="text-sm font-semibold text-stone-400 mb-2">責務</h3>
-          <p className="text-stone-300 text-sm leading-relaxed">{item.responsibility}</p>
-        </div>
-      )}
-
       {/* シグネチャ */}
       <div>
         <h3 className="text-sm font-semibold text-stone-400 mb-2">シグネチャ</h3>
@@ -101,7 +79,7 @@ export function ItemSummary({
         </pre>
       </div>
 
-      {/* テスト参照（semanticTestsから直接取得） */}
+      {/* テスト参照 */}
       {itemTests.length > 0 && onToggleTests && (
         <CollapsibleSection
           title="テスト"
@@ -111,7 +89,7 @@ export function ItemSummary({
         >
           <div className="space-y-2">
             {itemTests.map((test) => (
-              <TestItem key={test.id} testId={test.id} summary={test.summary} />
+              <TestItem key={test.id} testId={test.id} />
             ))}
           </div>
         </CollapsibleSection>

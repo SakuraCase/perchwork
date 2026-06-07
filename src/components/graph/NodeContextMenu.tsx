@@ -146,7 +146,7 @@ export function NodeContextMenu({
 
   // シーケンス図表示可能かどうか（method/fn のみ）
   const canShowSequenceDiagram =
-    onOpenSequenceDiagram && (nodeType === 'method' || nodeType === 'fn');
+    onOpenSequenceDiagram && (nodeType === 'method' || nodeType === 'fn' || nodeType === 'function');
 
   // ============================================
   // レンダリング

@@ -8,7 +8,6 @@ import { useState, useEffect, useCallback } from "react";
 import type {
   DuplicationIndex,
   DuplicationGroup,
-  DuplicationStats,
 } from "../types/duplication";
 import {
   fetchDuplicationIndex,
@@ -141,50 +140,6 @@ export function useDuplicationDataLoader() {
   }, []);
 
   /**
-   * 重要度が high または medium の重複のみを取得
-   */
-  const getSignificantDuplicates = useCallback(() => {
-    if (!index) return [];
-    return index.duplicates.filter(
-      (d) => d.severity === "high" || d.severity === "medium"
-    );
-  }, [index]);
-
-  /**
-   * 重要度 high/medium の統計情報を取得
-   */
-  const getSignificantStats = useCallback((): DuplicationStats | null => {
-    if (!index) return null;
-    const significant = getSignificantDuplicates();
-    const highCount = significant.filter((d) => d.severity === "high").length;
-    const mediumCount = significant.filter(
-      (d) => d.severity === "medium"
-    ).length;
-    const totalLines = significant.reduce(
-      (sum, d) => sum + d.lines * d.location_count,
-      0
-    );
-
-    return {
-      total_files: index.stats.total_files,
-      total_duplicates: significant.length,
-      total_duplicated_lines: totalLines,
-      duplication_percentage: index.stats.duplication_percentage,
-      high_severity_count: highCount,
-      medium_severity_count: mediumCount,
-      needs_fix_count: significant.filter((d) => d.needs_fix).length,
-    };
-  }, [index, getSignificantDuplicates]);
-
-  /**
-   * 全体の統計情報を取得（重要度関係なく全ての重複）
-   */
-  const getAllStats = useCallback((): DuplicationStats | null => {
-    if (!index) return null;
-    return index.stats;
-  }, [index]);
-
-  /**
    * 重複データが存在するかどうか
    */
   const hasDuplicationData = useCallback((): boolean => {
@@ -200,9 +155,6 @@ export function useDuplicationDataLoader() {
     getSortedDuplicates,
     getDuplicatesForFile,
     clearSelectedGroup,
-    getSignificantDuplicates,
-    getSignificantStats,
-    getAllStats,
     hasDuplicationData,
   };
 }

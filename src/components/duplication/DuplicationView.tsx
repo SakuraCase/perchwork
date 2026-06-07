@@ -56,7 +56,10 @@ export function DuplicationView({
             重複検出データがありません
           </p>
           <p className="text-stone-500 text-sm">
-            <code>/analyze</code> を実行して重複検出データを生成してください
+            <code className="bg-stone-800 px-2 py-1 rounded">
+              npm run analyze:duplication
+            </code>
+            を実行して重複検出データを生成してください
           </p>
         </div>
       </div>
@@ -87,7 +90,7 @@ export function DuplicationView({
               <div className="text-lg font-bold text-orange-400">
                 {index.stats.total_duplicates}
               </div>
-              <div className="text-xs text-stone-500">重複ペア</div>
+              <div className="text-xs text-stone-500">重複グループ</div>
             </div>
             <div>
               <div className="text-lg font-bold text-orange-400">

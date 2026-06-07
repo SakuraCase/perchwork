@@ -20,7 +20,6 @@ import {
   buildFunctionDepthSettings,
   type DepthConfig,
 } from '../services/mermaidGenerator';
-import type { SummaryMap } from '../services/semanticLoader';
 
 /**
  * useSequenceDiagram の戻り値型
@@ -109,7 +108,6 @@ const initialState: SequenceDiagramState = {
  * シーケンス図の生成と管理を行うカスタムフック
  *
  * @param graphData - グラフデータ
- * @param summaries - ItemId → summary のマップ（オプション）
  * @returns シーケンス図操作API
  */
 /**
@@ -120,8 +118,7 @@ function generateId(): string {
 }
 
 export function useSequenceDiagram(
-  graphData: CytoscapeData | null,
-  summaries?: SummaryMap
+  graphData: CytoscapeData | null
 ): UseSequenceDiagramResult {
   const [state, setState] = useState<SequenceDiagramState>(initialState);
   const [useActivation, setUseActivation] = useState<boolean>(true);
@@ -168,14 +165,13 @@ export function useSequenceDiagram(
           defaultDepth,
           functionDepths: depthMap,
         },
-        summaries,
         useActivation: activation,
         editState: currentEditState,
       });
 
       return { mermaidCode: result.mermaidCode, calls: result.calls };
     },
-    [graphData, summaries]
+    [graphData]
   );
 
   /**
