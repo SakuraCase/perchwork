@@ -2,7 +2,7 @@
  * SearchBox.tsx
  *
  * ヘッダー検索ボックスコンポーネント
- * ID部分一致で候補をプルダウン表示
+ * ID・名前・ファイルパスの部分一致で候補をプルダウン表示
  */
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -19,6 +19,8 @@ const MAX_PER_STRUCT = 3;
 
 /** デバウンス遅延（ミリ秒） */
 const DEBOUNCE_DELAY = 150;
+
+const SEARCH_SEPARATOR_PATTERN = /[\s:_./\\-]+/g;
 
 interface SearchBoxProps {
   /** 検索候補データ */
@@ -46,6 +48,7 @@ function getTypeBadgeColor(type: string): string {
       return 'bg-emerald-600';
     case 'enum':
       return 'bg-amber-600';
+    case 'function':
     case 'fn':
       return 'bg-indigo-600';
     case 'method':
@@ -57,6 +60,88 @@ function getTypeBadgeColor(type: string): string {
     default:
       return 'bg-stone-600';
   }
+}
+
+function normalizeSearchText(value: string): string {
+  return value.toLowerCase().replace(SEARCH_SEPARATOR_PATTERN, ' ').trim();
+}
+
+function compactSearchText(value: string): string {
+  return value.toLowerCase().replace(SEARCH_SEPARATOR_PATTERN, '');
+}
+
+function getSearchFields(item: SearchIndexItem): string[] {
+  const fileWithoutExtension = item.filePath.replace(/\.json$/, '');
+
+  return [
+    item.id,
+    item.name,
+    item.displayName,
+    item.filePath,
+    fileWithoutExtension,
+    `${fileWithoutExtension}::${item.displayName}`,
+  ];
+}
+
+function getSearchScore(item: SearchIndexItem, query: string): number | null {
+  const lowerQuery = query.trim().toLowerCase();
+  const normalizedQuery = normalizeSearchText(query);
+  const compactQuery = compactSearchText(query);
+  const queryTokens = normalizedQuery.split(' ').filter(Boolean);
+
+  if (!lowerQuery || !compactQuery || queryTokens.length === 0) {
+    return null;
+  }
+
+  const fields = getSearchFields(item);
+  const lowerFields = fields.map((field) => field.toLowerCase());
+  const normalizedFields = fields.map(normalizeSearchText);
+  const compactFields = fields.map(compactSearchText);
+  const combinedNormalized = normalizedFields.join(' ');
+  const combinedCompact = compactFields.join(' ');
+
+  const matches =
+    lowerFields.some((field) => field.includes(lowerQuery)) ||
+    combinedCompact.includes(compactQuery) ||
+    queryTokens.every(
+      (token) => combinedNormalized.includes(token) || combinedCompact.includes(token)
+    );
+
+  if (!matches) {
+    return null;
+  }
+
+  const lowerId = item.id.toLowerCase();
+  const lowerName = item.name.toLowerCase();
+  const lowerDisplayName = item.displayName.toLowerCase();
+  const lowerFilePath = item.filePath.toLowerCase();
+  const compactId = compactSearchText(item.id);
+  const compactName = compactSearchText(item.name);
+  const compactDisplayName = compactSearchText(item.displayName);
+
+  if (lowerId === lowerQuery) return 0;
+  if (lowerName === lowerQuery || lowerDisplayName === lowerQuery) return 1;
+  if (lowerId.startsWith(lowerQuery)) return 2;
+  if (lowerName.startsWith(lowerQuery) || lowerDisplayName.startsWith(lowerQuery)) return 3;
+  if (compactId === compactQuery) return 4;
+  if (compactName === compactQuery || compactDisplayName === compactQuery) return 5;
+  if (compactId.includes(compactQuery)) return 6;
+  if (compactName.includes(compactQuery) || compactDisplayName.includes(compactQuery)) return 7;
+  if (lowerFilePath.includes(lowerQuery)) return 8;
+
+  return 9;
+}
+
+function isAllowedForActiveTab(item: SearchIndexItem, activeTab: ViewTab): boolean {
+  if (activeTab === 'sequence') {
+    return item.type === 'method' || item.type === 'fn' || item.type === 'function';
+  }
+
+  if (activeTab === 'schema') {
+    return item.type === 'struct' || item.type === 'enum';
+  }
+
+  return true;
 }
 
 /**
@@ -85,23 +170,24 @@ export function SearchBox({
   const candidates = useMemo(() => {
     if (!debouncedQuery.trim()) return [];
 
-    const lowerQuery = debouncedQuery.toLowerCase();
     const result: SearchIndexItem[] = [];
     const structCount = new Map<string, number>();
+    const scoredItems = items
+      .map((item) => ({
+        item,
+        score: isAllowedForActiveTab(item, activeTab)
+          ? getSearchScore(item, debouncedQuery)
+          : null,
+      }))
+      .filter((entry): entry is { item: SearchIndexItem; score: number } => entry.score !== null)
+      .sort((a, b) => {
+        if (a.score !== b.score) return a.score - b.score;
+        const nameComparison = a.item.displayName.localeCompare(b.item.displayName);
+        if (nameComparison !== 0) return nameComparison;
+        return a.item.id.localeCompare(b.item.id);
+      });
 
-    for (const item of items) {
-      if (!item.id.toLowerCase().includes(lowerQuery)) continue;
-
-      // シーケンスタブではメソッド/関数のみ表示
-      if (activeTab === 'sequence') {
-        if (item.type !== 'method' && item.type !== 'fn') continue;
-      }
-
-      // スキーマタブではstruct/enumのみ表示
-      if (activeTab === 'schema') {
-        if (item.type !== 'struct' && item.type !== 'enum') continue;
-      }
-
+    for (const { item } of scoredItems) {
       // 同一structの制限チェック
       if (item.structName) {
         const count = structCount.get(item.structName) ?? 0;
@@ -151,6 +237,7 @@ export function SearchBox({
       // 検索をクリア
       setQuery('');
       setIsOpen(false);
+      setSelectedIndex(0);
     },
     [activeTab, onSelectGraphNode, onSelectTreeItem, onSelectSequenceMethod, onSelectSchemaType]
   );
@@ -188,7 +275,7 @@ export function SearchBox({
   );
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative w-72" ref={containerRef}>
       {/* 検索入力欄 */}
       <div className="flex items-center bg-stone-800 border border-stone-700 rounded px-3 py-1.5 focus-within:border-orange-500 transition-colors">
         {/* 検索アイコン */}
@@ -213,11 +300,12 @@ export function SearchBox({
           onChange={(e) => {
             setQuery(e.target.value);
             setIsOpen(true);
+            setSelectedIndex(0);
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="ID検索..."
-          className="bg-transparent text-stone-100 text-sm focus:outline-none w-48 placeholder-stone-500"
+          placeholder="ID・名前検索..."
+          className="bg-transparent text-stone-100 text-sm focus:outline-none w-full min-w-0 placeholder-stone-500"
         />
 
         {/* ローディングスピナー */}
@@ -246,24 +334,29 @@ export function SearchBox({
 
       {/* ドロップダウン候補リスト */}
       {isOpen && query.trim() && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-stone-800 border border-stone-700 rounded shadow-lg z-50 max-h-80 overflow-y-auto">
+        <div className="absolute top-full right-0 mt-1 w-[28rem] max-w-[calc(100vw-2rem)] bg-stone-800 border border-stone-700 rounded shadow-lg z-50 max-h-80 overflow-y-auto">
           {candidates.length > 0 ? (
             candidates.map((item, index) => (
               <button
-                key={item.id}
+                key={`${item.filePath}:${item.id}`}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setSelectedIndex(index)}
-                className={`w-full px-3 py-2 text-left flex items-center justify-between transition-colors ${
+                className={`w-full px-3 py-2 text-left flex items-center gap-3 transition-colors ${
                   index === safeSelectedIndex
                     ? 'bg-stone-700'
                     : 'hover:bg-stone-700/50'
                 }`}
               >
-                <span className="text-sm text-stone-100 truncate flex-1 mr-2">
-                  {item.displayName}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm text-stone-100 truncate">
+                    {item.displayName}
+                  </span>
+                  <span className="block text-xs text-stone-500 truncate">
+                    {item.id}
+                  </span>
                 </span>
                 <span
-                  className={`text-xs text-white px-1.5 py-0.5 rounded ${getTypeBadgeColor(item.type)}`}
+                  className={`text-xs text-white px-1.5 py-0.5 rounded flex-shrink-0 ${getTypeBadgeColor(item.type)}`}
                 >
                   {item.type}
                 </span>

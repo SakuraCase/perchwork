@@ -404,6 +404,8 @@ function App() {
    */
   const handleSearchSelectGraph = useCallback(
     async (nodeId: string, filePath: string) => {
+      setActiveTab('graph');
+
       await ensureNodeLoaded(nodeId, filePath);
 
       // ノードを中心表示
@@ -422,6 +424,8 @@ function App() {
    */
   const handleSearchSelectTree = useCallback(
     async (filePath: string, itemId: ItemId) => {
+      setActiveTab('tree');
+
       await handleTreeSelectFile(filePath);
       setTreeSelectedItemId(itemId);
     },
@@ -434,6 +438,7 @@ function App() {
    */
   const handleSearchSelectSequence = useCallback(
     (methodId: ItemId) => {
+      setActiveTab('sequence');
       sequenceDiagram.setRootFunction(methodId);
     },
     [sequenceDiagram]
